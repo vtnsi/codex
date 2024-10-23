@@ -1,0 +1,21 @@
+{
+    "split_id": "",
+    "overall performance": {
+        "metric a": 0.0,
+        "metric b": 0.0
+    },
+    "per sample performance": {
+        "sample 0": {
+            "metric a": 0.0,
+            "metric b": 0.0
+        },
+        "sample 1": {
+            "metric a": 0.0,
+            "metric b": 0.0
+        },
+        "sample 2": {
+            "metric a": 0.0,
+            "metric b": 0.0
+        }
+    }
+}

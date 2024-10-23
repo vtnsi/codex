@@ -1,0 +1,14 @@
+{
+    "split_id": "_0_4_",
+    "test": {
+        "Overall Performance": {
+            "tp": 349,
+            "fp": 109,
+            "fn": 260,
+            "predictions": 458,
+            "ground truth": 609,
+            "precision": 0.7620087336244541,
+            "recall": 0.5730706075533661
+        }
+    }
+}

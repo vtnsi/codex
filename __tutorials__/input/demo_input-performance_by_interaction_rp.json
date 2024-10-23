@@ -1,0 +1,29 @@
+{
+    "mode" : "performance by interaction",
+    
+    "codex_directory" : "./",
+    "config_id" : "__DEMO-pbi_results_rp",
+    "dataset_name" : "RarePlanes",
+    "model_name" : "YOLOv8",
+
+    "data_directory" : "tutorial_materials/datasets_tabular/",
+    "dataset_file" : "RarePlanes_Metadata_Augmented_Processed_localized-tiled-controlpt.csv",
+    "features" : ["Hour_of_Day", "Season", "off_nadir_max", "avg_pan_resolution", "biome", "CONTROL"],
+    "bin_file" : "tutorial_materials/binning/bins-rareplanes_complete.txt",
+    "sample_id_column" : "image_tile_id",
+
+    "universe": null,
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive",
+    "t": [1,2,3],
+
+    "split_folder": "tutorial_materials/splits",
+    "split_file" : "model_2_0_incl.json",
+    "performance_folder": "tutorial_materials/performance",
+    "performance_file" : "performance_2_0_incl.json",    
+    "metric": "P",
+
+    "timed_output": false,
+    "subset": "_included",
+    "display_all_ranks": false
+}

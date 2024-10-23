@@ -1,0 +1,28 @@
+{
+    "mode" : "performance by interaction",
+    
+    "codex_directory" : "./",
+    "config_id" : "__DEMO-pbi_results",
+    "dataset_name" : "Abstract",
+    "model_name" : "",
+
+    "data_directory" : "tutorial_materials/datasets_tabular/",
+    "dataset_file" : "abstract_native.csv",
+    "features" : ["A", "B", "C", "D"],
+    "bin_file" : "tutorial_materials/binning/bins-abstract.txt",
+    "sample_id_column" : "id",
+
+    "universe": null,
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive",
+    "t": [1,2,3],
+
+    "split_folder": "tutorial_materials/splits",
+    "split_file" : "split_00.json",
+    "performance_folder": "tutorial_materials/performance",
+    "performance_file" : "performance_00_ps.json",    
+    "metric": "accuracy",
+
+    "timed_output": false,
+    "subset": ""
+}

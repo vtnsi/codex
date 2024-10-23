@@ -1,0 +1,9 @@
+pandas>=2.1.0
+numpy>=1.23.0
+matplotlib==3.5.1
+seaborn>=0.13.0
+statsmodels==0.14.2
+
+tqdm==4.66.1
+Pillow == 9.0.1
+Bottleneck == 1.4.0

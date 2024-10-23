@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools >= 70.0", "wheel >= 0.43"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex"
+version = "2024.1.0"
+requires-python = ">= 3.8"
+dependencies = [
+        "pandas>=2.1.0",
+        "numpy==1.23.0",
+        "Bottleneck == 1.4.0",
+        "matplotlib>=3.5.1",
+        "seaborn>=0.13.0",
+        "statsmodels==0.14.2",
+        "Pillow",
+        "tqdm"
+]
+authors = [
+  {name = "Erin Lanus", email = "lanus@vt.edu"},
+  {name = "Brian Lee", email = "leebri2n@vt.edu"}
+]
+maintainers = [
+  {name = "Virginia Tech National Security Institute"}
+]
+description = "COverage for Datasets EXplorer (CODEX)"
+readme = "README.md"
+license = {text = "MIT License"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["codex"]
