@@ -1,0 +1,30 @@
+{
+    "mode" : "dataset split evaluation",
+    
+    "codex_directory" : "../../codex-use_cases/rfml",
+    "config_id" : "__exp_dse_tAeA",
+    "dataset_name" : "RFML DataGen",
+    "model_name" : "LIT",
+
+    "data_directory" : "../../rfml-datagen/",
+    "dataset_file" : "metadata56.csv",
+    "features" : ["Center Frequency", "Bandwidth", "SNR"],
+    "bin_file" : "binning/bins.txt",
+    "sample_id_column" : "UUID",   
+    "universe": null,
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive",
+    "t": [1,2,3],
+
+    "split_folder": "splits/",
+    "split_file" : "split_data56.json",
+    "performance_folder": "performance/",
+    "performance_file": null,    
+    "metric": "",
+    
+    "source_name": "trainC",
+    "target_name": "testC",
+
+    "timed_output":false,
+    "subset":""
+}

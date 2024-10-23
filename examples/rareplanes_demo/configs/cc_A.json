@@ -1,0 +1,22 @@
+{
+    "mode" : "dataset evaluation",
+    
+    "codex_directory" : "../codex-use_cases/rareplanesSIE/",
+    "config_id" : "runs/_demoexp-dataset_eval-engineered-pool3",
+    "dataset_name" : "RarePlanes",
+    "model_name" : "YOLOv8n",
+
+    "data_directory" : "../codex-use_cases/rareplanesSIE/metadata_engineered/",
+    "dataset_file" : "RarePlanes_Metadata_Augmented_Processed_localized-tiled-controlpt-pool3.csv",
+    "features" : ["Hour_of_Day", "avg_pan_resolution", "biome"],
+    "bin_file" : "binning/bins-signif.txt",
+    "sample_id_column" : "image_tile_id",
+
+    "universe": null,
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive",
+    "t": [1,2,3],
+
+    "timed_output": false,
+    "subset": ""
+}

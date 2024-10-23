@@ -1,0 +1,36 @@
+{
+    "mode" : "sie demo",
+    
+    "codex_directory" : "rareplanes_demo/",
+    "config_id" : "runs/_demoexp-SIE",
+    "dataset_name" : "Rare Planes",
+    "model_name" : "YOLOv8",
+
+    "data_directory" : "metadata/",
+    "dataset_file" : "RarePlanes_Metadata_Augmented_Processed_localized-tiled-controlpt.csv",
+    "features" : ["Hour_of_Day", "Season", "off_nadir_max", "avg_pan_resolution", "biome", "CONTROL"],
+    "bin_file" : "binning/bins-complete.txt",
+    "sample_id_column" : "image_tile_id",     
+
+    "universe": null,
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive",
+    "t": [1],
+
+    "split_folder": "splits/SIE_splits",
+    "split_file" : [],
+    "performance_folder": "performance/SIE_performance",
+    "performance_file" : [], 
+    "metric": "Precision",
+    "metrics": ["F1", "Precision", "Recall"], 
+    
+    "test set size goal" : "100",
+
+    "original_data_directory": "../shared/rareplanes_SIE/data",
+    "dataset_spec_directory": "",
+    "training_directory": "../YOLO_SIE-E2E",
+
+    "batch size": 512, 
+    "timed_output":false,
+    "subset":null
+}

@@ -1,0 +1,677 @@
+{
+    "_0_0_": {
+        "test_excluded": {
+            "fn": 45,
+            "fp": 27,
+            "ground truth": 105,
+            "precision": 0.6896551724137931,
+            "predictions": 87,
+            "recall": 0.5714285714285714,
+            "test_set_size": 25,
+            "tp": 60
+        },
+        "test_included": {
+            "fn": 194,
+            "fp": 91,
+            "ground truth": 504,
+            "precision": 0.773067331670823,
+            "predictions": 401,
+            "recall": 0.6150793650793651,
+            "test_set_size": 147,
+            "tp": 310
+        }
+    },
+    "_0_1_": {
+        "test_excluded": {
+            "fn": 52,
+            "fp": 21,
+            "ground truth": 127,
+            "precision": 0.78125,
+            "predictions": 96,
+            "recall": 0.5905511811023622,
+            "test_set_size": 33,
+            "tp": 75
+        },
+        "test_included": {
+            "fn": 186,
+            "fp": 84,
+            "ground truth": 482,
+            "precision": 0.7789473684210526,
+            "predictions": 380,
+            "recall": 0.6141078838174274,
+            "test_set_size": 139,
+            "tp": 296
+        }
+    },
+    "_0_2_": {
+        "test_excluded": {
+            "fn": 20,
+            "fp": 15,
+            "ground truth": 54,
+            "precision": 0.6938775510204082,
+            "predictions": 49,
+            "recall": 0.6296296296296297,
+            "test_set_size": 24,
+            "tp": 34
+        },
+        "test_included": {
+            "fn": 206,
+            "fp": 129,
+            "ground truth": 555,
+            "precision": 0.7301255230125523,
+            "predictions": 478,
+            "recall": 0.6288288288288288,
+            "test_set_size": 148,
+            "tp": 349
+        }
+    },
+    "_0_3_": {
+        "test_excluded": {
+            "fn": 138,
+            "fp": 99,
+            "ground truth": 184,
+            "precision": 0.31724137931034485,
+            "predictions": 145,
+            "recall": 0.25,
+            "test_set_size": 49,
+            "tp": 46
+        },
+        "test_included": {
+            "fn": 129,
+            "fp": 67,
+            "ground truth": 425,
+            "precision": 0.8154269972451791,
+            "predictions": 363,
+            "recall": 0.6964705882352941,
+            "test_set_size": 123,
+            "tp": 296
+        }
+    },
+    "_0_4_": {
+        "test_excluded": {
+            "fn": 62,
+            "fp": 9,
+            "ground truth": 139,
+            "precision": 0.8953488372093024,
+            "predictions": 86,
+            "recall": 0.5539568345323741,
+            "test_set_size": 41,
+            "tp": 77
+        },
+        "test_included": {
+            "fn": 198,
+            "fp": 100,
+            "ground truth": 470,
+            "precision": 0.7311827956989247,
+            "predictions": 372,
+            "recall": 0.5787234042553191,
+            "test_set_size": 131,
+            "tp": 272
+        }
+    },
+    "_1_0_": {
+        "test_excluded": {
+            "fn": 72,
+            "fp": 24,
+            "ground truth": 213,
+            "precision": 0.8545454545454545,
+            "predictions": 165,
+            "recall": 0.6619718309859155,
+            "test_set_size": 70,
+            "tp": 141
+        },
+        "test_included": {
+            "fn": 179,
+            "fp": 69,
+            "ground truth": 396,
+            "precision": 0.7587412587412588,
+            "predictions": 286,
+            "recall": 0.547979797979798,
+            "test_set_size": 102,
+            "tp": 217
+        }
+    },
+    "_1_1_": {
+        "test_excluded": {
+            "fn": 98,
+            "fp": 61,
+            "ground truth": 243,
+            "precision": 0.7038834951456311,
+            "predictions": 206,
+            "recall": 0.5967078189300411,
+            "test_set_size": 61,
+            "tp": 145
+        },
+        "test_included": {
+            "fn": 152,
+            "fp": 102,
+            "ground truth": 366,
+            "precision": 0.6772151898734177,
+            "predictions": 316,
+            "recall": 0.5846994535519126,
+            "test_set_size": 111,
+            "tp": 214
+        }
+    },
+    "_1_2_": {
+        "test_excluded": {
+            "fn": 125,
+            "fp": 68,
+            "ground truth": 153,
+            "precision": 0.2916666666666667,
+            "predictions": 96,
+            "recall": 0.1830065359477124,
+            "test_set_size": 41,
+            "tp": 28
+        },
+        "test_included": {
+            "fn": 183,
+            "fp": 153,
+            "ground truth": 456,
+            "precision": 0.6408450704225352,
+            "predictions": 426,
+            "recall": 0.5986842105263158,
+            "test_set_size": 131,
+            "tp": 273
+        }
+    },
+    "_2_0_": {
+        "test_excluded": {
+            "fn": 137,
+            "fp": 58,
+            "ground truth": 364,
+            "precision": 0.7964912280701755,
+            "predictions": 285,
+            "recall": 0.6236263736263736,
+            "test_set_size": 106,
+            "tp": 227
+        },
+        "test_included": {
+            "fn": 110,
+            "fp": 52,
+            "ground truth": 245,
+            "precision": 0.7219251336898396,
+            "predictions": 187,
+            "recall": 0.5510204081632653,
+            "test_set_size": 66,
+            "tp": 135
+        }
+    },
+    "_2_1_": {
+        "test_excluded": {
+            "fn": 77,
+            "fp": 26,
+            "ground truth": 125,
+            "precision": 0.6486486486486487,
+            "predictions": 74,
+            "recall": 0.384,
+            "test_set_size": 33,
+            "tp": 48
+        },
+        "test_included": {
+            "fn": 171,
+            "fp": 81,
+            "ground truth": 484,
+            "precision": 0.7944162436548223,
+            "predictions": 394,
+            "recall": 0.6466942148760331,
+            "test_set_size": 139,
+            "tp": 313
+        }
+    },
+    "_2_2_": {
+        "test_excluded": {
+            "fn": 82,
+            "fp": 33,
+            "ground truth": 120,
+            "precision": 0.5352112676056338,
+            "predictions": 71,
+            "recall": 0.31666666666666665,
+            "test_set_size": 33,
+            "tp": 38
+        },
+        "test_included": {
+            "fn": 179,
+            "fp": 54,
+            "ground truth": 489,
+            "precision": 0.8516483516483516,
+            "predictions": 364,
+            "recall": 0.6339468302658486,
+            "test_set_size": 139,
+            "tp": 310
+        }
+    },
+    "_3_0_": {
+        "test_excluded": {
+            "fn": 215,
+            "fp": 106,
+            "ground truth": 377,
+            "precision": 0.6044776119402985,
+            "predictions": 268,
+            "recall": 0.4297082228116711,
+            "test_set_size": 90,
+            "tp": 162
+        },
+        "test_included": {
+            "fn": 100,
+            "fp": 81,
+            "ground truth": 232,
+            "precision": 0.6197183098591549,
+            "predictions": 213,
+            "recall": 0.5689655172413793,
+            "test_set_size": 82,
+            "tp": 132
+        }
+    },
+    "_3_1_": {
+        "test_excluded": {
+            "fn": 25,
+            "fp": 15,
+            "ground truth": 82,
+            "precision": 0.7916666666666666,
+            "predictions": 72,
+            "recall": 0.6951219512195121,
+            "test_set_size": 32,
+            "tp": 57
+        },
+        "test_included": {
+            "fn": 246,
+            "fp": 123,
+            "ground truth": 527,
+            "precision": 0.6955445544554455,
+            "predictions": 404,
+            "recall": 0.5332068311195446,
+            "test_set_size": 140,
+            "tp": 281
+        }
+    },
+    "_3_2_": {
+        "test_excluded": {
+            "fn": 20,
+            "fp": 3,
+            "ground truth": 78,
+            "precision": 0.9508196721311475,
+            "predictions": 61,
+            "recall": 0.7435897435897436,
+            "test_set_size": 25,
+            "tp": 58
+        },
+        "test_included": {
+            "fn": 205,
+            "fp": 118,
+            "ground truth": 531,
+            "precision": 0.7342342342342343,
+            "predictions": 444,
+            "recall": 0.6139359698681732,
+            "test_set_size": 147,
+            "tp": 326
+        }
+    },
+    "_3_3_": {
+        "test_excluded": {
+            "fn": 52,
+            "fp": 40,
+            "ground truth": 72,
+            "precision": 0.3333333333333333,
+            "predictions": 60,
+            "recall": 0.2777777777777778,
+            "test_set_size": 25,
+            "tp": 20
+        },
+        "test_included": {
+            "fn": 191,
+            "fp": 118,
+            "ground truth": 537,
+            "precision": 0.7456896551724138,
+            "predictions": 464,
+            "recall": 0.6443202979515829,
+            "test_set_size": 147,
+            "tp": 346
+        }
+    },
+    "_4_0_": {
+        "test_excluded": {
+            "fn": 4,
+            "fp": 4,
+            "ground truth": 19,
+            "precision": 0.7894736842105263,
+            "predictions": 19,
+            "recall": 0.7894736842105263,
+            "test_set_size": 8,
+            "tp": 15
+        },
+        "test_included": {
+            "fn": 206,
+            "fp": 152,
+            "ground truth": 590,
+            "precision": 0.7164179104477612,
+            "predictions": 536,
+            "recall": 0.6508474576271186,
+            "test_set_size": 164,
+            "tp": 384
+        }
+    },
+    "_4_10_": {
+        "test_excluded": {
+            "fn": 31,
+            "fp": 26,
+            "ground truth": 41,
+            "precision": 0.2777777777777778,
+            "predictions": 36,
+            "recall": 0.24390243902439024,
+            "test_set_size": 9,
+            "tp": 10
+        },
+        "test_included": {
+            "fn": 217,
+            "fp": 109,
+            "ground truth": 568,
+            "precision": 0.7630434782608696,
+            "predictions": 460,
+            "recall": 0.6179577464788732,
+            "test_set_size": 163,
+            "tp": 351
+        }
+    },
+    "_4_11_": {
+        "test_excluded": {
+            "fn": 132,
+            "fp": 63,
+            "ground truth": 260,
+            "precision": 0.6701570680628273,
+            "predictions": 191,
+            "recall": 0.49230769230769234,
+            "test_set_size": 75,
+            "tp": 128
+        },
+        "test_included": {
+            "fn": 120,
+            "fp": 50,
+            "ground truth": 349,
+            "precision": 0.8207885304659498,
+            "predictions": 279,
+            "recall": 0.6561604584527221,
+            "test_set_size": 97,
+            "tp": 229
+        }
+    },
+    "_4_1_": {
+        "test_excluded": {
+            "fn": 5,
+            "fp": 8,
+            "ground truth": 12,
+            "precision": 0.4666666666666667,
+            "predictions": 15,
+            "recall": 0.5833333333333334,
+            "test_set_size": 8,
+            "tp": 7
+        },
+        "test_included": {
+            "fn": 192,
+            "fp": 107,
+            "ground truth": 597,
+            "precision": 0.791015625,
+            "predictions": 512,
+            "recall": 0.678391959798995,
+            "test_set_size": 164,
+            "tp": 405
+        }
+    },
+    "_4_2_": {
+        "test_excluded": {
+            "fn": 18,
+            "fp": 1,
+            "ground truth": 27,
+            "precision": 0.9,
+            "predictions": 10,
+            "recall": 0.3333333333333333,
+            "test_set_size": 8,
+            "tp": 9
+        },
+        "test_included": {
+            "fn": 219,
+            "fp": 81,
+            "ground truth": 582,
+            "precision": 0.8175675675675675,
+            "predictions": 444,
+            "recall": 0.6237113402061856,
+            "test_set_size": 164,
+            "tp": 363
+        }
+    },
+    "_4_3_": {
+        "test_excluded": {
+            "fn": 56,
+            "fp": 16,
+            "ground truth": 63,
+            "precision": 0.30434782608695654,
+            "predictions": 23,
+            "recall": 0.1111111111111111,
+            "test_set_size": 15,
+            "tp": 7
+        },
+        "test_included": {
+            "fn": 260,
+            "fp": 102,
+            "ground truth": 546,
+            "precision": 0.7371134020618557,
+            "predictions": 388,
+            "recall": 0.5238095238095238,
+            "test_set_size": 157,
+            "tp": 286
+        }
+    },
+    "_4_4_": {
+        "test_excluded": {
+            "fn": 7,
+            "fp": 2,
+            "ground truth": 32,
+            "precision": 0.9259259259259259,
+            "predictions": 27,
+            "recall": 0.78125,
+            "test_set_size": 8,
+            "tp": 25
+        },
+        "test_included": {
+            "fn": 201,
+            "fp": 115,
+            "ground truth": 577,
+            "precision": 0.7657841140529531,
+            "predictions": 491,
+            "recall": 0.6516464471403813,
+            "test_set_size": 164,
+            "tp": 376
+        }
+    },
+    "_4_5_": {
+        "test_excluded": {
+            "fn": 15,
+            "fp": 6,
+            "ground truth": 63,
+            "precision": 0.8888888888888888,
+            "predictions": 54,
+            "recall": 0.7619047619047619,
+            "test_set_size": 8,
+            "tp": 48
+        },
+        "test_included": {
+            "fn": 229,
+            "fp": 149,
+            "ground truth": 546,
+            "precision": 0.6802575107296137,
+            "predictions": 466,
+            "recall": 0.5805860805860806,
+            "test_set_size": 164,
+            "tp": 317
+        }
+    },
+    "_4_6_": {
+        "test_excluded": {
+            "fn": 4,
+            "fp": 6,
+            "ground truth": 10,
+            "precision": 0.5,
+            "predictions": 12,
+            "recall": 0.6,
+            "test_set_size": 8,
+            "tp": 6
+        },
+        "test_included": {
+            "fn": 219,
+            "fp": 96,
+            "ground truth": 599,
+            "precision": 0.7983193277310925,
+            "predictions": 476,
+            "recall": 0.6343906510851419,
+            "test_set_size": 164,
+            "tp": 380
+        }
+    },
+    "_4_7_": {
+        "test_excluded": {
+            "fn": 15,
+            "fp": 7,
+            "ground truth": 23,
+            "precision": 0.5333333333333333,
+            "predictions": 15,
+            "recall": 0.34782608695652173,
+            "test_set_size": 8,
+            "tp": 8
+        },
+        "test_included": {
+            "fn": 223,
+            "fp": 75,
+            "ground truth": 586,
+            "precision": 0.8287671232876712,
+            "predictions": 438,
+            "recall": 0.6194539249146758,
+            "test_set_size": 164,
+            "tp": 363
+        }
+    },
+    "_4_8_": {
+        "test_excluded": {
+            "fn": 7,
+            "fp": 7,
+            "ground truth": 16,
+            "precision": 0.5625,
+            "predictions": 16,
+            "recall": 0.5625,
+            "test_set_size": 9,
+            "tp": 9
+        },
+        "test_included": {
+            "fn": 219,
+            "fp": 121,
+            "ground truth": 593,
+            "precision": 0.7555555555555555,
+            "predictions": 495,
+            "recall": 0.6306913996627319,
+            "test_set_size": 163,
+            "tp": 374
+        }
+    },
+    "_4_9_": {
+        "test_excluded": {
+            "fn": 16,
+            "fp": 8,
+            "ground truth": 43,
+            "precision": 0.7714285714285715,
+            "predictions": 35,
+            "recall": 0.627906976744186,
+            "test_set_size": 8,
+            "tp": 27
+        },
+        "test_included": {
+            "fn": 208,
+            "fp": 132,
+            "ground truth": 566,
+            "precision": 0.7306122448979592,
+            "predictions": 490,
+            "recall": 0.6325088339222615,
+            "test_set_size": 164,
+            "tp": 358
+        }
+    },
+    "_5_0_": {
+        "test_excluded": {
+            "fn": 34,
+            "fp": 11,
+            "ground truth": 113,
+            "precision": 0.8777777777777778,
+            "predictions": 90,
+            "recall": 0.6991150442477876,
+            "test_set_size": 33,
+            "tp": 79
+        },
+        "test_included": {
+            "fn": 180,
+            "fp": 100,
+            "ground truth": 496,
+            "precision": 0.7596153846153846,
+            "predictions": 416,
+            "recall": 0.6370967741935484,
+            "test_set_size": 139,
+            "tp": 316
+        }
+    },
+    "_5_1_": {
+        "test_excluded": {
+            "fn": 37,
+            "fp": 26,
+            "ground truth": 115,
+            "precision": 0.75,
+            "predictions": 104,
+            "recall": 0.6782608695652174,
+            "test_set_size": 33,
+            "tp": 78
+        },
+        "test_included": {
+            "fn": 190,
+            "fp": 121,
+            "ground truth": 494,
+            "precision": 0.7152941176470589,
+            "predictions": 425,
+            "recall": 0.6153846153846154,
+            "test_set_size": 139,
+            "tp": 304
+        }
+    },
+    "_5_2_": {
+        "test_excluded": {
+            "fn": 163,
+            "fp": 83,
+            "ground truth": 381,
+            "precision": 0.7242524916943521,
+            "predictions": 301,
+            "recall": 0.5721784776902887,
+            "test_set_size": 106,
+            "tp": 218
+        },
+        "test_included": {
+            "fn": 103,
+            "fp": 60,
+            "ground truth": 228,
+            "precision": 0.6756756756756757,
+            "predictions": 185,
+            "recall": 0.5482456140350878,
+            "test_set_size": 66,
+            "tp": 125
+        }
+    },
+    "_x_": {
+        "test_excluded": {
+            "test_set_size": 0
+        },
+        "test_included": {
+            "fn": 281,
+            "fp": 186,
+            "ground truth": 609,
+            "precision": 0.6381322957198443,
+            "predictions": 514,
+            "recall": 0.5385878489326765,
+            "test_set_size": 172,
+            "tp": 328
+        }
+    }
+}

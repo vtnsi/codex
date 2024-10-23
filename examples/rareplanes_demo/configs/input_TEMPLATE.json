@@ -1,0 +1,28 @@
+{
+    "mode" : "dataset evaluation",
+    "dataset_name" : "RarePlanes",
+    "model_name" : "",
+    
+    "codex_directory" : "rareplanes_demo",
+    "config_id" : "",
+    "build_new_codex_directory*": "",
+
+    "data_directory" : "../codex-use_cases/rareplanes/metadata/",
+    "dataset_file" : "RarePlanes_Metadata_Augmented_Processed_localized-tiled-controlpt.csv",
+    "features" : ["Hour_of_Day", "Season", "off_nadir_max", "avg_pan_resolution", "biome", "CONTROL"],
+    "bin_file" : "bins-partial.txt",
+    "sample_id_column" : "image_tile_id",
+
+    "universe": null,
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive",
+    "t": [1,2,3],
+
+    "split_folder": "exp-SIE_E2E/splits_by_json/",
+    "split_file" : "model_4_4_.json",
+    "performance_folder": "exp-SIE_E2E/SIE_performance/",
+    "performance_file" : "performance_4_4_.json",    
+    "metric": "P",
+
+    "timed_output": false
+}

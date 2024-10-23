@@ -1,0 +1,21 @@
+{
+    "mode" : "dataset evaluation",
+    
+    "codex_directory" : "examples/rfml_demo",
+    "config_id" : "_exp-dataset_eval-0",
+    "dataset_name" : "RFML Demo DataGen",
+    "model_name" : "",
+
+    "data_directory" : "",
+    "dataset_file" : "rfml_metadata.csv",
+    "features" : ["Center Frequency", "Bandwidth", "SNR"],
+    "sample_id_column" : "UUID",   
+    "bin_directory": "",
+    "bin_file" : "bins.txt",
+    "universe": null,
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive",
+    "t": [1,2,3],
+
+    "timed_output":true
+}

@@ -1,0 +1,30 @@
+{
+    "mode" : "model probing",
+    
+    "codex_directory" : "./",
+    "config_id" : "_DEMO_RESULTS-model_probing",
+    "dataset_name" : "Abstract",
+    "model_name" : "",
+
+    "data_directory" : "tutorial_materials/datasets_tabular/",
+    "dataset_file" : "abstract_native.csv",
+    "features" : ["A", "B", "C", "D"],
+    "bin_file" : "tutorial_materials/binning/bins-abstract.txt",
+    "sample_id_column" : "id",
+
+    "universe": null,
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive",
+    "t": [1,2,3],
+
+    "split_folder": "tutorial_materials/splits",
+    "split_file" : "split_99.json",
+    "performance_folder": "tutorial_materials/performance",
+    "performance_file" : "performance_99_ps.json",    
+    "metric": "accuracy",
+
+    "probe": "_probe",
+    "exploit": "_exploit",
+
+    "timed_output": false
+}
