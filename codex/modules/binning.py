@@ -5,9 +5,12 @@
 
 import pandas
 import sys
+import numpy as np
 
 
 def binfile(unbinnedfile, binningfile):
+    DF = pandas.read_csv(unbinnedfile)
+
     # collect the features and bin levels from the bin file
     universe = dict()
     universe["features"] = []
@@ -23,9 +26,19 @@ def binfile(unbinnedfile, binningfile):
                 levels.append(element)
             universe["features"].append(feature)
             universe["levels"].append(levels)
-
+    
     # go through the csv and replace each value with the bin
-    DF = pandas.read_csv(unbinnedfile)
+    na_dropped = None
+
+    try:
+        DF = DF.drop('Comments', axis=1)
+    except:
+        print("No dropped column found.")
+        
+    if DF.isnull().values.any():
+        na_dropped = DF[~DF.index.isin(DF.dropna().index)]
+        DF = DF.dropna()
+
     for f in range(0, len(universe["features"])):
         # only bin numeric features.
         # included so that binning file can also allow for categorial variables to be given a uniform ordering
@@ -50,11 +63,12 @@ def binfile(unbinnedfile, binningfile):
             rows = DF[feature].tolist()
             for i in range(0, len(rows)):
                 value = rows[i]
-                # print(float('nope'))
                 # REQUIRES SPECIFICATION IN BINNING FILE
                 if type(value) is str:
                     pre_bin = value.split(",")
                     try:
+                        upper = float(pre_bin[1])
+                        lower = float(pre_bin[0])
                         if len(pre_bin) != 1:
                             upper = float(pre_bin[1])
                             lower = float(pre_bin[0])
@@ -69,6 +83,9 @@ def binfile(unbinnedfile, binningfile):
                         )
                     value = average_value_for_binning
 
+                '''if value == np.nan:
+                    print("NaN value encountered. Continuing")
+                    continue'''
                 # print(value, type(value))
                 found = False
                 for j in range(0, len(levels)):
@@ -102,13 +119,18 @@ def binfile(unbinnedfile, binningfile):
                         found = True
                         rows[i] = universe["levels"][f][j]
                         break
+                
                 if not found:
-                    raise ValueError("Error: bin not found for value ", value)
+                    raise ValueError("Error: bin not found for value {}. Feature {}, level {} ".format(value, feature, level))
             colindex = DF.columns.get_loc(feature)
             del DF[feature]
             DF.insert(colindex, feature, rows, allow_duplicates=False)
     binnedfile = unbinnedfile.split(".csv")[0] + "_Binned.csv"
+    dropfile = unbinnedfile.split(".csv")[0] + "_nadropped.csv"
+    if na_dropped is not None:
+        na_dropped.to_csv(dropfile, index=False)
     DF.to_csv(binnedfile, index=False)
+
     return universe, binnedfile
 
 

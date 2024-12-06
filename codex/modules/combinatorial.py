@@ -123,6 +123,7 @@ def convertValueComboToIndex(representation, set, row):
     multiplier = 1
     for col in range(0, len(set)):
         index += representation.data[row][set[col]] * multiplier
+        #print(representation.values[set[col]])
         multiplier *= len(representation.values[set[col]])
     return index
 
@@ -1168,7 +1169,7 @@ def balanced_test_set(
     logging.getLogger(__name__).debug("DataFrame:", dataDF)
 
     k = len(representation.features)
-    t = max(strengths)
+    t = max(strengths) # maximum t
     if t > k:
         print("t =", t, " cannot be greater than number of features k =", k)
         return
@@ -1251,6 +1252,7 @@ def balanced_test_set(
             )
 
             m = min(m, maxPoolForInteraction)
+            print('!!!', m)
 
     logging.getLogger(__name__).debug("\nAll samples: {}".format(allsamplesize))
     logging.getLogger(__name__).debug(
@@ -1314,6 +1316,7 @@ def balanced_test_set(
             trainpoolmodelDF = trainpoolDF[trainpoolDF[feature] != value].reset_index(
                 drop=True
             )  # check if equivalent
+            print('???', trainpoolmodelDF.shape)
             trainpoolmodelDFrepresentation = encoding(trainpoolmodelDF, mMap, True)
             trainpoolmodelCC = combinatorialCoverage(trainpoolmodelDFrepresentation, t)
 
@@ -1334,12 +1337,13 @@ def balanced_test_set(
                         coveredimpossible = (
                             True  # found a 0 that isn't the withheld interaction
                         )
+                        m = len(trainpoolmodelDF) # EXP ADDED 12.03.2024
                         print(
                             "Warning: Model's Training Pool does not cover all other interactions, so constructed train can't either."
                         )
 
             while True:  # execute at least once no matter what
-                # sample
+                # sample from whole train pool
                 trainDF = trainpoolmodelDF.sample(m).reset_index(drop=True)
                 logging.getLogger(__name__).info("Training set:\n", trainDF.to_string())
                 print(
@@ -1395,12 +1399,12 @@ def balanced_test_set(
             includeTestDF = testsetDF[testsetDF[feature] != value]
             excludeTestDF.to_csv(
                 os.path.join(
-                    output_dir, "splits_by_csv", "notcovered_" + modelnumber + ".csv"
+                    output_dir, "splits_by_csv", "notcovered_" + modelnumber + "_t{}.csv".format(t)
                 )
             )
             includeTestDF.to_csv(
                 os.path.join(
-                    output_dir, "splits_by_csv", "covered_" + modelnumber + ".csv"
+                    output_dir, "splits_by_csv", "covered_" + modelnumber + "_t{}.csv".format(t)
                 )
             )
 

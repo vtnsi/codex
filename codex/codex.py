@@ -98,6 +98,7 @@ def run(codex_input, verbose: str):
     - transfer learning dataset augmentation -- also performs image selection from target to augment source
     - performance by interaction -- identifies every t-strength interaction of features in a dataset and relates model performance of samples containing an interaction.
     """
+    codex_input = input_handler.handle_input_file(codex_input)
     output_dir, strengths = input_handler.define_experiment_variables(codex_input)
     timed = codex_input["timed_output"]
     codex_logger(str(verbose), output_dir, timed=timed)
@@ -384,14 +385,14 @@ def performance_by_interaction(
     test_ids = split["test"]
     train_df_sorted = dataset_handler.reorder_df_by_sample(
         sample_id_col,
-        dataset_handler.df_slice_by_id(sample_id_col, dataset_df, train_ids),
+        dataset_handler.df_slice_by_id_reorder(sample_id_col, dataset_df, train_ids),
     )
     test_df_sorted = dataset_handler.reorder_df_by_sample(
         sample_id_col,
-        dataset_handler.df_slice_by_id(sample_id_col, dataset_df, test_ids),
+        dataset_handler.df_slice_by_id_reorder(sample_id_col, dataset_df, test_ids),
     )
     performance_df = dataset_handler.reorder_df_byindex(
-        performance["test"]["Per Sample Performance"]
+        performance["test"]["Per-Sample Performance"]
     )
 
     coverage_results = results_handler.stock_results_empty(

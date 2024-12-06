@@ -88,11 +88,11 @@ def initialize_universe(codex_input):
             bin_directory = codex_input["bin_directory"]
             assert bin_directory is not None
         except:
+            print("No bin_directory found.")
             bin_directory = ""
         bin_path = os.path.join(
             codex_input["codex_directory"], bin_directory, codex_input["bin_file"]
         )
-
         provided_universe, dataset_path = binning.binfile(dataset_path, bin_path)
 
     if codex_input["universe"] is not None and type(codex_input["universe"]) is dict:
