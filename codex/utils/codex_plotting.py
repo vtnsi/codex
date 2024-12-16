@@ -1,6 +1,4 @@
 import statsmodels.regression.linear_model as sm_lin
-import utils.codex_metrics as codex_metrics
-import utils.results_handler as results_parser
 import sys
 import os
 import json
@@ -20,6 +18,8 @@ import scipy
 import statsmodels.api as sm
 from scipy.stats import pearsonr
 import logging
+
+from ..utils import codex_metrics, results_handler
 
 # MAIN PLOTTING ENTRY POINTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -42,7 +42,7 @@ def plot_probe_exploit_suite(
     width = 0.4
 
     bottom_common, bottom_probe_perf, bottom_exploit_perf = (
-        results_parser.consolidated_interaction_info(
+        results_handler.consolidated_interaction_info(
             interactions_probe, interactions_exploit, t
         )
     )
@@ -254,7 +254,7 @@ def plot_pbi_frequency_scatter(
     metric,
     ranks,
     display_all_lr: bool,
-    per_interaction=False,
+    save_per_interaction=False,
 ):
     title_size = 18
     titlepad = 16
@@ -332,10 +332,6 @@ def plot_pbi_frequency_scatter(
             no_slope = True
             p_value_m = np.NaN
 
-        """print('\nMode {}, {}: {}'.format(mode, i, ranks[i]))
-        print((px[-1], py[-1]))
-        print((px[0], py[0]))"""
-
         try:
             m = (py[-1] - py[0]) / (px[-1] - px[0])
             b = py[0] - (m * px[0])
@@ -359,6 +355,20 @@ def plot_pbi_frequency_scatter(
         plt.scatter(x, y, label=ranks[i] + text_str)
         if not no_slope:
             sns.regplot(x=x, y=y)
+        if save_per_interaction:
+            plt.xlabel(
+                "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
+                fontsize=axis_size,
+                labelpad=labelpad,
+            )
+            plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)
+            plt.ylim((0, 1))
+            plt.xlim((-1,1))
+            plt.grid(visible=True, axis="y")
+            plt.legend()
+            filename = 'pxi_performance_vs_freq-{}.png'.format(ranks[i])
+            plt.savefig(os.path.join(outputPath, filename))
+            plt.clf()
 
     plt.xlabel(
         "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
@@ -367,13 +377,12 @@ def plot_pbi_frequency_scatter(
     )
     plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)
     plt.ylim((0, 1))
+    plt.xlim((-1,1))
     plt.grid(visible=True, axis="y")
     plt.legend()
 
-    display_all_lr = True
-    if display_all_lr:
-        if savefig:
-            plt.savefig(os.path.join(outputPath, filename))
+    if savefig:
+        plt.savefig(os.path.join(outputPath, filename))
 
 
 def plot_pbi_bar(

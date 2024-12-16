@@ -19,9 +19,7 @@ import scipy
 import logging
 import glob
 
-import utils.codex_plotting as plotting
-import utils.results_handler as results_handler
-import utils.coverage_mapping as maps
+from ..utils import codex_plotting as plotting, results_handler, coverage_mapping as maps
 
 showfig = False
 savefig = True

@@ -1,11 +1,9 @@
 import seaborn as sns
 import numpy as np
-
-# from sklearn import metrics
-import utils.codex_metrics as metrics
 import textwrap
 import matplotlib.colors
 
+from ..utils import codex_metrics as metrics
 
 def frequency_map(square, counts):
     """

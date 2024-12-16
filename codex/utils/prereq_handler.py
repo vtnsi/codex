@@ -1,5 +1,4 @@
-import utils.input_handler as input_handler
-
+from ..utils import input_handler
 
 def dse_prereq_check(codex_input):
     split, performance, metric = input_handler.extract_sp(codex_input)

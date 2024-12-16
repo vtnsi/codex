@@ -1,8 +1,9 @@
 import os
-import modules.combinatorial as combinatorial
-import modules.output as output
 import json
 
+from ..modules import combinatorial, output
+
+#PIPTEST
 def handle_input_file(input):
     if type(input) is str:
         with open(input) as f:

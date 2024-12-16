@@ -8,26 +8,16 @@ import logging
 import shutil
 import glob
 
-import modules.combinatorial as combinatorial
-import modules.output as output
-import utils.input_handler as input_handler
-import utils.universe_handler as universe_handler
-import utils.prereq_handler as prereq_check
-import utils.results_handler as results_handler
-import utils.dataset_handler as dataset_handler
+from .modules import combinatorial, output
+from .utils import input_handler, universe_handler, prereq_handler as prereq_check, results_handler, dataset_handler
 
-import pandas as pd
 import json
-import math
+import pandas as pd
 from datetime import datetime
 from tqdm import tqdm
 
-import py_waspgen.sie_iq_new as sie_iq
-import utils.SIE_train as sie_train
-import utils.SIE_pred as sie_pred
-import utils.SIE_analysis as sie_analysis
-# import py_waspgen.iq_sie as sie_iq
-
+#import py_waspgen.sie_iq_new as sie_iq
+from .utils import SIE_train as sie_train, SIE_pred as sie_pred, SIE_analysis as sie_analysis
 
 def setup_new_codex_env(dir_name=None, parent_dir="", include_templates=False):
     if dir_name == "rareplanes_demo":
@@ -339,7 +329,7 @@ def dataset_split_comparison(
 
 
 def performance_by_interaction(
-    input,
+    codex_input,
     split,
     performance,
     metric,
@@ -375,9 +365,9 @@ def performance_by_interaction(
     KeyError
         If IDs of split file do not match those of per-sample performance section.
     """
-    dataset_name, model_name = input_handler.extract_names(input)
-    output_dir, strengths = input_handler.define_experiment_variables(input)
-    universe, dataset_df = universe_handler.define_input_space(input)
+    dataset_name, model_name = input_handler.extract_names(codex_input)
+    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
+    universe, dataset_df = universe_handler.define_input_space(codex_input)
     sample_id_col = codex_input["sample_id_column"]
 
     # SORT, THEN RESET INDEX AND DROP
@@ -750,8 +740,10 @@ def systematic_inclusion_exclusion_iq(codex_input, test_set_size_goal):
     iq_data_dir = "../../rfml-datagen/dataset-0912-0/"
     config_path = "/home/hume-users/leebri2n/PROJECTS/dote_1070-1083/py-waspgen/configs/mod_classifier.json"
     output_dir, strengths = input_handler.define_experiment_variables(codex_input)
-
     write_single_files = False
+    
+    # Awaiting PyWASPgen public release
+    sie_iq = None
 
     if write_single_files:
         df, mod_classes = sie_iq.gen_dataset(

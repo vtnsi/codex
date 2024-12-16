@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 
-
 def reorder_df_byindex(df_to_sort, order_ascending=True):
     if type(df_to_sort) is dict:
         print("Sorting and transposing performance JSON...")

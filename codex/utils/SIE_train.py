@@ -1,35 +1,22 @@
-import signal
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+
+import torch
+import torchvision
+from multiprocessing import Process, Pool
+
+from ultralytics import YOLO
 from ultralytics.utils.plotting import plt_color_scatter
 from ultralytics.utils.plotting import plot_results
-from ultralytics import YOLO
-from multiprocessing import Process
-from multiprocessing import Pool
-import multiprocessing
-from tqdm import tqdm
-import torchvision
-import torch
-import numpy
-import pandas as pd
-import random
-import matplotlib.pyplot as plt
-import copy
-import glob
-import shutil
-import yaml
-import json
-import sys
-import os
+
 import typing_extensions
-from importlib import reload
-
-reload(typing_extensions)
-
-
-# import torchaudio
-
-
-print(torch.__version__)
-print(torchvision.__version__)
+import importlib
+importlib.reload(typing_extensions)
+'''print("PyTorch ver: ", torch.__version__)
+print("TorchVision ver: ", torchvision.__version__)'''
 
 
 def write_yml_cls(wf):

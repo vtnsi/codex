@@ -1,11 +1,9 @@
 import os
-import json
-
-import modules.binning as binning
 import logging
 import copy
 import pandas as pd
 
+from ..modules import binning
 
 def extract_metadataset(codex_input, dataset_path):
     """

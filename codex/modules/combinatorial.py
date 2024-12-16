@@ -6,18 +6,16 @@
 
 # -------------------- Imported Modules --------------------
 import os
-import sys
 import math
 import random
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import json
 from scipy.special import comb
 import copy
-import csv
-import modules.output as output
 import logging
+
+from ..modules import output
 
 # -------------------- Global Variables               --------------------#
 labelCentric = False
@@ -1176,7 +1174,7 @@ def balanced_test_set(
 
     # computes CC for one dataset
     CC = combinatorialCoverage(representation, t)
-    logging.getLogger(__name__).debug("CC: {}".format(CC))
+    logging.getLogger(__name__).info("CC: {}".format(CC))
 
     decodedMissing = decodeMissingInteractions(
         representation, computeMissingInteractions(representation, CC)
@@ -1290,6 +1288,11 @@ def balanced_test_set(
     jsondict = cc_dict(CC)
     jsondict["max_training_pool_size"] = m
     jsondict["universal_test_set_size"] = testsamplesize
+
+    # Moved 12.10.24
+    jsondict["max_t"] = t
+    jsondict["countAllCombinations_data"] = CC["countsAllCombinations"]
+    jsondict["countAllCombinations_test"] = testCC["countsAllCombinations"]
 
     # TODO: up until now is test creation, from here is remainder
 
@@ -1430,12 +1433,7 @@ def balanced_test_set(
             "train": trainlist[:cut],
             "validation": trainlist[cut:],
         }
-
-        # with open(os.path.join())
-
-    jsondict["max_t"] = t
-    jsondict["countAllCombinations_data"] = CC["countsAllCombinations"]
-    jsondict["countAllCombinations_test"] = testCC["countsAllCombinations"]
+    
     jsondict["test"] = test
     jsondict["train_pool"] = trainpool
 
@@ -1706,10 +1704,17 @@ def performanceByInteraction_main(
         )
 
     # computes CC for one dataset as well as the performance
-    CC, perf = computePerformanceByInteraction(data, t, performanceDF=performanceDF)
+    CC_test, perf = computePerformanceByInteraction(data, t, performanceDF=performanceDF)
     CC_train = combinatorialCoverage(data_train, t)
 
-    logging.getLogger(__name__).debug("CC over train: {}".format(CC_train))
+    if coverage_subset=='train':
+        CC = CC_train
+    elif coverage_subset=='test':
+        CC=CC_test
+    else:
+        raise KeyError('Coverage over subset {} not found in split file.'.format(coverage_subset))
+
+    logging.getLogger(__name__).debug("CC over train: {}".format(CC))
 
     decodedMissing = decodeMissingInteractions(
         data, computeMissingInteractions(data, CC)
@@ -1724,8 +1729,8 @@ def performanceByInteraction_main(
     jsondict["human readable performance"] = decodePerformanceGroupedCombination(
         data, CC, perf
     )
-    test_ranks = decodeCombinations(data_train, CC_train, t)
-    ranks = decodeCombinations(data_train, CC_train, t)
+    test_ranks = decodeCombinations(data_train, CC, t)
+    ranks = decodeCombinations(data_train, CC, t)
     jsondict["missing interactions"] = decodedMissing
     jsondict["combinations"] = ranks
     jsondict["combination counts"] = CC["countsAllCombinations"]
