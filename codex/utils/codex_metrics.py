@@ -34,3 +34,9 @@ def slope_test(x, y):
     r = [1, 1]
     T_test = results.t_test(np.diag(r))
     return T_test
+
+def standardized_proportion_frequency_bounds(N, c_l):
+    upper_bound = (N-(N/c_l))/N
+    lower_bound = (0-(N/c_l))/N
+
+    return np.floor(lower_bound), np.ceil(upper_bound)

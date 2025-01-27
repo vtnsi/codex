@@ -105,6 +105,7 @@ def dataset_eval_vis(
             t,
             counts,
             ranks,
+
         )
     plt.close("all")
 
@@ -576,20 +577,17 @@ def create_coverage_map(
         title = "{}-way Proportion Frequency Coverage of {}".format(t, dataset_name)
 
     elif mode == "proportion_frequency_standardized":
-        square = np.full([len(counts), boxsize], dtype=float, fill_value=0)
+        c_is = [len(counts_one_combo) for counts_one_combo in counts]
+        vmin = -1 #round(0 - (1/np.min(c_is)), 4)
+        vmax = 1 #round(1 - (1/np.max(c_is)))
+
+        #midpoint = np.mean([vmin, vmax])
+
+        square = np.full([len(counts), boxsize], dtype=float, fill_value=-999)
         square, cmap, cbar_kws = maps.frequency_map_proportion_standardized(
             square, counts
         )
-        # lim = np.max([np.abs(np.min(square)), np.abs(np.max(square))])
-        sorted_possible_props = np.unique(np.partition(square.flatten(), -2))
-        if len(sorted_possible_props) == 1:
-            lim = sorted_possible_props[0]
-        else:
-            lim = np.max(
-                [np.abs(sorted_possible_props[1]), np.abs(sorted_possible_props[-1])]
-            )
-        vmin = -lim
-        vmax = lim
+        cmap.set_under("w")
 
         filename = "CC_frequency_proportion_standardized-t{}_{}_{}.png".format(
             t, dataset_name, subset_name

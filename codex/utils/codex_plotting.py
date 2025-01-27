@@ -312,7 +312,11 @@ def plot_pbi_frequency_scatter(
         subset = range(len(counts))
         filename = "pxi_performance_vs_freq-{}_ALL.png".format(t)
 
-    for i in range(len(counts)):
+    c_l = len(counts)
+    counts_array = np.array(counts, dtype=object)
+
+    N = np.sum(counts_array)
+    for i in range(c_l):
         if i not in subset:
             continue
 
@@ -327,7 +331,6 @@ def plot_pbi_frequency_scatter(
         try:
             T_test = codex_metrics.slope_test(x, y)
             p_value_m = T_test.pvalue[1]
-            """print(p_value_m)"""
         except:
             no_slope = True
             p_value_m = np.NaN
@@ -363,6 +366,7 @@ def plot_pbi_frequency_scatter(
             )
             plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)
             plt.ylim((0, 1))
+            lower, upper = codex_metrics.standardized_proportion_frequency_bounds(N, c_l)
             plt.xlim((-1,1))
             plt.grid(visible=True, axis="y")
             plt.legend()
@@ -444,8 +448,13 @@ def heatmap(
     ylabel=None,
     cbar_ticklabels=None,
     mode=None,
+    outlines=True
 ):
-    plt.figure(figsize=(8, 5))
+    if outlines:
+        linewidths=0.5
+    else:
+        linewidths=0
+    plt.figure(figsize=(12, 7.5))
     heatmap = sns.heatmap(
         square,
         vmin=vmin,
@@ -453,7 +462,7 @@ def heatmap(
         cmap=cmap,
         cbar_kws=cbar_kws,
         yticklabels=rank_labels,
-        linewidths=0,
+        linewidths=linewidths,
         linecolor="black",
     )
     heatmap.tick_params(axis="both", which="both", length=0)
@@ -475,9 +484,9 @@ def heatmap(
         colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
 
     plt.title(title, weight="bold")
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel, labelpad=-5)
-    plt.yticks(rotation=-30)
+    plt.xlabel(xlabel, fontsize=10)
+    plt.ylabel(ylabel, labelpad=-5, fontsize=10)
+    plt.yticks(rotation=0)
     plt.tight_layout(pad=2)
 
     # FIGURE SAVE

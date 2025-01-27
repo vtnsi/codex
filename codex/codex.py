@@ -403,7 +403,7 @@ def performance_by_interaction(
             coverage_subset=coverage_subset,
         )
         # coverage_results_sdcc[t] = combinatorial.SDCC_main(trainDF, 'train', testDF, 'test', universe, t, output_dir, split_id=split_id)
-
+    coverage_results['info']['Overall Performance'] = performance['test']['Overall Performance']
     coverage_results = output.performance_by_interaction_vis(
         output_dir,
         dataset_name,
@@ -414,6 +414,8 @@ def performance_by_interaction(
         display_n,
         subset=coverage_subset,
     )  # , display_all_lr=display_all_ranks)
+    
+    
     return coverage_results
 
 

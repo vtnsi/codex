@@ -1319,7 +1319,7 @@ def balanced_test_set(
             trainpoolmodelDF = trainpoolDF[trainpoolDF[feature] != value].reset_index(
                 drop=True
             )  # check if equivalent
-            print('???', trainpoolmodelDF.shape)
+            print('Trainpool dim', trainpoolmodelDF.shape)
             trainpoolmodelDFrepresentation = encoding(trainpoolmodelDF, mMap, True)
             trainpoolmodelCC = combinatorialCoverage(trainpoolmodelDFrepresentation, t)
 
