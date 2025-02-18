@@ -3,7 +3,7 @@ import logging
 import copy
 import pandas as pd
 
-from ..modules import binning
+from modules import binning
 
 def extract_metadataset(codex_input, dataset_path):
     """
@@ -50,7 +50,7 @@ def __learn_universe__(provided_universe, dataset_df, features):
 
         for i, feature_levels in enumerate(universe["levels"]):
             if len(feature_levels) >= 25:
-                logging.getLogger(__name__).warn(
+                logging.getLogger(__name__).warning(
                     "Over-abundance of levels in the dataset for {}. Consider if this feature requires a binning file.".format(
                         universe["features"][i]
                     )
@@ -88,9 +88,9 @@ def initialize_universe(codex_input):
         except:
             print("No bin_directory found.")
             bin_directory = ""
-        bin_path = os.path.join(
+        bin_path = os.path.abspath(os.path.join(
             codex_input["codex_directory"], bin_directory, codex_input["bin_file"]
-        )
+        ))
         provided_universe, dataset_path = binning.binfile(dataset_path, bin_path)
 
     if codex_input["universe"] is not None and type(codex_input["universe"]) is dict:

@@ -1,7 +1,7 @@
 import os
 import json
 
-from ..modules import combinatorial, output
+from modules import combinatorial, output
 
 #PIPTEST
 def handle_input_file(input):

@@ -6,9 +6,10 @@
 import pandas
 import sys
 import numpy as np
-
+import os
 
 def binfile(unbinnedfile, binningfile):
+    unbinnedfile = os.path.abspath(unbinnedfile)
     DF = pandas.read_csv(unbinnedfile)
 
     # collect the features and bin levels from the bin file
@@ -29,11 +30,6 @@ def binfile(unbinnedfile, binningfile):
     
     # go through the csv and replace each value with the bin
     na_dropped = None
-
-    try:
-        DF = DF.drop('Comments', axis=1)
-    except:
-        print("No dropped column found.")
         
     if DF.isnull().values.any():
         na_dropped = DF[~DF.index.isin(DF.dropna().index)]

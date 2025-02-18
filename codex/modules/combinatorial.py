@@ -15,13 +15,15 @@ from scipy.special import comb
 import copy
 import logging
 
-from ..modules import output
+import output
 
 # -------------------- Global Variables               --------------------#
 labelCentric = False
 verbose = False
 id = None
 identifyImages = False
+
+LOGGER_COMBI = logging.getLogger(__name__)
 
 # --- Functions for Encoding/Decoding To/From Combinatorial Abstraction ----#
 
@@ -191,8 +193,9 @@ def combinatorialCoverage(representation, t):
     # k choose t - number of  combinations of t columns
     kct = comb(kprime, tprime, exact=True)
 
-    logging.getLogger(__name__).info(
-        "k: {}, k': {}, t: {}, t': {}, kct: {}".format(k, kprime, t, tprime, kct)
+    LOGGER_COMBI.log(
+        level=LOGGER_COMBI.level,
+        msg="k: {}, k': {}, t: {}, t': {}, kct: {}".format(k, kprime, t, tprime, kct)
     )
     coverageDataStructure = {
         "t": t,
@@ -220,19 +223,21 @@ def combinatorialCoverage(representation, t):
         # count the combinations that appear in this rank by checking all of the rows in the columns indicated by set[]
         for row in range(0, len(representation.data)):
             index = convertValueComboToIndex(representation, set, row)
-
             symbols = []
+
+            # NOTE, 06.06.24: this loop is huge
             # symbols = convertIndexToValueCombo(representation, index, set, t)
-            # NOTE 06.06.24: this loop is huge
             # logging.getLogger(__name__).debug('Row \t{}\t has symbols: {} corresponding to index {}'.format(row, symbols, index))
             countsEachCombination[index] += 1
 
         countsAllCombinations.append(countsEachCombination)
-        logging.getLogger(__name__).info(
-            "Rank:{}, set:{}, combinations:{}".format(rank, set, interactionsForRank)
+        LOGGER_COMBI.log(
+            level = 15,
+            msg = "Rank:{}, set:{}, combinations:{}".format(rank, set, interactionsForRank)
         )
-        logging.getLogger(__name__).debug(
-            "Counts of each combination:{}".format(countsEachCombination)
+        LOGGER_COMBI.log(
+            level = 15,
+            msg = "Counts of each combination:{}".format(countsEachCombination)
         )
 
         # update the count -- since might be more than 0, count if a cell is nonzero rather than summing the counts
@@ -277,7 +282,8 @@ def setDifferenceCombinatorialCoverage(sourceCoverage, targetCoverage):
         "setDifferenceInteractionsCounts": setDifferenceInteractionsCounts,
     }
     for rank in range(0, len(targetCoverage["countsAllCombinations"])):
-        # logging.getLogger('{}.SDCC'.format(__name__)).debug(targetCoverage['countsAllCombinations'][rank])
+        LOGGER_COMBI.log(level = 15,
+                         msg = targetCoverage['countsAllCombinations'][rank])
 
         counts = [
             0 for i in range(0, len(targetCoverage["countsAllCombinations"][rank]))
@@ -293,7 +299,9 @@ def setDifferenceCombinatorialCoverage(sourceCoverage, targetCoverage):
     setDifferenceStructure["interactionsInTarget"] = interactionsInTarget
     setDifferenceStructure["setDifferenceInteractions"] = setDifferenceInteractions
 
-    logging.getLogger("{}.SDCC".format(__name__)).debug(setDifferenceStructure)
+    LOGGER_COMBI.log(level=15,
+                     msg=setDifferenceStructure)
+    
     return setDifferenceStructure
 
 
@@ -328,7 +336,8 @@ def setDifferenceCombinatorialCoverageConstraints(sourceCoverage, targetCoverage
         "setDifferenceInteractionsCounts": setDifferenceInteractionsCounts,
     }
     for rank in range(0, len(targetCoverage["countsAllCombinations"])):
-        # logging.getLogger('{}.SDCC'.format(__name__)).debug(targetCoverage['countsAllCombinations'][rank])
+        LOGGER_COMBI.log(level=15,
+                         msg = targetCoverage['countsAllCombinations'][rank])
 
         counts = [
             -1 for i in range(0, len(targetCoverage["countsAllCombinations"][rank]))
@@ -352,7 +361,8 @@ def setDifferenceCombinatorialCoverageConstraints(sourceCoverage, targetCoverage
     setDifferenceStructure["interactionsInTarget"] = interactionsInTarget
     setDifferenceStructure["setDifferenceInteractions"] = setDifferenceInteractions
 
-    logging.getLogger("{}.SDCC".format(__name__)).debug(setDifferenceStructure)
+    LOGGER_COMBI.log(level=15,
+                     msg = 'Set difference structure: {}'.format(setDifferenceStructure))
 
     return setDifferenceStructure
 
@@ -384,7 +394,8 @@ def computeMissingInteractions(representation, combinatorialCoverageStructure):
     if labelCentric:
         tprime -= 1  # require t-1 way interactions of all other columns
 
-    # logging.getLogger(__name__).info('t: {}, t\': {}, kct: {}'.format(t, tprime, kct))
+    LOGGER_COMBI.log(msg='t: {}, t\': {}, kct: {}'.format(t, tprime, kct),
+                     level=25)
 
     # stores missing combinations lists of tuples: one for each t-way interaction with (col,val) pair
     missing = []
@@ -423,7 +434,8 @@ def computeMissingInteractions(representation, combinatorialCoverageStructure):
             countAppearingInteractionsInRank / numinteractionsForRank
         )
 
-    # logging.getLogger(__name__).info("MISSING INTERACTIONS:", missing)
+    LOGGER_COMBI.log(msg='Missing interactions: {}'.format(missing),
+                     level=25)
 
     return missing
 
@@ -629,8 +641,8 @@ def CC_main(dataDF, name, universe, t, output_dir):
     mMap = Mapping(universe["features"], universe["levels"], None)
     data = encoding(dataDF, mMap, True)
 
-    logging.getLogger(__name__).debug("Metadata level map:\n", mMap)
-    logging.getLogger(__name__).debug("Data representation:\n ", data)
+    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
+    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data), level=15)
 
     k = len(data.features)
     if t > k:
@@ -640,7 +652,7 @@ def CC_main(dataDF, name, universe, t, output_dir):
     # computes CC for one dataset
     CC = combinatorialCoverage(data, t)
 
-    logging.getLogger(__name__).debug("CC:\n", CC)
+    LOGGER_COMBI.log(msg="CC:{}".format(CC), level=15)
 
     counts = CC["countsAllCombinations"]
     ranks = decodeCombinations(data, CC, t)
@@ -691,21 +703,22 @@ def SDCC_main(
     global verbose, labelCentric, identifyImages
 
     mMap = Mapping(universe["features"], universe["levels"], None)
-    source = encoding(sourceDF, mMap, True)
-    target = encoding(targetDF, source, True)
+    source_data = encoding(sourceDF, mMap, True)
+    target = encoding(targetDF, mMap, True)
 
-    logging.getLogger(__name__).debug("Metadata level map:", mMap)
-    logging.getLogger(__name__).debug("Source:", source)
-    logging.getLogger(__name__).debug("Target:", target)
+    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
+    LOGGER_COMBI.log(msg="'Source' data representation:\n{}".format(source_data), level=15)
+    LOGGER_COMBI.log(msg="'Target' data representation:\n{}".format(target), level=15)
 
-    k = len(source.features)
+    k = len(source_data.features)
 
     # no combos appearing
-    sourceCC = combinatorialCoverage(source, t)
+    sourceCC = combinatorialCoverage(source_data, t)
     targetCC = combinatorialCoverage(target, t)
 
-    logging.getLogger(__name__).debug("Source CC:\n", sourceCC)
-    logging.getLogger(__name__).debug("Target CC:\n", targetCC)
+    LOGGER_COMBI.log(msg="Source CC:\n".format(sourceCC), level=15)
+    LOGGER_COMBI.log(msg="Target CC:\n".format(targetCC), level=15)
+
 
     """Caution: 06.03.24"""
     if comparison_mode:
@@ -713,12 +726,12 @@ def SDCC_main(
     else:
         output_dir = output.make_output_dir_nonexist(output_dir)
 
-    source_ranks = decodeCombinations(source, sourceCC, t)
+    source_ranks = decodeCombinations(source_data, sourceCC, t)
     target_ranks = decodeCombinations(target, targetCC, t)
     assert source_ranks == target_ranks
 
     sourceDecodedMissing = decodeMissingInteractions(
-        source, computeMissingInteractions(source, sourceCC)
+        source_data, computeMissingInteractions(source_data, sourceCC)
     )
     targetDecodedMissing = decodeMissingInteractions(
         target, computeMissingInteractions(target, targetCC)
@@ -759,10 +772,10 @@ def SDCC_main(
         output_dir, targetName, sourceName, t, reverseSDCCconstraints
     )
     reversesetDifferenceInteractions = computeSetDifferenceInteractions(
-        source, reverseSDCCconstraints
+        source_data, reverseSDCCconstraints
     )
     reversedecodedSetDifferenceInteractions = decodeSetDifferenceInteractions(
-        source, reversesetDifferenceInteractions
+        source_data, reversesetDifferenceInteractions
     )
     output.writeSetDifferencetoFile(
         output_dir, targetName, sourceName, t, reversedecodedSetDifferenceInteractions
@@ -876,14 +889,12 @@ def frequencyInteractions(CC, goalSamples):
             ]
             appearancesList.append(temp)
 
-            logging.getLogger(__name__).debug(
-                "Rank {}, index {} appears".format(str(rank), str(index)),
-                appearancesThisInteraction,
-                "times,\tfrequency ",
-                round(percentageOfAllInteractions, 3),
-                "\t",
-                decodeInteraction(data, interaction),
-            )
+            LOGGER_COMBI.log(msg = "Rank {}, index {} appears {} times, frequency of {}.".format(str(rank), str(index), 
+                                                                                                 appearancesThisInteraction, 
+                                                                                                 round(percentageOfAllInteractions, 3), 
+                                                                                                 decodeInteraction(data, interaction)),
+                                                                                                 level=15)
+                
 
             if appearancesThisInteraction < goalSamples[rank]:
                 print(
@@ -902,11 +913,10 @@ def frequencyInteractions(CC, goalSamples):
                     goalSamples[rank],
                 )
 
-        logging.getLogger(__name__).info(
-            "Coverage for rank {} is {}".format(
+        LOGGER_COMBI.log(msg = "Coverage for rank {} is {}".format(
                 rank, countAppearingInteractionsInRank / numInteractionsForRank
-            )
-        )
+            ),
+            level=25)
     return appearancesList
 
 
@@ -1064,24 +1074,20 @@ def testsetPostOptimization(IDs, testCC, goal):
         r.append(i)
         redundancy.append(r)
 
-    logging.getLogger(__name__).debug(
-        "Interaction redundancy list:\n{}{}".format(redundancy, type(redundancy))
-    )
+    LOGGER_COMBI.log(msg = "Interaction redundancy list:\n{}{}".format(redundancy, type(redundancy)),
+                     level=15)
     redundancy.sort(key=lambda x: x[1], reverse=True)
-    logging.getLogger(__name__).debug(
-        "Sorted interaction redundancy list:\n{}{}".format(redundancy, type(redundancy))
-    )
+    LOGGER_COMBI.log(msg = "Interaction redundancy list, sorted:\n{}{}".format(redundancy, type(redundancy)),
+                     level=15)
+
 
     for r in redundancy:
         rank = r[0]
         interactions = r[2]
         interactions.sort(key=lambda x: x[1], reverse=True)
 
-        logging.getLogger(__name__).debug(
-            "Sorted list for finding redundant coverage:\nRank: {}, Interactions: {}".format(
-                rank, interactions
-            )
-        )
+        LOGGER_COMBI.log(msg="Sorted list for finding redundant coverage:\nRank: {}, Interactions: {}".format(rank, interactions),
+                         level=15)
 
         for i in interactions:
             index = i[0]
@@ -1099,9 +1105,8 @@ def testsetPostOptimization(IDs, testCC, goal):
                             match = False
                             break
                     if match:
-                        logging.getLogger(__name__).debug(
-                            "Rank {}-index {} match on row {}".format(rank, index, row)
-                        )
+                        LOGGER_COMBI.log(level=15,
+                                         msg = "Rank {}-index {} match on row {}".format(rank, index, row))
 
                         # determine if removing this row would drop any interaction below the goal for interaction coverage in test
                         remove = True
@@ -1112,11 +1117,14 @@ def testsetPostOptimization(IDs, testCC, goal):
                             index2 = convertValueComboToIndex(representation, set2, row)
 
                             #    symbols = convertIndexToValueCombo(representation, index2, set2, t)
-                            logging.getLogger(__name__).debug(
-                                "Row \t{}\t has symbols: {} corresponding to index {}".format(
-                                    row, symbols, index2
+                            LOGGER_COMBI.log(level=15,
+                                             msg = "Row \t{}\t has symbols: {} corresponding to index {}".format(
+                                                row, symbols, index2
+                                        )
+                                    )
+                            LOGGER_COMBI.log(level=15,
+                                             msg="Row \t{}\t has symbols: {} corresponding to index {}".format(row, symbols, index2)
                                 )
-                            )
 
                             if (
                                 testCC["countsAllCombinations"][rank2][index2]
@@ -1127,14 +1135,14 @@ def testsetPostOptimization(IDs, testCC, goal):
                         if remove:
                             modifyTest(IDs, testCC, row, add=False)
 
-                            logging.getLogger(__name__).debug(
-                                "Removing row {}, {}".format(
-                                    row, representation.data[row]
-                                )
-                            )
-                            logging.getLogger(__name__).debug(
-                                "Resultant test CC: {}".format(testCC)
-                            )
+                            LOGGER_COMBI.log(level=15,
+                                             msg="Removing row {}, {}".format(
+                                                row, representation.data[row]
+                                            )
+                                        )
+                            LOGGER_COMBI.log(level=15,
+                                             msg="Resultant test CC: {}".format(testCC)
+                                        )
     return
 
 
@@ -1160,24 +1168,25 @@ def balanced_test_set(
     mMap = Mapping(universe["features"], universe["levels"], None)
     # produce a random ordering of the data prior to representation creation so multiple runs produce different candidate results
     dataDF = dataDF.sample(frac=1).reset_index(drop=True)
-    representation = encoding(dataDF, mMap, True)
+    data_representation = encoding(dataDF, mMap, True)
 
-    logging.getLogger(__name__).debug("Metadata level map:", mMap)
-    logging.getLogger(__name__).debug("Data represntation:", representation)
-    logging.getLogger(__name__).debug("DataFrame:", dataDF)
+    
+    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
+    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data_representation), level=15)
+    LOGGER_COMBI.log(msg="DataFrame:\n{}".format(dataDF), level=15)
 
-    k = len(representation.features)
+    k = len(data_representation.features)
     t = max(strengths) # maximum t
     if t > k:
         print("t =", t, " cannot be greater than number of features k =", k)
         return
 
     # computes CC for one dataset
-    CC = combinatorialCoverage(representation, t)
-    logging.getLogger(__name__).info("CC: {}".format(CC))
+    CC = combinatorialCoverage(data_representation, t)
+    LOGGER_COMBI.log(level=25, msg="CC: {}".format(CC))
 
     decodedMissing = decodeMissingInteractions(
-        representation, computeMissingInteractions(representation, CC)
+        data_representation, computeMissingInteractions(data_representation, CC)
     )
     output.writeCCtToFile(output_dir, name, t, CC)
     output.writeMissingtoFile(output_dir, name, t, decodedMissing)
@@ -1205,19 +1214,15 @@ def balanced_test_set(
     sortedFrequency = copy.deepcopy(frequency)
     sortedFrequency.sort(key=lambda x: x[3])
 
-    logging.getLogger(__name__).info(
-        "\nGoal # samples per rank in test set: {}\n".format(goal)
-    )
-    logging.getLogger(__name__).debug(
-        "Sorted number and frequency of interactions: {}".format(sortedFrequency)
-    )
+    LOGGER_COMBI.log(level=25, msg="\nGoal # samples per rank in test set: {}\n".format(goal))
+    LOGGER_COMBI.log(level=25, msg="Sorted number and frequency of interactions: {}".format(sortedFrequency))
 
     # create a data structure that maps sample IDs from data to the index in the data representation of encoded
     # features of the sample as well as whether the sample has been added to the Test set
     # and give the sample a score that is the sum of interaction frequencies contained in the sample
     idlist = list(dataDF[sampleID])
     IDs = dict()  # Empty dict
-    for index in range(0, len(representation.data)):
+    for index in range(0, len(data_representation.data)):
         IDs[index] = {"id": idlist[index], "inTest": False, "score": 0}
 
     # Pass 1 build the test set
@@ -1243,8 +1248,7 @@ def balanced_test_set(
             )
             maxPoolForInteraction = allsamplesize - testsamplesize - samplesnotintest
 
-            logging.getLogger(__name__).debug(
-                "Rank {}, i {}, maximum pool size for interaction: {}".format(
+            LOGGER_COMBI.log(level=25, msg="Rank {}, i {}, maximum pool size for interaction: {}".format(
                     rank, i, maxPoolForInteraction
                 )
             )
@@ -1252,11 +1256,9 @@ def balanced_test_set(
             m = min(m, maxPoolForInteraction)
             print('!!!', m)
 
-    logging.getLogger(__name__).debug("\nAll samples: {}".format(allsamplesize))
-    logging.getLogger(__name__).debug(
-        "Number of test samples: {}".format(testsamplesize)
-    )
-    logging.getLogger(__name__).debug("\Training set size: {}".format(m))
+    LOGGER_COMBI.log(level=15, msg="\nAll samples: {}".format(allsamplesize))
+    LOGGER_COMBI.log(level=15, msg="Number of test samples: {}".format(testsamplesize))
+    LOGGER_COMBI.log(level=15, msg="\nTraining set size: {}".format(m))
 
     # construct the sets
     test = []
@@ -1282,8 +1284,8 @@ def balanced_test_set(
     testsetDF.to_csv(os.path.join(output_dir, "test.csv"))
     trainpoolDF.to_csv(os.path.join(output_dir, "trainpool.csv"))
 
-    logging.getLogger(__name__).debug("TRAINING POOL DF:\n{}".format(trainpoolDF))
-    logging.getLogger(__name__).debug("UNIVERSAL TEST SET DF:\n{}".format(testsetDF))
+    LOGGER_COMBI.log(level=15, msg="TRAINING POOL DF:\n{}".format(trainpoolDF))
+    LOGGER_COMBI.log(level=15, msg="UNIVERSAL TEST SET DF:\n{}".format(testsetDF))
 
     jsondict = cc_dict(CC)
     jsondict["max_training_pool_size"] = m
@@ -1301,13 +1303,13 @@ def balanced_test_set(
     # these are samples that are not in the test set and do not have the withheld interaction
     # of the remaining options, randomly select m of them
     # in the future, select m that balance the rest of the interactions as best as possible
-    for f in range(len(representation.features)):
-        feature = representation.features[f]
-        for v in range(len(representation.values[f])):
-            value = str(representation.values[f][v])
+    for f in range(len(data_representation.features)):
+        feature = data_representation.features[f]
+        for v in range(len(data_representation.values[f])):
+            value = str(data_representation.values[f][v])
             modelnumber = str(f) + "_" + str(v) + "_"
             print("")
-            print(representation.features[f] + " excluding " + value)
+            print(data_representation.features[f] + " excluding " + value)
             # print("Trainpool excluding", value, "\n", trainpoolDF.query(representation.features[f] + ' not in @value'))
 
             # future algorithms should build intelligently instead of relying on random chance for coverage
@@ -1323,11 +1325,10 @@ def balanced_test_set(
             trainpoolmodelDFrepresentation = encoding(trainpoolmodelDF, mMap, True)
             trainpoolmodelCC = combinatorialCoverage(trainpoolmodelDFrepresentation, t)
 
-            logging.getLogger(__name__).debug(
-                "Training pool model counts: {}".format(
+            LOGGER_COMBI.log(level=15, msg="Training pool model counts: {}".format(
                     trainpoolmodelCC["countsAllCombinations"]
+                    )
                 )
-            )
 
             # TODO: update from feature to interaction
             for rank in range(0, kct):  # go rank by rank
@@ -1348,20 +1349,18 @@ def balanced_test_set(
             while True:  # execute at least once no matter what
                 # sample from whole train pool
                 trainDF = trainpoolmodelDF.sample(m).reset_index(drop=True)
-                logging.getLogger(__name__).info("Training set:\n", trainDF.to_string())
-                print(
-                    "Number of samples containing {} in training set: {}".format(
+                
+                LOGGER_COMBI.log(level=15, msg = "Number of samples containing {} in training set: {}".format(
                         value, len(trainDF[trainDF[feature] == value])
                     )
                 )
+                LOGGER_COMBI.log(level=25, msg="Training set:\n{}".format(trainDF.to_string()))
 
                 # check that constructed training set covers everything EXCEPT the withheld interaction
                 trainDFrepresentation = encoding(trainDF, mMap, True)
                 trainCC = combinatorialCoverage(trainDFrepresentation, t)
 
-                logging.getLogger(__name__).debug(
-                    "Train CC counts {}".format(trainCC["countsAllCombinations"])
-                )
+                LOGGER_COMBI.log(level=25, msg="Train CC counts {}".format(trainCC["countsAllCombinations"]))
 
                 # TODO: update from feature to interaction
                 covered = True  # REFERNCING AFTER ASSIGNMENT BC UNBOUND LOCAL ERROR THIS MIGHT CAUSE ERRORS
@@ -1388,8 +1387,7 @@ def balanced_test_set(
                 )
             )
 
-            logging.getLogger(__name__).debug(
-                "\n Model {} excludes interaction {}".format(
+            LOGGER_COMBI.log(level=15, msg="\n Model {} excludes interaction {}, {}".format(
                     modelnumber, feature, value
                 )
             )
@@ -1472,16 +1470,14 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
     kct = comb(kprime, tprime, exact=True)
     metrics = performanceDF.columns
 
-    logging.getLogger(__name__).debug("PERFORMANCE DF:\n{}".format(performanceDF))
+    LOGGER_COMBI.log(level=15, msg="PERFORMANCE DF:\n{}".format(performanceDF))
     performanceDataStructure = {
         metric: [0] * kct for metric in metrics
     }  # dict.fromkeys(metrics)
     # for metric in metrics:
     #    performanceDataStructure[metric] =
 
-    logging.getLogger(__name__).info(
-        "k: {}, k': {}, t: {}, t': {}, kct: {}".format(k, kprime, t, tprime, kct)
-    )
+    LOGGER_COMBI.log(level=25, msg="k: {}, k': {}, t: {}, t': {}, kct: {}".format(k, kprime, t, tprime, kct))
     coverageDataStructure = {
         "subset": None,
         "t": t,
@@ -1540,9 +1536,7 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
     coverageDataStructure["totalPossibleInteractions"] = totalPossibleInteractions
     coverageDataStructure["countAppearingInteractions"] = countAppearingInteractions
 
-    logging.getLogger(__name__).info(
-        "PERFORMANCE Data Structure:\n{}".format(performanceDF)
-    )
+    LOGGER_COMBI.log(level=25, msg="PERFORMANCE Data Structure:\n{}".format(performanceDF))
 
     return coverageDataStructure, performanceDataStructure
 
@@ -1689,8 +1683,8 @@ def performanceByInteraction_main(
     data = encoding(test_dataDF, mMap, True)
     data_train = encoding(train_dataDF, mMap, True)
 
-    logging.getLogger(__name__).debug("Metadata level map:", mMap)
-    logging.getLogger(__name__).debug("Data representation ", data)
+    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
+    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data), level=15)
 
     if performanceDF.index.values.tolist() != test_dataDF[sample_id].tolist():
         raise KeyError(
@@ -1714,7 +1708,7 @@ def performanceByInteraction_main(
     else:
         raise KeyError('Coverage over subset {} not found in split file.'.format(coverage_subset))
 
-    logging.getLogger(__name__).debug("CC over train: {}".format(CC))
+    LOGGER_COMBI.log(level=15, msg="CC over train: {}".format(CC))
 
     decodedMissing = decodeMissingInteractions(
         data, computeMissingInteractions(data, CC)
@@ -1739,9 +1733,6 @@ def performanceByInteraction_main(
     jsondict["coverage subset"] = coverage_subset
     return jsondict
 
+def performance_by_frequency_coverage_main():
 
-def codex_logger_submod_combinatorial(filename, level):
-    logging.basicConfig(filename=filename, level=level)
-    logging.getLogger("codex.py").info("Codex logger in output intialized.")
-
-    return
+    return jsondict

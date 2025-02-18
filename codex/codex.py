@@ -2,22 +2,27 @@
 # Created Date: Mar 1 2023
 # Updated Date: 23 September, 2024
 
+if __name__ == "__main__":
+    MODE_CLI = True
+else:
+    MODE_CLI = False
+
 import sys
 import os
 import logging
 import shutil
 import glob
 
-from .modules import combinatorial, output
-from .utils import input_handler, universe_handler, prereq_handler as prereq_check, results_handler, dataset_handler
-
 import json
 import pandas as pd
-from datetime import datetime
 from tqdm import tqdm
 
+from codex_nsi.codex.utils import sie_analysis as sie_analysis, sie_eval_deprecate as sie_pred
+from modules import combinatorial, output
+from utils import input_handler, universe_handler, prereq_handler as prereq_check, results_handler, dataset_handler
+from codex_nsi.codex.utils import sie_ml as sie_ml
+
 #import py_waspgen.sie_iq_new as sie_iq
-from .utils import SIE_train as sie_train, SIE_pred as sie_pred, SIE_analysis as sie_analysis
 
 def setup_new_codex_env(dir_name=None, parent_dir="", include_templates=False):
     if dir_name == "rareplanes_demo":
@@ -91,7 +96,11 @@ def run(codex_input, verbose: str):
     codex_input = input_handler.handle_input_file(codex_input)
     output_dir, strengths = input_handler.define_experiment_variables(codex_input)
     timed = codex_input["timed_output"]
-    codex_logger(str(verbose), output_dir, timed=timed)
+    
+    logger_level, filename = output.logger_parameters(verbosity, output_dir=output_dir, timed=timed)
+    output.intialize_logger(__name__, logger_level, filename)
+    output.intialize_logger(combinatorial.__name__, logger_level, filename)
+    output.intialize_logger(output.__name__, logger_level, filename)
 
     mode = codex_input["mode"]
 
@@ -143,6 +152,10 @@ def run(codex_input, verbose: str):
     elif mode == "sie demo":
         test_set_size_goal = codex_input["test set size goal"]
         result = systematic_inclusion_exclusion_demo(codex_input, test_set_size_goal)
+
+    elif mode == "biasing":
+        skew_levels = codex_input["Skew levels"]
+        result = performance_by_frequency_coverage(codex_input, skew_levels)
 
     else:
         raise NameError("Mode not found!")
@@ -711,10 +724,10 @@ def systematic_inclusion_exclusion(
     train = False
     if train:
         pass
-        sie_train.data_distribution_SIE(
+        sie_ml.data_distribution_SIE(
             SIE_splits, data_dir, dataset_dir_YOLO, overwrite=True, mode_text=True
         )
-        sie_train.train_SIE(
+        sie_ml.train_SIE(
             SIE_splits,
             dataset_dir_YOLO,
             training_dir,
@@ -877,38 +890,15 @@ def systematic_inclusion_exclusion_binomial_linreg(codex_input, table_filename):
 
     return results
 
+def performance_by_frequency_coverage(codex_input, skew_levels:list):
+    import utils.pbfc_biasing as biasing
 
-def codex_logger(verbosity: str, output_dir="./", timed=True):
-    level = None
-    filename = None
-    tag = None
-    timestamp = None
+    output_dir, strengths = input_handler.define_experiment_variables(input)
+    universe, dataset_df = universe_handler.define_input_space(input)
+    
+    combination_list = biasing.
 
-    if verbosity == "1":
-        level = logging.INFO
-        tag = "LOG"
-    elif verbosity == "2":
-        level = logging.DEBUG
-        tag = "DEBUG"
-    else:
-        raise ValueError(
-            "No logging level {} found for CODEX. Levels '1' or '2' supported.".format(
-                verbosity
-            )
-        )
-
-    if timed:
-        timestamp = "-" + datetime.now().strftime("%Y:%m:%d-%I:%M:%S")
-    if output_dir is not None:
-        filename = os.path.join(output_dir, "codex_{}{}.log".format(tag, timestamp))
-
-    logging.basicConfig(filename=filename, level=level)
-    logging.getLogger("codex.py").info("Codex logger intialized.")
-
-    combinatorial.codex_logger_submod_combinatorial(filename, level)
-    output.codex_logger_submod_output(filename, level)
     return
-
 
 """
 Use keyword args on command line to pass important info
@@ -921,6 +911,7 @@ if __name__ == "__main__":
             "Improper command line. For input file named input.json, format is python codex.py input=input.json verbose=True"
         )
         exit()
+
     kwargs = dict(arg.split("=") for arg in sys.argv[1:])
     verbosity = str(kwargs["verbose"])
     input_fp = kwargs["input"]

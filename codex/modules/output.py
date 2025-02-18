@@ -19,21 +19,47 @@ import scipy
 import logging
 import glob
 
-from ..utils import codex_plotting as plotting, results_handler, coverage_mapping as maps
+from utils import codex_plotting as plotting, results_handler, coverage_mapping as maps
+
+LOGGER_OUT = logging.getLogger(__name__)
 
 showfig = False
 savefig = True
-verbose = False
 timed = False
 
+def logger_parameters(verbosity: str, output_dir="", timed=True):
+    logging.addLevelName(15, 'DEBUG_CODEX')
+    logging.addLevelName(25, 'CODEX_INFO')
 
-def codex_logger_submod_output(filename, level):
-    logging.basicConfig(filename=filename, level=level)
-    logging.getLogger("codex.py").info("Codex logger in output intialized.")
+    if timed:
+        timestamp = datetime.now().strftime("%Y_%m_%d-%I:%M")
 
-    logging.getLogger("matplotlib").setLevel(level=logging.DEBUG + 1)
-    return
+    if verbosity == '2':
+        level = logging.getLevelName(15)
+        levelnum = 15
+    elif verbosity == '1':
+        level = logging.getLevelName(25)
+        levelnum = 25
+    else:
+        raise ValueError(
+            "No logging level {} found for CODEX. Levels '1' or '2' supported.".format(
+                verbosity
+            )
+        )
+    
+    os.makedirs(os.path.abspath(output_dir), exist_ok=True)
+    filename = os.path.abspath(os.path.join(output_dir, "codex_{}-{}.log".format(level, timestamp)))
 
+    return levelnum, filename
+
+def intialize_logger(logger_name, levelnum, filename):
+    logging.basicConfig(filename=filename, level=levelnum)
+    logger_for_file = logging.getLogger(logger_name)
+    logger_for_file.setLevel(levelnum)
+    logger_for_file.log(level=levelnum, 
+                        msg=f"Logger for {logger_name} intialized.")
+    
+    return levelnum
 
 # NOTE: DEPRECATE subset variable in pbi, dataset eval
 
@@ -72,15 +98,14 @@ def output_json_readable(
 def dataset_eval_vis(
     output_dir, dataset_name, coverage_results, strengths, funct=[math.log10]
 ):
-    logging.getLogger("codex.dataset_eval.CC").info(
-        {"t={}".format(t): coverage_results[t]["CC"] for t in strengths}
-    )
 
     output_dir = make_output_dir_nonexist(os.path.join(output_dir, "CC"))
     for t in strengths:
         counts = coverage_results[t]["combination counts"]
         ranks = coverage_results[t]["combinations"]
         cc = coverage_results[t]["CC"]
+
+        LOGGER_OUT.log(level=25, msg='t = {}\n{}'.format(t, [coverage_results[t]["CC"] for t in strengths]))
 
         create_coverage_map(
             "binary", output_dir, dataset_name, t, counts, ranks, cc_value=cc
@@ -725,16 +750,17 @@ def writeCCtToFile(output_dir, name, t, CC):
         cc = CC["countAppearingInteractions"] / CC["totalPossibleInteractions"]
         tfile.write("CC({}): {}\n".format(name, cc))
 
-    if verbose:
-        print(
-            "interactions appearing in {}: {}\n".format(
+    LOGGER_OUT.log(level=15, msg = "interactions appearing in {}: {}\n".format(
                 name, CC["countAppearingInteractions"]
             )
         )
-        print(
-            "total possible interactions: {}\n".format(CC["totalPossibleInteractions"])
+    LOGGER_OUT.log(level=15, msg="interactions appearing in {}: {}\n".format(
+                name, CC["countAppearingInteractions"]
+            )
         )
-        print(tfile.write("CC({}): {}\n".format(name, cc)))
+    LOGGER_OUT.log(level=15, msg="total possible interactions: {}\n".format(CC["totalPossibleInteractions"])
+            )
+    #print(tfile.write("CC({}): {}\n".format(name, cc)))
 
 
 # writes the SDCC for a t to the t file
@@ -759,16 +785,11 @@ def writeSDCCtToFile(output_dir, sourcename, targetname, t, SDCC):
             sdcc = "0 Interactions in target"
         "SDCC({}-{}): {}\n".format(targetname, sourcename, sdcc)
         tfile.write("SDCC({}-{}): {}\n".format(targetname, sourcename, sdcc))
-    if verbose:
-        print(
-            "interactions in {}: {}\n".format(targetname, SDCC["interactionsInTarget"])
-        )
-        print(
-            "interactions in {} not in {}: {}\n".format(
-                targetname, sourcename, SDCC["setDifferenceInteractions"]
-            )
-        )
-        print("SDCC({}-{}): {}\n".format(targetname, sourcename, sdcc))
+
+    LOGGER_OUT.log(level=15, msg="Interactions in {}: {}\n".format(targetname, SDCC["interactionsInTarget"]))
+    LOGGER_OUT.log(level=15, msg="Interactions in {} not in {}: {}\n".format(
+                targetname, sourcename, SDCC["setDifferenceInteractions"]))
+    LOGGER_OUT.log(level=15, msg="SDCC({}-{}): {}\n".format(targetname, sourcename, sdcc))
 
 
 # writes the missing interactions for a t to the t file
