@@ -3,7 +3,7 @@ import logging
 import copy
 import pandas as pd
 
-from modules import binning
+from ..modules import binning
 
 def extract_metadataset(codex_input, dataset_path):
     """
@@ -67,18 +67,18 @@ def initialize_universe(codex_input):
     forward and form universe from the specified bins. If preexisting universe is given,
     automatically use that.
     """
+    data_dir = codex_input['data_directory']
+    dataset_filename = codex_input['dataset_file']
+    codex_dir = codex_input['codex_directory']
 
     try:
-        dataset_path = os.path.join(
-            codex_input["data_directory"], codex_input["dataset_file"]
-        )  # Unbinned
-        assert os.path.exists(dataset_path)
-    except:
-        dataset_path = os.path.join(
-            codex_input["codex_directory"],
-            codex_input["data_directory"],
-            codex_input["dataset_file"],
-        )  # Unbinned
+        dataset_path = os.path.join(data_dir, dataset_filename)
+        print("DATASET PATH:", dataset_path, os.path.exists(dataset_path))
+
+    except RuntimeError:
+        print("Dataset directory not found... Executing with realpath.")
+        dataset_path = os.path.realpath(os.path.join(codex_dir, data_dir, dataset_filename))
+        print("DATASET PATH:", dataset_path, os.path.exists(dataset_path))
     provided_universe = None
 
     if codex_input["bin_file"] is not None:

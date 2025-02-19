@@ -26,8 +26,8 @@ import glob
 
 import seaborn as sns
 import matplotlib.pyplot as plt
-import codex.modules.output as output
 
+from ..modules import output
 '''
 Prec, reacll, f1
 '''

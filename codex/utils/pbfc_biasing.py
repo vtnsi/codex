@@ -6,6 +6,7 @@ import random
 import numpy as np
 import glob
 import math
+from itertools import combinations
 
 def balanced_train(df:pd.DataFrame, interaction_indices:dict, extract_combination=None, output_dir=''):
     df_selected = None
@@ -72,11 +73,12 @@ def output_json_readable(json_obj:dict, print_json=False, write_json=False, file
     
     return json_obj
 
-def get_combinations(selected_features, universe):
-    for feature_i in selected_features:
-        
+def get_combinations(universe, t, selected_features=None):
+    features = universe['features']
 
-    return
+    combo = ["*".join(map(str,comb)) for comb in combinations(features, t)]
+
+    return combo
 
 def interaction_indices_t2(df:pd.DataFrame, selected_features=[], universe=None):
     try:

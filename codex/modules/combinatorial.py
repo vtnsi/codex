@@ -15,7 +15,8 @@ from scipy.special import comb
 import copy
 import logging
 
-import output
+from ..modules import output
+#from codex.modules import output
 
 # -------------------- Global Variables               --------------------#
 labelCentric = False
@@ -194,9 +195,10 @@ def combinatorialCoverage(representation, t):
     kct = comb(kprime, tprime, exact=True)
 
     LOGGER_COMBI.log(
-        level=LOGGER_COMBI.level,
-        msg="k: {}, k': {}, t: {}, t': {}, kct: {}".format(k, kprime, t, tprime, kct)
+        level=25,
+        msg="k: {}\n k': {}\n, t: {}\n, t': {}\n, k choose t: {}".format(k, kprime, t, tprime, kct)
     )
+
     coverageDataStructure = {
         "t": t,
         "k": k,
@@ -394,7 +396,7 @@ def computeMissingInteractions(representation, combinatorialCoverageStructure):
     if labelCentric:
         tprime -= 1  # require t-1 way interactions of all other columns
 
-    LOGGER_COMBI.log(msg='t: {}, t\': {}, kct: {}'.format(t, tprime, kct),
+    LOGGER_COMBI.log(msg='t: {}, t\': {}, k choose t: {}'.format(t, tprime, kct),
                      level=25)
 
     # stores missing combinations lists of tuples: one for each t-way interaction with (col,val) pair
@@ -1157,6 +1159,7 @@ def balanced_test_set(
     output_dir,
     include_baseline=True,
     baseline_seed=1,
+    form_exclusions=None
 ):
     global verbose, labelCentric, identifyImages
     labelCentric = False
@@ -1170,7 +1173,6 @@ def balanced_test_set(
     dataDF = dataDF.sample(frac=1).reset_index(drop=True)
     data_representation = encoding(dataDF, mMap, True)
 
-    
     LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
     LOGGER_COMBI.log(msg="Data representation:\n{}".format(data_representation), level=15)
     LOGGER_COMBI.log(msg="DataFrame:\n{}".format(dataDF), level=15)
@@ -1295,6 +1297,9 @@ def balanced_test_set(
     jsondict["max_t"] = t
     jsondict["countAllCombinations_data"] = CC["countsAllCombinations"]
     jsondict["countAllCombinations_test"] = testCC["countsAllCombinations"]
+
+    if not form_exclusions:
+        return jsondict
 
     # TODO: up until now is test creation, from here is remainder
 
@@ -1477,7 +1482,7 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
     # for metric in metrics:
     #    performanceDataStructure[metric] =
 
-    LOGGER_COMBI.log(level=25, msg="k: {}, k': {}, t: {}, t': {}, kct: {}".format(k, kprime, t, tprime, kct))
+    LOGGER_COMBI.log(level=25, msg="k: {}, k': {}, t: {}, t': {}, k choose t: {}".format(k, kprime, t, tprime, kct))
     coverageDataStructure = {
         "subset": None,
         "t": t,
@@ -1733,6 +1738,78 @@ def performanceByInteraction_main(
     jsondict["coverage subset"] = coverage_subset
     return jsondict
 
-def performance_by_frequency_coverage_main():
+def performance_by_frequency_coverage_main(trainpool_df, test_df_balanced, entire_df_cont, universe, t, output_dir, skew_level, id=None):
+    import utils.pbfc_data as data
+    import utils.pbfc_biasing as biasing
+    import utils.pbfc_ml as classifier
+
+    EXP_NAME = id
+    
+    combination_list = biasing.get_combinations(universe, t)
+    for combination in combination_list:
+        indices_per_interaction, combination_names = biasing.interaction_indices_t2(df=trainpool_df)
+
+        train_df_biased, train_df_selected_filename, combo_int_selected, interaction_selected = biasing.skew_dataset_relative(
+            df=trainpool_df, 
+            interaction_indices=indices_per_interaction, 
+            skew_level=skew_level,
+            extract_combination=combination,
+            output_dir=output_dir)
+        
+        train_df = entire_df_cont.loc[entire_df_cont.index.isin(train_df_biased.index.tolist())]
+        test_df = entire_df_cont.loc[entire_df_cont.index.isin(test_df_STATIC_1211.index.tolist())]
+
+        full_df_combo = pd.concat([train_df, test_df], axis=0)
+        full_df_cont_combo_filename = '{}-{}_Skewed.csv'.format(original_data_file_name, EXP_NAME)
+        #full_df_combo.to_csv(os.path.join(data_dir_skew, full_df_cont_combo_filename))
+    
+        X_train, X_test, Y_train, Y_test, split_filename = data.prep_split_data(None, train_df=train_df, test_df=test_df, name=EXP_NAME, drop_list=drop_list,
+                                                                                        split_dir=split_dir, target_col='Diabetes_binary', id_col='ID')
+
+        perf_filenames = classifier.model_suite(X_train, Y_train, X_test, Y_test, 
+                            experiment_name=EXP_NAME,
+                            output_dir = performance_dir,
+                            scaler=scaler)
+        
+        for perf_filename in perf_filenames:
+            input_dict_new = copy.deepcopy(INPUT_DICT)
+
+            if '_gnb' in perf_filename:
+                model_name = 'Gaussian Naive Bayes'
+                model_name_small = 'gnb'
+            elif '_lr' in perf_filename:
+                model_name = 'Logistic Regression'
+                model_name_small = 'lr'
+            elif '_rf' in perf_filename:
+                model_name = 'Random Forest'
+                model_name_small = 'rf'
+            elif '_knn' in perf_filename:
+                model_name = 'KNN'
+                model_name_small = 'knn'
+            elif '_svm' in perf_filename:
+                model_name = 'SVM'
+                model_name_small = 'svm'
+            else:
+                print("No model name found!")
+
+            # Static
+            input_dict_new['metric'] = metric
+            input_dict_new['dataset_file'] = full_df_cont_combo_filename
+            input_dict_new['split_file'] = split_filename
+            # Change per model
+            save_dir = '_runs/pbi_pipeline/pbi-{}-{}'.format(EXP_NAME, model_name_small)
+            input_dict_new['config_id'] = save_dir
+            input_dict_new['model_name'] = model_name
+            input_dict_new['dataset_name'] = "CDC Diabetes, skewed {}, {}".format(skew_level, model_name)
+            input_dict_new['performance_file'] = perf_filename
+                
+            # CODEX ~~~~~~~~~~~~~~~
+                # of chosen combo, skew_level, model
+            result = codex.run(input_dict_new, verbose='1')
+            results_multiple_model[model_name_small] = {'coverage': result, 'save_dir': save_dir}
+    
+    print("CHECK DOESNT CHANGE:", interaction_selected)
+    results_multiple_model['interaction_skewed'] = interaction_selected
+    results_multiple_model['training_size'] = len(train_df_biased)
 
     return jsondict

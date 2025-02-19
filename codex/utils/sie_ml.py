@@ -58,7 +58,7 @@ from ultralytics.utils.plotting import plot_results
 import typing_extensions
 import importlib
 
-import codex.modules.output as output
+from ..modules import output
 
 def write_yml_cls(wf):
     wf.write("names:\n")

@@ -3,7 +3,7 @@ import numpy as np
 import textwrap
 import matplotlib.colors
 
-from utils import codex_metrics as metrics
+from ..utils import codex_metrics as metrics
 
 def frequency_map(square, counts):
     """

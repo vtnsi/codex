@@ -5,7 +5,6 @@
 
 import pandas
 import sys
-import numpy as np
 import os
 
 def binfile(unbinnedfile, binningfile):

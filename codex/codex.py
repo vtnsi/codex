@@ -17,10 +17,9 @@ import json
 import pandas as pd
 from tqdm import tqdm
 
-from codex_nsi.codex.utils import sie_analysis as sie_analysis, sie_eval_deprecate as sie_pred
-from modules import combinatorial, output
-from utils import input_handler, universe_handler, prereq_handler as prereq_check, results_handler, dataset_handler
-from codex_nsi.codex.utils import sie_ml as sie_ml
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from codex.modules import combinatorial, output
+from codex.utils import input_handler as input_handler, universe_handler, results_handler
 
 #import py_waspgen.sie_iq_new as sie_iq
 
@@ -97,7 +96,7 @@ def run(codex_input, verbose: str):
     output_dir, strengths = input_handler.define_experiment_variables(codex_input)
     timed = codex_input["timed_output"]
     
-    logger_level, filename = output.logger_parameters(verbosity, output_dir=output_dir, timed=timed)
+    logger_level, filename = output.logger_parameters(verbose, output_dir=output_dir, timed=timed)
     output.intialize_logger(__name__, logger_level, filename)
     output.intialize_logger(combinatorial.__name__, logger_level, filename)
     output.intialize_logger(output.__name__, logger_level, filename)
@@ -561,7 +560,7 @@ def model_probe(
 
 
 def balanced_test_set_construction(
-    input, test_set_size_goal, include_baseline=True, shuffle=False, adjusted_size=None
+    input, test_set_size_goal, include_baseline=True, shuffle=False, adjusted_size=None, form_exclusions=False
 ):
     """
     Runs test set post optimization in order to construct as balanced a test set as possible
@@ -596,6 +595,7 @@ def balanced_test_set_construction(
             int(test_set_size_goal),
             output_dir,
             include_baseline=include_baseline,
+            form_exclusions=form_exclusions
         )
     else:
         result = combinatorial.balanced_test_set(
@@ -607,6 +607,7 @@ def balanced_test_set_construction(
             int(adjusted_size),
             output_dir,
             include_baseline=include_baseline,
+            form_exclusions=form_exclusions
         )
 
     if not os.path.exists(os.path.join(output_dir, "splits_by_json")):
@@ -890,15 +891,21 @@ def systematic_inclusion_exclusion_binomial_linreg(codex_input, table_filename):
 
     return results
 
-def performance_by_frequency_coverage(codex_input, skew_levels:list):
+def performance_by_frequency_coverage(codex_input, skew_levels:list, test_set_size_goal=250):
     import utils.pbfc_biasing as biasing
 
     output_dir, strengths = input_handler.define_experiment_variables(input)
-    universe, dataset_df = universe_handler.define_input_space(input)
+    universe, dataset_df_init = universe_handler.define_input_space(input)
     
-    combination_list = biasing.
+    result = balanced_test_set_construction(codex_input, test_set_size_goal, form_exclusions=False)
+    
+    for t in strengths:
+        results_all_models = combinatorial.performance_by_frequency_coverage_main()
 
-    return
+    output.output_json_readable(results_all_models, write_json=True, 
+                                file_path=os.path.join(output_dir, 'pbcf.json'))
+
+    return results_all_models
 
 """
 Use keyword args on command line to pass important info

@@ -19,7 +19,7 @@ import scipy
 import logging
 import glob
 
-from utils import codex_plotting as plotting, results_handler, coverage_mapping as maps
+from codex.utils import codex_plotting as plotting, results_handler, coverage_mapping as maps
 
 LOGGER_OUT = logging.getLogger(__name__)
 

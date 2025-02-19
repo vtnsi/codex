@@ -19,7 +19,7 @@ import statsmodels.api as sm
 from scipy.stats import pearsonr
 import logging
 
-from utils import codex_metrics, results_handler
+from ..utils import codex_metrics, results_handler
 
 # MAIN PLOTTING ENTRY POINTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
