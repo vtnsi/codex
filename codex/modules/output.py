@@ -33,6 +33,8 @@ def logger_parameters(verbosity: str, output_dir="", timed=True):
 
     if timed:
         timestamp = datetime.now().strftime("%Y_%m_%d-%I:%M")
+    else:
+        timestamp=''
 
     if verbosity == '2':
         level = logging.getLevelName(15)

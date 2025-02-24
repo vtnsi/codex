@@ -1,5 +1,6 @@
 import os
 import json
+import datetime
 
 from ..modules import combinatorial, output
 
@@ -24,13 +25,26 @@ def define_experiment_variables(codex_input):
     # Required for every codex mode
     # CODEX DIR RELATIVE TO CODEX REPO
     codex_dir = codex_input['codex_directory']
+    
+    try:
+        output_dir = codex_input['output_directory']
+    except:
+        print("output_dir not found. Defaulting output to codex directory, {}".format(codex_dir))
+        output_dir = codex_dir
+
+    if output_dir is None:
+        output_dir = './'
+    
     config_id = codex_input['config_id']
-    output_dir = os.path.abspath(
-        os.path.join(os.getcwd(), codex_dir, config_id))
+
+    output_dir = os.path.abspath(output.make_output_dir_nonexist(output_dir))
+    output_dir_config = os.path.realpath(os.path.join(output_dir, config_id))
+    
     if timed:
-        output_dir = output.make_output_dir_nonexist(output_dir)
+        time = datetime.datetime.now().strftime("%m_%d-%Y")
+        output_dir_config = output.make_output_dir_nonexist(output_dir_config, time)
     else:
-        output_dir = output.make_output_dir_nonexist(output_dir)
+        output_dir_config = output.make_output_dir_nonexist(output_dir_config)
 
     strengths = codex_input['t']
 
@@ -39,7 +53,7 @@ def define_experiment_variables(codex_input):
     global use_augmented_universe
     use_augmented_universe = codex_input['use_augmented_universe']
 
-    return output_dir, strengths
+    return output_dir_config, strengths
 
 
 def define_training_variables(codex_input):
