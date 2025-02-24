@@ -13,8 +13,8 @@ dependencies = [
         "matplotlib>=3.5.1",
         "seaborn>=0.13.0",
         "statsmodels==0.14.2",
-        "Pillow",
-        "tqdm"
+        "Pillow>=10.3.0",
+        "tqdm>=4.66.3"
 ]
 authors = [
   {name = "Erin Lanus", email = "lanus@vt.edu"},
