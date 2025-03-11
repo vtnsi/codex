@@ -8,7 +8,7 @@
     "model_name" : "",
 
     "data_directory" : "../../resources/tutorial",
-    "dataset_file" : "dataset_rareplanes_lightweight_EX.csv",
+    "dataset_file" : "dataset_rareplanes_lightweight-ex.csv",
     "features" : ["Hour_of_Day", "Season", "off_nadir_max", "avg_pan_resolution", "biome", "CONTROL"],
     "bin_directory": "../../resources/tutorial",
     "bin_file" : "binning-complete_EX.txt",

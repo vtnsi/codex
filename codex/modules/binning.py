@@ -17,7 +17,7 @@ def binfile(unbinnedfile, binningfile):
     universe["levels"] = []
     with open(binningfile) as binfile:
         for line in binfile:
-            feature_levels_list = line.split(":")
+            feature_levels_list = line.split(": ")
             feature = feature_levels_list[0]
             linelist = feature_levels_list[1].split("\n")[0].split(";")
             levels = []
