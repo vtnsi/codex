@@ -17,69 +17,43 @@ import json
 import pandas as pd
 from tqdm import tqdm
 
+import directory_tree
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from codex.modules import combinatorial, output
 from codex.utils import input_handler as input_handler, universe_handler, results_handler, dataset_handler, prereq_handler as prereq_check
+from codex.modules import binning
 #from codex.utils import sie_analysis, sie_eval_deprecate, sie_ml
-
 #import py_waspgen.sie_iq_new as sie_iq
 
-def setup_new_codex_env(dir_name=None, parent_dir="", include_templates=False):
-    if dir_name == "rareplanes_demo":
-        return
+def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
+    existing_codex_dirs = glob.glob(os.path.realpath(os.path.join(parent_dir, dir_name+'*')))
+
     # exec_dir = os.path.dirname(os.path.realpath(__file__))
     exec_dir = "../"
     if dir_name is None or dir_name == "":
         dir_name = "new_codex_dir"
 
-    # os.path.realpath(os.path.join(parent_dir, dir_name))
-    codex_dir = os.path.join(os.getcwd(), dir_name)
+    codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}_{len(existing_codex_dirs)}'))
+    os.makedirs(codex_dir_new, exist_ok=False)
 
-    overwrite = None
-    try:
-        os.makedirs(codex_dir, exist_ok=False)
-    except:
-        overwrite = input(
-            "CODEX directory {} already exists. Overwrite? (Y/n): ".format(codex_dir)
-        ).lower()
-        if overwrite not in ["y", "n"]:
-            setup_new_codex_env(dir_name, parent_dir, include_templates)
+    for component in ["binning", "configs", "splits", "performance", "data", "runs", "universe"]:
+        subdir = os.path.join(codex_dir_new, component)
+        os.makedirs(subdir, exist_ok=True)
 
-    if os.path.exists(os.path.join(parent_dir, dir_name)) and not overwrite:
-        dir_name = "{}_{}".format(dir_name, len(glob.glob("{}_*".format(dir_name))))
-    elif os.path.exists(os.path.join(parent_dir, dir_name)) and overwrite == "y":
-        shutil.rmtree(codex_dir)
-    os.makedirs(codex_dir, exist_ok=True)
+    if templates:
+        for filename in os.listdir(os.path.join(exec_dir, "resources", "templates")):
+            for subdir in os.listdir(codex_dir_new):
+                if str(subdir) in str(filename):
+                    shutil.copy(os.path.join(exec_dir, "resources", "templates", filename), os.path.join(codex_dir_new, subdir, filename))
+    if tutorial:
+        for filename in os.listdir(os.path.join(exec_dir, "resources", "tutorial")):
+            for subdir in os.listdir(codex_dir_new):
+                if str(subdir) in str(filename):
+                    shutil.copy(os.path.join(exec_dir, "resources", "tutorial", filename), os.path.join(codex_dir_new, subdir, filename))
 
-    for entry in ["binning", "configs", "splits", "performance", "data", "runs"]:
-        os.makedirs(os.path.join(codex_dir, entry), exist_ok=True)
-        if include_templates:
-            if entry == "configs":
-                shutil.copy(
-                    os.path.join(exec_dir, "configs", "input_TEMPLATE.json"),
-                    os.path.join(codex_dir, "configs", "input_TEMPLATE.json"),
-                )
-            elif entry == "splits":
-                shutil.copy(
-                    os.path.join(exec_dir, "configs", "split_TEMPLATE.json"),
-                    os.path.join(codex_dir, "splits", "split_TEMPLATE.json"),
-                )
-            elif entry == "performance":
-                shutil.copy(
-                    os.path.join(exec_dir, "configs", "performance_TEMPLATE.json"),
-                    os.path.join(codex_dir, "performance", "performance_TEMPLATE.json"),
-                )
-            elif entry == "data":
-                shutil.copy(
-                    os.path.join(exec_dir, "resources", "dataset_sample_abstract.csv"),
-                    os.path.join(codex_dir, "data", "dataset_sample_abstract.csv"),
-                )
-            elif entry == "binning":
-                shutil.copy(
-                    os.path.join(exec_dir, "resources", "binning_sample_abstract.txt"),
-                    os.path.join(codex_dir, "binning", "bins_sample_abstract.txt"),
-                )
-    return codex_dir
+    directory_tree.DisplayTree(codex_dir_new)
+    return codex_dir_new
 
 
 def run(codex_input, verbose: str):

@@ -1,0 +1,32 @@
+{
+    "mode" : "<dataset evaluation>, <dataset split evaluation>, <dataset split comparison>, <performance by interaction>, <model_probing>",
+    "dataset_name" : "<name of dataset for output>",
+    "model_name" : "<name of model for output>",
+    
+    "codex_directory" : "<directory where input materials for CODEX experiments reside>",
+    "output_directory": "<name of directory to save CODEX experiments to>",
+    "config_id" : "<codex_directory>/<experiment ID as output directory>",
+
+    "data_directory" : "<pathway to data directory>",
+    "dataset_file" : "<data_directory>/<path to dataset file>",
+    "sample_id_column" : "<name of column designating sample id>",
+    "label_column": "name of column designating labels/classes",
+    "features" : ["<feature names>"],
+
+    "bin_directory": "<directory of binning file relative to codex_directory>",
+    "bin_file" : "binning/<pathway to binning file>",
+    "universe": "<dictionary of universe> or <pathway to universe JSON file> or <null> if constructing universe via binning file.",
+    "use_augmented_universe": false,
+    "counting_mode" : "label_exclusive/label_inclusive",
+    "t": "list of t-way combination strengths, [1,2,3,...]",
+
+    "split_folder": "<codex_directory>/<name of folder containing split>",
+    "split_file" : "<list of split files>/<name of single split file>",
+    "performance_folder": "<codex_directory>/<name of folder containing performance>",
+    "performance_file" : "<list of corresponding performance files>/<name of single performance file>",   
+    "metric": "<name or list of names of performance metric as in performance file>",
+
+    "timed_output": "true/false of whether to include the timestamp part of experiment outputs",
+
+    "training_params": "<NOT FUNCTIONAL> training parameters for systematic inclusion/exclusion experiment."
+}

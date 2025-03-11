@@ -51,7 +51,7 @@ def plot_probe_exploit_suite(
 
     plt.subplot(2, 2, 1)
     plt.title("Performance by interaction, Probe vs. Exploit, t = {}".format(t))
-    plt.tight_layout()
+    plt.tight_layout(pad=2)
     plt.bar(idx - 0.2, bottom_probe_perf, width)
     plt.bar(idx + 0.2, bottom_exploit_perf, width)
 
@@ -177,7 +177,7 @@ def split_comp_scatter(
     return
 
 
-def extract_rank_samples(i, counts, perf, human_readable):
+def __extract_rank_samples__(i, counts, perf, human_readable):
     x = []
     y = []
     z = []
@@ -199,13 +199,13 @@ def extract_rank_samples(i, counts, perf, human_readable):
     return x, y, z
 
 
-def sort_slope_indices(counts, perf, human_readable):
+def __sort_slope_indices__(counts, perf, human_readable):
     slopes = []
     undef_idx = []
     signif_idx = []
 
     for i in range(len(counts)):
-        x, y, z = extract_rank_samples(i, counts, perf, human_readable)
+        x, y, z = __extract_rank_samples__(i, counts, perf, human_readable)
         x = np.array(x)
         y = np.array(y)
 
@@ -254,6 +254,7 @@ def plot_pbi_frequency_scatter(
     metric,
     ranks,
     display_all_lr: bool,
+    bound_lim=True,
     save_per_interaction=False,
 ):
     title_size = 18
@@ -261,28 +262,33 @@ def plot_pbi_frequency_scatter(
     labelpad = 12
     axis_size = int(4 * title_size / 5)
 
-    p, ordered_idx, signif_idx = sort_slope_indices(counts, perf, human_readable)
+    p, ordered_idx, signif_idx = __sort_slope_indices__(counts, perf, human_readable)
+    
     p_lines = p.get_lines()
+    figsize_custom = (11,8)
 
     plt.clf()
     if mode == "highlights":
-        plt.figure(figsize=(14, 10))
+        plt.figure(figsize=figsize_custom)
+        plt.tight_layout()
         subset = ordered_idx
         plt.title(
             textwrap.fill(
-                "Standardized Proportion of Interaction Frequency against Performance for {}, Subset | t={}".format(
+                "Standardized Proportion of Interaction Frequency against Performance for {}, subset of interactions | t={}".format(
                     name, str(t)
                 ),
                 54,
             ),
-            pad=titlepad,
+            pad=titlepad+3,
             weight="bold",
             fontsize=title_size,
         )
         filename = "pxi_performance_vs_freq-{}_subset.png".format(t)
     elif mode == "signif":
-        plt.figure(figsize=(14, 10))
+        plt.figure(figsize=figsize_custom)
+        plt.tight_layout()
         subset = signif_idx
+        print("NUMBER OF SIGNIFICANT COMBOS", len(signif_idx))
         plt.title(
             textwrap.fill(
                 "Standardized Proportion of Interaction Frequency against Performance for {}, Statistically Signifcant Regression | t={}".format(
@@ -290,13 +296,13 @@ def plot_pbi_frequency_scatter(
                 ),
                 54,
             ),
-            pad=titlepad,
+            pad=titlepad+3,
             weight="bold",
             fontsize=title_size,
         )
         filename = "pxi_performance_vs_freq-{}_signif.png".format(t)
     elif mode == "all":
-        plt.figure(figsize=(10, 15))
+        plt.figure(figsize=figsize_custom)
         plt.tight_layout()
         plt.title(
             textwrap.fill(
@@ -309,18 +315,24 @@ def plot_pbi_frequency_scatter(
             weight="bold",
             fontsize=title_size,
         )
+        print("NUMBER OF COMBOS", len(counts))
         subset = range(len(counts))
         filename = "pxi_performance_vs_freq-{}_ALL.png".format(t)
 
     c_l = len(counts)
     counts_array = np.array(counts, dtype=object)
 
-    N = np.sum(counts_array)
+    N = np.sum(np.sum(counts_array))
+    print(N)
+    # Slopes
     for i in range(c_l):
+        '''if 'Age' in ranks[i]:
+            print("Skipping age")
+            continue'''
         if i not in subset:
             continue
 
-        x, y, z = extract_rank_samples(i, counts, perf, human_readable)
+        x, y, z = __extract_rank_samples__(i, counts, perf, human_readable)
         px = p_lines[i].get_xdata()
         py = p_lines[i].get_ydata()
 
@@ -363,30 +375,44 @@ def plot_pbi_frequency_scatter(
                 "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
                 fontsize=axis_size,
                 labelpad=labelpad,
-            )
+            )  
             plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)
-            plt.ylim((0, 1))
-            lower, upper = codex_metrics.standardized_proportion_frequency_bounds(N, c_l)
-            plt.xlim((-1,1))
+
             plt.grid(visible=True, axis="y")
             plt.legend()
             filename = 'pxi_performance_vs_freq-{}.png'.format(ranks[i])
             plt.savefig(os.path.join(outputPath, filename))
             plt.clf()
 
-    plt.xlabel(
+    '''plt.xlabel(
         "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
         fontsize=axis_size,
         labelpad=labelpad,
     )
-    plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)
-    plt.ylim((0, 1))
-    plt.xlim((-1,1))
+    plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)'''
+    #plt.tick_params(fontsize=10)
+    #plt.ticklabel_format(font)
+    lower, upper = codex_metrics.standardized_proportion_frequency_bounds(N, c_l)
+    if bound_lim:
+        plt.ylim((0, 1))
+        plt.xlim((-1,1))
+    else:
+        plt.xlim((lower, upper))
+        plt.ylim((0.5, 1))
+
+    plt.xlabel(
+        "Standardized Proportion Frequency Coverage",
+        fontsize=axis_size,
+        labelpad=labelpad,
+    )
+    plt.ylabel("Per-interaction Performance".format(metric), fontsize=axis_size, labelpad=labelpad)
     plt.grid(visible=True, axis="y")
     plt.legend()
 
     if savefig:
         plt.savefig(os.path.join(outputPath, filename))
+
+    return
 
 
 def plot_pbi_bar(
@@ -448,12 +474,21 @@ def heatmap(
     ylabel=None,
     cbar_ticklabels=None,
     mode=None,
-    outlines=True
+    outlines=False,
+    labrotation=0
 ):
     if outlines:
         linewidths=0.5
     else:
         linewidths=0
+
+    if labrotation<=0:
+        alignment='bottom'
+    elif labrotation>=0:
+        alignment='top'
+    else:
+        alignment='center'
+
     plt.figure(figsize=(12, 7.5))
     heatmap = sns.heatmap(
         square,
@@ -465,7 +500,7 @@ def heatmap(
         linewidths=linewidths,
         linecolor="black",
     )
-    heatmap.tick_params(axis="both", which="both", length=0)
+    heatmap.tick_params(axis="both", which="both", length=0, rotation=15)
 
     title = textwrap.fill(title, 40)
 
@@ -486,7 +521,7 @@ def heatmap(
     plt.title(title, weight="bold")
     plt.xlabel(xlabel, fontsize=10)
     plt.ylabel(ylabel, labelpad=-5, fontsize=10)
-    plt.yticks(rotation=0)
+    plt.yticks(rotation=labrotation, va='center')
     plt.tight_layout(pad=2)
 
     # FIGURE SAVE

@@ -17,7 +17,7 @@ def binfile(unbinnedfile, binningfile):
     universe["levels"] = []
     with open(binningfile) as binfile:
         for line in binfile:
-            feature_levels_list = line.split(": ")
+            feature_levels_list = line.split(":")
             feature = feature_levels_list[0]
             linelist = feature_levels_list[1].split("\n")[0].split(";")
             levels = []
@@ -62,8 +62,8 @@ def binfile(unbinnedfile, binningfile):
                 if type(value) is str:
                     pre_bin = value.split(",")
                     try:
-                        upper = float(pre_bin[1])
-                        lower = float(pre_bin[0])
+                        '''upper = float(pre_bin[1])
+                        lower = float(pre_bin[0])'''
                         if len(pre_bin) != 1:
                             upper = float(pre_bin[1])
                             lower = float(pre_bin[0])

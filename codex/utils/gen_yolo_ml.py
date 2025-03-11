@@ -11,6 +11,7 @@ from multiprocessing import Process, Pool
 from ultralytics import YOLO
 from ultralytics.utils.plotting import plt_color_scatter
 from ultralytics.utils.plotting import plot_results
+from ultralytics.engine.results import Results as Results
 
 import typing_extensions
 import importlib
@@ -60,180 +61,21 @@ import importlib
 
 from ..modules import output
 
-def write_yml_cls(wf):
-    wf.write("names:\n")
-    wf.write("  0: Small Civil Transport/Utility\n")
-    wf.write("  1: Medium Civil Transport/Utility\n")
-    wf.write("  2: Large Civil Transport/Utility\n")
-    wf.write("  3: Military Transport/Utility/AWAC\n")
-    wf.write("  4: Military Bomber\n")
-    wf.write("  5: Military Fighter/Interceptor/Attack\n")
-    wf.write("  6: Military Trainer\n")
-
-
-def SIE_split_txt(
-    SIE_id,
-    data_dir,
-    dataset_dir,
-    img_ids,
-    subset_name,
-    overwrite=False,
-    ctrl=False,
-    dataset_name="rareplanes_SIE",
-):
-    image_repository_path = os.path.join(data_dir, "images")
-    label_repository_path = os.path.join(data_dir, "labels")
-
-    if not os.path.exists(dataset_dir):
-        os.makedirs(dataset_dir)
-
-    with open(
-        os.path.join(dataset_dir, "{}{}.txt".format(SIE_id, subset_name)), "w"
-    ) as f:
-        for img in img_ids:
-            f.write(
-                str(os.path.join(image_repository_path, "{}.png{}".format(img, "\n")))
-            )
-
-
-def SIE_yaml_txt(SIE_id, dataset_dir, inex):
-    if "x" in SIE_id:
-        return
-    with open(
-        os.path.join(dataset_dir, "{}{}_data.yml".format(SIE_id, inex)), "w"
-    ) as wf:
-        wf.write("train: {}".format(os.path.join("{}train.txt\n".format(SIE_id))))
-        wf.write("val: {}".format(os.path.join("{}val.txt\n".format(SIE_id))))
-        wf.write(
-            "test: {}".format(os.path.join("{}test_{}.txt\n".format(SIE_id, inex)))
-        )
-
-        wf.write("\n")
-        write_yml_cls(wf)
-
-
-def dataset_assembly(
-    SIE_id,
-    data_dir,
-    dataset_dir,
-    train_ids,
-    val_ids,
-    test_ids,
-    test_ex_ids=None,
-    overwrite=True,
-    mode_text=True,
-):
-    if mode_text:
-        print("Distributing data...")
-        SIE_split_txt(
-            SIE_id, data_dir, dataset_dir, train_ids, "train", overwrite=overwrite
-        )
-        SIE_split_txt(
-            SIE_id, data_dir, dataset_dir, val_ids, "val", overwrite=overwrite
-        )
-        SIE_split_txt(
-            SIE_id, data_dir, dataset_dir, test_ids, "test_incl", overwrite=overwrite
-        )
-        SIE_split_txt(
-            SIE_id, data_dir, dataset_dir, test_ex_ids, "test_excl", overwrite=overwrite
-        )
-        SIE_yaml_txt(SIE_id, dataset_dir, "incl")
-        SIE_yaml_txt(SIE_id, dataset_dir, "excl")
-
-
-def data_distribution_SIE(SIE_splits, data_dir, dataset_dir, overwrite, mode_text):
-    for SIE_id in SIE_splits:
-        print(SIE_id)
-        SIE_splits[SIE_id]
-
-        train_id = SIE_splits[SIE_id]["train"]
-        val_id = SIE_splits[SIE_id]["validation"]
-        test_covered_id = SIE_splits[SIE_id]["test_included"]
-        test_withheld_id = SIE_splits[SIE_id]["test_excluded"]
-
-        print(
-            "TRAIN, VAL, TEST IN/EX\n",
-            len(train_id),
-            len(val_id),
-            len(test_covered_id),
-            len(test_withheld_id),
-        )
-        dataset_assembly(
-            SIE_id,
-            data_dir,
-            dataset_dir,
-            train_id,
-            val_id,
-            test_covered_id,
-            test_withheld_id,
-            overwrite=overwrite,
-            mode_text=mode_text,
-        )
-
-    return
-
-
-def train_SIE(
-    SIE_splits,
-    dataset_dir,
-    training_dir,
-    epochs=300,
-    batch=256,
-    mode_text=True,
-    devices=None,
-    force_resume=True,
-):
-    pbar = tqdm(SIE_splits, leave=False)
-    for SIE_id in SIE_splits:
-        exists = os.path.exists(os.path.join(training_dir, "train_wo{}".format(SIE_id)))
-        if exists:
-            continue
-            with open(
-                os.path.join(training_dir, "train_wo{}".format(SIE_id), "results.csv")
-            ) as f:
-                resume = (
-                    len(
-                        pd.read_csv(
-                            os.path.join(
-                                training_dir, "train_wo{}".format(SIE_id), "results.csv"
-                            )
-                        )
-                    )
-                    == epochs
-                )
-
-        resume = False
-
-        dataset_file = os.path.join(dataset_dir, "{}incl_data.yml".format(SIE_id))
-        model_full_train = train(
-            SIE_id,
-            training_dir,
-            dataset_file,
-            epochs=epochs,
-            batch=batch,
-            mode_text=mode_text,
-            devices=devices,
-            resume=resume,
-        )
-        pbar.update()
-
-
 def train(
-    SIE_id,
-    training_dir,
-    dataset_file,
+    exp_id,
+    data,
     imgsz=512,
     epochs=300,
     batch=256,
     iou=0.5,
+    training_dir='./',
     stop_training=False,
     devices=None,
     exist_ok=False,
-    mode_text=True,
     resume=False,
 ):
     # model = YOLO('yolov8n.yaml')
-    name = "train_wo{}".format(SIE_id)
+    name = "train_{}".format(exp_id)
     if resume:
         model = YOLO(os.path.join(training_dir, name, "weights", "last.pt"))
     else:
@@ -244,31 +86,32 @@ def train(
     results = model.train(
         pretrained=False,
         val=True,
-        data=dataset_file,
+        deterministic=True,
+        plots=True,
+        visualize=True,
+        data=data,
         project=training_dir,
         name=name,
         epochs=epochs,
         imgsz=imgsz,
-        deterministic=True,
         iou=iou,
         device=devices,
         batch=batch,
         patience=patience,
-        plots=True,
-        visualize=True,
         workers=8,
         resume=resume,
         exist_ok=exist_ok,
-    )  # resume)
+    )
     try:
         results_path = os.path.join(training_dir, name, "results.csv")
         plot_results(results_path, segment=True)
     except:
         print("No path found to store results.csv")
 
-    return model
+    return model, results
 
-def get_image_paths(interaction_id, dataset_dir):
+
+def __get_image_paths(interaction_id, dataset_dir):
     with open(os.path.join(dataset_dir, interaction_id + "test_incl.txt")) as f:
         test_in_img_paths = list(f)
     test_in_img_paths = [path.split("\n")[0] for path in test_in_img_paths]
@@ -283,12 +126,12 @@ def get_image_paths(interaction_id, dataset_dir):
     return test_in_img_paths, test_ex_img_paths
 
 
-def get_predictions(model, image_list):
+def __get_predictions(model:YOLO, image_list):
     results = model.track(image_list, verbose=False)
     return results
 
 
-def calculate_pr(tp, fp, fn):
+def __calculate_pr(tp, fp, fn):
     try:
         precision = tp / (tp + fp)
     except:
@@ -300,7 +143,7 @@ def calculate_pr(tp, fp, fn):
     return precision, recall
 
 
-def calculate_iou(label_dict, pred_dict, label_id, pred_id):
+def __calculate_iou(label_dict, pred_dict, label_id, pred_id):
     iou_x1 = np.max([label_dict[label_id]["x1"], pred_dict[pred_id]["x1"]])
     iou_y1 = np.max([label_dict[label_id]["y1"], pred_dict[pred_id]["y1"]])
     iou_x2 = np.min([label_dict[label_id]["x2"], pred_dict[pred_id]["x2"]])
@@ -320,7 +163,7 @@ def calculate_iou(label_dict, pred_dict, label_id, pred_id):
     return intersection_area / union_area
 
 
-def count_tpfpfn(label_matches, pred_matches):
+def __count_tpfpfn(label_matches, pred_matches):
     tp_sample = 0
     fp_sample = 0
     fn_sample = 0
@@ -339,7 +182,7 @@ def count_tpfpfn(label_matches, pred_matches):
     return tp_sample, fp_sample, fn_sample
 
 
-def standardize_classifications(result, labels, tile_id):
+def __standardize_classifications(result, labels, tile_id):
     pred_dict = {"pred_" + str(i): {} for i in range(len(result))}
     label_dict = {"label_" + str(i): {} for i in range(len(labels))}
     for i in range(len(result)):
@@ -368,7 +211,7 @@ def standardize_classifications(result, labels, tile_id):
     return label_dict, pred_dict
 
 
-def label_match(
+def __label_match(
     label_dict,
     pred_dict,
     result=None,
@@ -381,7 +224,7 @@ def label_match(
 
     for label_id in label_dict:
         for pred_id in pred_dict:
-            iou_area = calculate_iou(label_dict, pred_dict, label_id, pred_id)
+            iou_area = __calculate_iou(label_dict, pred_dict, label_id, pred_id)
             # plot_intersection(result, i, iou_x1, iou_y1, iou_x2, iou_y2)
 
             if iou_area is None:
@@ -440,8 +283,8 @@ def label_match(
     return label_matches, pred_matches
 
 
-def score_json_overall(tp_all, fp_all, fn_all, pred_num, gt_num):
-    precision, recall = calculate_pr(tp_all, fp_all, fn_all)
+def __score_json_overall(tp_all, fp_all, fn_all, pred_num, gt_num):
+    precision, recall = __calculate_pr(tp_all, fp_all, fn_all)
     return {
         "tp": tp_all,
         "fp": fp_all,
@@ -453,47 +296,43 @@ def score_json_overall(tp_all, fp_all, fn_all, pred_num, gt_num):
     }
 
 
-def score_json_single_sample(tp, fp, fn):
-    precision, recall = calculate_pr(tp, fp, fn)
+def __score_json_single_sample(tp, fp, fn):
+    precision, recall = __calculate_pr(tp, fp, fn)
     return {"P": precision, "R": recall}
 
-
-# Workhorse function
-
-
-def score_preds(
-    results, interaction_id, data_dir, in_ex, iou_threshold=0.7, model_performance=None
+def __score_preds(
+    exp_id, results:Results, iou_threshold=0.7, score_class = True
 ):
+    perf = __initialize_perf(exp_id)
+
     tp_all_sample = 0  # All label->predictions
     fp_all_sample = 0
     fn_all_sample = 0
     pred_num = 0
     gt_num = 0
 
-    # model_performance={}
-    # For result in results:
-    for predictions in results:
-        image_path = predictions.path
-        tile_id = os.path.basename(image_path).split(".")[0]
-        label_path = os.path.join(data_dir, "labels", "{}.txt".format(tile_id))
+    for detections in results:
+        tile_id = os.path.basename(detections.path).split(".")[0]
+        data_dir = os.path.realpath(os.path.dirname(detections.path))
+        label_path = os.path.join(data_dir, "{}.txt".format(tile_id))
 
         with open(label_path) as f:
             labels = [obj.split("\n")[0].split(" ") for obj in list(f)]
 
-        label_dict, pred_dict = standardize_classifications(
-            predictions, labels, tile_id
+        label_dict, pred_dict = __standardize_classifications(
+            detections, labels, tile_id
         )
-        label_matches, pred_matches = label_match(
+        label_matches, pred_matches = __label_match(
             label_dict,
             pred_dict,
-            predictions,
+            detections,
             iou_threshold=iou_threshold,
             verbose=False,
         )
-        tp_sample, fp_sample, fn_sample = count_tpfpfn(label_matches, pred_matches)
+        tp_sample, fp_sample, fn_sample = __count_tpfpfn(label_matches, pred_matches)
 
-        per_sample_perf = score_json_single_sample(tp_sample, fp_sample, fn_sample)
-        model_performance[in_ex]["Per Sample Performance"][tile_id] = per_sample_perf
+        per_sample_perf = __score_json_single_sample(tp_sample, fp_sample, fn_sample)
+        perf['test']["per-sample performance"][tile_id] = per_sample_perf
 
         tp_all_sample += tp_sample
         fp_all_sample += fp_sample
@@ -505,15 +344,15 @@ def score_preds(
         # print(pred_matches)
         # print(label_matches)
 
-    perf_overall = score_json_overall(
+    perf_overall = __score_json_overall(
         tp_all_sample, fp_all_sample, fn_all_sample, pred_num, gt_num
     )
-    model_performance[in_ex]["Overall Performance"] = perf_overall
+    perf['test']["overall performance"] = perf_overall
 
-    return perf_overall, model_performance
+    return perf
 
 
-def plot_intersection(result, i, iou_x1, iou_y1, iou_x2, iou_y2):
+def __plot_intersection(result, i, iou_x1, iou_y1, iou_x2, iou_y2):
     tile_id = os.path.basename(result.path).split(".")[0]
     img = cv2.imread(result.path)
     boxes = result.boxes.cpu().numpy()
@@ -526,7 +365,7 @@ def plot_intersection(result, i, iou_x1, iou_y1, iou_x2, iou_y2):
         )
 
 
-def write_performance_file_single(performance_json, SIE_id, SIE_performance_dir):
+def __write_performance_file_single(performance_json, SIE_id, SIE_performance_dir):
     model_performance_output = json.dumps(
         performance_json, sort_keys=False, indent=4, separators=(",", ": ")
     )
@@ -537,8 +376,25 @@ def write_performance_file_single(performance_json, SIE_id, SIE_performance_dir)
 
     return model_performance_output
 
+def __write_performance_table(perf:dict, exp_id):
+    table = pd.DataFrame()
 
-def write_performance_file_aggregate_table(
+    values = [
+        "Model {}".format(k),
+        feature_name,
+        level_name,
+        partition,
+        p,
+        r,
+        f1,
+        n,
+    ]
+    row = {k: v for k, v in zip(columns, values)}
+    SIE_table = SIE_table.append(row, ignore_index=True)
+
+    return table
+
+def __write_performance_file_aggregate_table(
     performance_json, config_dir, SIE_performance_dir, whole=True
 ):
     with open(os.path.join(config_dir, "coverage.json")) as f:
@@ -610,7 +466,7 @@ def write_performance_file_aggregate_table(
     return performance_json
 
 
-def add_entry_aggregate(
+def __add_entry_aggregate(
     model_performance_aggregate,
     interaction_id,
     performance_incl,
@@ -630,92 +486,45 @@ def add_entry_aggregate(
 
     return model_performance_aggregate
 
+def __initialize_perf(exp_id):
+    perf = {'experiment_id': exp_id,
+            'test': {
+                    "overall performance": {},
+                    "per-sample performance": {}
+                }
+            }
+
+    return perf
 
 def evaluate(
-    SIE_splits,
-    data_dir,
-    dataset_dir,
-    training_dir,
-    config_dir,
+    model, 
+    exp_id,
+    data,
     iou_threshold=0.7,
     table=True,
     verbose=True
 ):
-    model_paths = glob.glob(os.path.join(training_dir, "*train*", "weights", "best.pt"))
-    pbar = tqdm(model_paths, leave=False)
-    model_performance_aggregate = {}
-    print(
-        "Out of {} designated splits, found {} trained models in {}.".format(
-            len(SIE_splits), len(model_paths), training_dir
-        )
-    )
+    if type(model) is str:
+        model = YOLO(model)
 
-    SIE_performance_dir = os.path.join(config_dir, "SIE_performance")
-    if not os.path.exists(SIE_performance_dir):
-        os.makedirs(SIE_performance_dir)
+    with open(os.path.join(data)) as f:
+        test_file = f.read().split('\n')[2].split(': ')[-1]
 
-    for i, SIE_id in enumerate(SIE_splits):
-        path = os.path.abspath(
-            os.path.join(
-                training_dir, "train_wo{}".format(SIE_id), "weights", "best.pt"
-            )
-        )
-        try:
-            model = YOLO(path)
-        except:
-            print("Model {} doesn't exist. Consider retraining".format(SIE_id))
-            continue
+    with open(os.path.join(test_file)) as f:
+        test_ids = f.read().split('\n')
+        print(test_ids)
 
-        test_in_img_paths, test_ex_img_paths = get_image_paths(SIE_id, dataset_dir)
-        if verbose:
-            print(len(test_in_img_paths), len(test_ex_img_paths))
+    
 
-        model_performance_single = {
-            "split_id": SIE_id,
-            "test_included": {"Overall Performance": {}, "Per Sample Performance": {}},
-            "test_excluded": {"Overall Performance": {}, "Per Sample Performance": {}},
-        }
-        results_covered = get_predictions(model, test_in_img_paths)
+    predictions = __get_predictions(model, test_ids)
+    perf = __score_preds(exp_id,
+                  predictions,
+                  score_class=False
+                  )
 
-        # KEY SCORING FUNCTIONS
-        performance_covered, model_performance_single = score_preds(
-            results_covered,
-            SIE_id,
-            data_dir,
-            "test_included",
-            model_performance=model_performance_single,
-            iou_threshold=iou_threshold,
-        )
-        performance_withheld = {}  # Should be overwritten verwritten if not baseline model
+    '''if table:
+        __write_performance_file_aggregate_table(
+            perf, config_dir, SIE_performance_dir
+        )'''
 
-        if SIE_id != "_x_":
-            # TEST SET WITH ONLY INTERACTION
-            results_withheld = get_predictions(model, test_ex_img_paths)
-            performance_withheld, model_performance_single = score_preds(
-                results_withheld,
-                SIE_id,
-                data_dir,
-                "test_excluded",
-                model_performance=model_performance_single,
-                iou_threshold=iou_threshold,
-            )
-
-        write_performance_file_single(
-            model_performance_single, SIE_id, SIE_performance_dir
-        )
-        add_entry_aggregate(
-            model_performance_aggregate,
-            SIE_id,
-            performance_covered,
-            performance_withheld,
-            len(test_in_img_paths),
-            len(test_ex_img_paths),
-        )
-        pbar.update()
-
-    if table:
-        write_performance_file_aggregate_table(
-            model_performance_aggregate, config_dir, SIE_performance_dir
-        )
-
-    return model_performance_aggregate
+    return perf
