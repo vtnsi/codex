@@ -1,2 +1,0 @@
-Missing interactions for strength 1:
-[('biome', 'Tropical & Subtropical Coniferous Forests')]
