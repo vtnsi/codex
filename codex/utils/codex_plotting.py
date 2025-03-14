@@ -242,93 +242,11 @@ def __sort_slope_indices__(counts, perf, human_readable):
         )
     return p, ordered_idx, signif_idx
 
-
-def plot_pbi_frequency_scatter(
-    mode,
-    outputPath,
-    name,
-    counts,
-    perf,
-    human_readable,
-    t,
-    metric,
-    ranks,
-    display_all_lr: bool,
-    bound_lim=True,
-    save_per_interaction=False,
-):
-    title_size = 18
-    titlepad = 16
-    labelpad = 12
-    axis_size = int(4 * title_size / 5)
-
-    p, ordered_idx, signif_idx = __sort_slope_indices__(counts, perf, human_readable)
+def __plot_regression(subset, counts, perf, human_readable, p_lines, ranks, save_per_interaction, axis_size, labelpad, metric, outputPath):
+    num_combinations = len(counts)
     
-    p_lines = p.get_lines()
-    figsize_custom = (11,8)
-
-    plt.clf()
-    if mode == "highlights":
-        plt.figure(figsize=figsize_custom)
-        plt.tight_layout()
-        subset = ordered_idx
-        plt.title(
-            textwrap.fill(
-                "Standardized Proportion of Interaction Frequency against Performance for {}, subset of interactions | t={}".format(
-                    name, str(t)
-                ),
-                54,
-            ),
-            pad=titlepad+3,
-            weight="bold",
-            fontsize=title_size,
-        )
-        filename = "pxi_performance_vs_freq-{}_subset.png".format(t)
-    elif mode == "signif":
-        plt.figure(figsize=figsize_custom)
-        plt.tight_layout()
-        subset = signif_idx
-        print("NUMBER OF SIGNIFICANT COMBOS", len(signif_idx))
-        plt.title(
-            textwrap.fill(
-                "Standardized Proportion of Interaction Frequency against Performance for {}, Statistically Signifcant Regression | t={}".format(
-                    name, str(t)
-                ),
-                54,
-            ),
-            pad=titlepad+3,
-            weight="bold",
-            fontsize=title_size,
-        )
-        filename = "pxi_performance_vs_freq-{}_signif.png".format(t)
-    elif mode == "all":
-        plt.figure(figsize=figsize_custom)
-        plt.tight_layout()
-        plt.title(
-            textwrap.fill(
-                "Standardized Proportion of Interaction Frequency against Performance for {} | t={}".format(
-                    name, str(t)
-                ),
-                54,
-            ),
-            pad=titlepad,
-            weight="bold",
-            fontsize=title_size,
-        )
-        print("NUMBER OF COMBOS", len(counts))
-        subset = range(len(counts))
-        filename = "pxi_performance_vs_freq-{}_ALL.png".format(t)
-
-    c_l = len(counts)
-    counts_array = np.array(counts, dtype=object)
-
-    N = np.sum(np.sum(counts_array))
-    print(N)
     # Slopes
-    for i in range(c_l):
-        '''if 'Age' in ranks[i]:
-            print("Skipping age")
-            continue'''
+    for i in range(num_combinations):
         if i not in subset:
             continue
 
@@ -384,6 +302,87 @@ def plot_pbi_frequency_scatter(
             plt.savefig(os.path.join(outputPath, filename))
             plt.clf()
 
+def plot_pbi_frequency_scatter(
+    mode,
+    outputPath,
+    name,
+    counts,
+    perf,
+    human_readable,
+    t,
+    metric,
+    ranks,
+    display_all_lr: bool,
+    bound_lim=True,
+    save_per_interaction=False,
+):
+    title_size = 18
+    titlepad = 16
+    labelpad = 12
+    axis_size = int(4 * title_size / 5)
+
+    p, ordered_idx, signif_idx = __sort_slope_indices__(counts, perf, human_readable)
+    
+    p_lines = p.get_lines()
+    figsize_custom = (11,8)
+
+    plt.clf()
+    if mode == "highlights":
+        plt.figure(figsize=figsize_custom)
+        subset = ordered_idx
+        plt.title(
+            textwrap.fill(
+                "Standardized Proportion of Interaction Frequency against Performance for {}, subset of interactions | t={}".format(
+                    name, str(t)
+                ),
+                60,
+            ),
+            pad=titlepad+3,
+            weight="bold",
+            fontsize=title_size,
+        )
+        filename = "pxi_performance_vs_freq-{}_subset.png".format(t)
+    elif mode == "signif":
+        plt.figure(figsize=figsize_custom)
+        subset = signif_idx
+        #print("NUMBER OF SIGNIFICANT COMBOS", len(signif_idx))
+        plt.title(
+            textwrap.fill(
+                "Standardized Proportion of Interaction Frequency against Performance for {}, Statistically Signifcant Regression | t={}".format(
+                    name, str(t)
+                ),
+                60,
+            ),
+            pad=titlepad+3,
+            weight="bold",
+            fontsize=title_size,
+        )
+        filename = "pxi_performance_vs_freq-{}_signif.png".format(t)
+    elif mode == "all":
+        plt.figure(figsize=figsize_custom)
+        plt.title(
+            textwrap.fill(
+                "Standardized Proportion of Interaction Frequency against Performance for {} | t={}".format(
+                    name, str(t)
+                ),
+                60,
+            ),
+            pad=titlepad,
+            weight="bold",
+            fontsize=title_size,
+        )
+        subset = range(len(counts))
+        filename = "pxi_performance_vs_freq-{}_ALL.png".format(t)
+
+    # for all c_l's, min lower bound and max upper bound
+    num_combinations = len(counts)
+    __plot_regression(subset, counts, perf, human_readable, p_lines, ranks, save_per_interaction, axis_size, labelpad, metric, outputPath)
+    
+
+    N = int(np.sum(counts[0]))
+    print("T", t)
+    lower, upper = codex_metrics.standardized_proportion_frequency_bounds_iterative(N, counts)
+
     '''plt.xlabel(
         "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
         fontsize=axis_size,
@@ -392,26 +391,39 @@ def plot_pbi_frequency_scatter(
     plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)'''
     #plt.tick_params(fontsize=10)
     #plt.ticklabel_format(font)
-    lower, upper = codex_metrics.standardized_proportion_frequency_bounds(N, c_l)
+    
+    #bound_lim = T
+    vlines = False
+    if vlines:
+        plt.vlines(lower, ymin=0.5, ymax=1)
+        plt.vlines(upper, ymin=0.5, ymax=1)
     if bound_lim:
+        plt.xlim((lower-0.05, upper+0.05))
+        plt.ylim((0.5, 1))
+    else:
         plt.ylim((0, 1))
         plt.xlim((-1,1))
-    else:
-        plt.xlim((lower, upper))
-        plt.ylim((0.5, 1))
+    
+    cmap = sns.diverging_palette(145, 300, s=60, as_cmap=True)
 
+    plt.vlines(0.0, ymin=0, ymax=1, color='black', linestyles=['dashed'])
+    plt.fill_betweenx(range(5), -2, 0, color=cmap(55), alpha=0.18, label='Underrepresented interaction')
+    plt.fill_betweenx(range(5), 0, 2, color=cmap(225), alpha=0.18, label='Overrepresentation interaction')
+
+    plt.tight_layout(pad=4)
     plt.xlabel(
         "Standardized Proportion Frequency Coverage",
         fontsize=axis_size,
         labelpad=labelpad,
     )
-    plt.ylabel("Per-interaction Performance".format(metric), fontsize=axis_size, labelpad=labelpad)
+    plt.ylabel("Per-interaction Performance: predicting on {}".format(metric), fontsize=axis_size, labelpad=labelpad)
     plt.grid(visible=True, axis="y")
     plt.legend()
 
     if savefig:
         plt.savefig(os.path.join(outputPath, filename))
-
+    
+    plt.cla()
     return
 
 
@@ -489,7 +501,7 @@ def heatmap(
     else:
         alignment='center'
 
-    plt.figure(figsize=(12, 7.5))
+    plt.figure(figsize=(9, 7))
     heatmap = sns.heatmap(
         square,
         vmin=vmin,
@@ -518,11 +530,13 @@ def heatmap(
         colorbar.set_ticks([0, 1])
         colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
 
-    plt.title(title, weight="bold")
-    plt.xlabel(xlabel, fontsize=10)
-    plt.ylabel(ylabel, labelpad=-5, fontsize=10)
-    plt.yticks(rotation=labrotation, va='center')
-    plt.tight_layout(pad=2)
+    title_size = 18
+    axis_size = int(4 * title_size / 5)
+    plt.title(title, weight="bold", fontsize=title_size, pad=10)
+    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15)
+    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15)
+    plt.yticks(fontsize=12, rotation=labrotation, va='center')
+    plt.tight_layout(pad=1.5)
 
     # FIGURE SAVE
     with open(os.path.join(output_dir, filename), "wb") as f:

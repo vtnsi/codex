@@ -622,7 +622,7 @@ def create_coverage_map(
         title = "{}-way Standardized Proportion Frequency Coverage of {}".format(
             t, dataset_name
         )
-        xlabel = "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
+        xlabel = None# "Interactions"#, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
 
     elif mode == "performance":
         perf = kwargs["performance_all_interactions"]

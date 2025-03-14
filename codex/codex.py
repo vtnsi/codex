@@ -390,7 +390,11 @@ def performance_by_interaction(
             coverage_subset=coverage_subset,
         )
         # coverage_results_sdcc[t] = combinatorial.SDCC_main(trainDF, 'train', testDF, 'test', universe, t, output_dir, split_id=split_id)
-    coverage_results['info']['Overall Performance'] = performance['test']['Overall Performance']
+    try:
+        coverage_results['info']['Overall Performance'] = performance['test']['Overall Performance']
+    except:
+        print("No overall performance section found...")
+        
     coverage_results = output.performance_by_interaction_vis(
         output_dir,
         dataset_name,

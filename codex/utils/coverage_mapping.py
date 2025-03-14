@@ -105,9 +105,10 @@ def frequency_map_proportion_standardized(square, counts):
     cbar_kws = {
         "label": textwrap.fill(
             "Proportion of Appearences per Interaction for Combination, "
-            + "Standardized proportion, "
-            + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
+            + "Standardized proportion",
             55,
+            #", "
+            #+ r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
         )
     }
 
