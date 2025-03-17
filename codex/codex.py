@@ -56,7 +56,7 @@ def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=
     return codex_dir_new
 
 
-def run(codex_input, verbose: str):
+def run(codex_input, verbose: str='1'):
     """
     Allows for different modes that can lead to different functionalities
     modes:

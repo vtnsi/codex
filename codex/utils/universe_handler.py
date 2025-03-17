@@ -91,7 +91,7 @@ def initialize_universe(codex_input):
         bin_path = os.path.abspath(os.path.join(
             codex_input["codex_directory"], bin_directory, codex_input["bin_file"]
         ))
-        provided_universe, dataset_path = binning.binfile(dataset_path, bin_path)
+        provided_universe, dataset_path = binning.binfile(dataset_path, bin_path, codex_input['features'])
 
     if codex_input["universe"] is not None and type(codex_input["universe"]) is dict:
         print("Universe provided")

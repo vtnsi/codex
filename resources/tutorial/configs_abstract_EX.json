@@ -7,12 +7,12 @@
     "dataset_name" : "RarePlanes",
     "model_name" : "",
 
-    "data_directory" : "../../resources/tutorial",
-    "dataset_file" : "dataset_rareplanes_lightweight_EX.csv",
-    "features" : ["Hour_of_Day", "Season", "off_nadir_max", "avg_pan_resolution", "biome", "CONTROL"],
-    "bin_directory": "../../resources/tutorial",
-    "bin_file" : "binning_rareplanes-complete_EX.txt",
-    "sample_id_column" : "image_tile_id",
+    "data_directory" : "",
+    "dataset_file" : "dataset_abstract_EX.csv",
+    "features" : ["A", "B", "C", "D"],
+    "bin_directory": "",
+    "bin_file" : "binning_abstract.txt",
+    "sample_id_column" : "id",
 
     "universe_directory": null,
     "universe": null,

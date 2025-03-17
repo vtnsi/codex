@@ -7,7 +7,7 @@ import pandas
 import sys
 import os
 
-def binfile(unbinnedfile, binningfile):
+def binfile(unbinnedfile, binningfile, features_original):
     unbinnedfile = os.path.abspath(unbinnedfile)
     DF = pandas.read_csv(unbinnedfile)
 
@@ -21,6 +21,9 @@ def binfile(unbinnedfile, binningfile):
             feature = feature_levels_list[0]
             linelist = feature_levels_list[1].split("\n")[0].split(";")
             levels = []
+
+            if feature not in features_original:
+                continue
 
             for element in linelist:
                 levels.append(element)
