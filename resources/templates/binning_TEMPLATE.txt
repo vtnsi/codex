@@ -1,3 +1,3 @@
-feature_0: [0,5];(5,10]
-feature_1: level1;level2;level3;level4
-feature_2: level1;level2;level3
+<feature_0>: [<value>,<value>];(<value>,<value>]
+<feature_1>: level_1;level_2;level_3;level_4
+<feature_2>: level_1;level_2;level_3

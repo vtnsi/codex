@@ -1,6 +1,6 @@
 {
-    "split_id": "",
-    "train": [],
-    "validation": [],
-    "test": []
+    "split_id": "<name of split for tracking purposes>",
+    "train": ["<list of train ID's appearing in dataset under 'sample_id_column' specified in input file.>"],
+    "validation": ["<list of validation set ID's appearing in dataset under 'sample_id_column' specified in input file.>"],
+    "test": ["<list of test set ID's appearing in dataset under 'sample_id_column' specified in input file.>"]
 }
