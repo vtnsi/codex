@@ -7,3 +7,4 @@ statsmodels==0.14.2
 tqdm>=4.66.3
 Pillow >= 10.3.0
 Bottleneck == 1.4.0
+directory_tree == 1.0.0
