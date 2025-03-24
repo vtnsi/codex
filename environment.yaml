@@ -1,4 +1,5 @@
-name: codex-env
+name: codex
+prefix: ./
 channels:
 - defaults
 dependencies:

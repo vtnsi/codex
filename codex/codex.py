@@ -20,11 +20,10 @@ from tqdm import tqdm
 import directory_tree
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from codex.modules import combinatorial, output
+from codex.modules import combinatorial, output, binning
 from codex.utils import input_handler as input_handler, universe_handler, results_handler, dataset_handler, prereq_handler as prereq_check
-from codex.modules import binning
-#from codex.utils import sie_analysis, sie_eval_deprecate, sie_ml
-#import py_waspgen.sie_iq_new as sie_iq
+from codex.utils import sie_ml, sie_analysis
+
 
 def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
     existing_codex_dirs = glob.glob(os.path.realpath(os.path.join(parent_dir, dir_name+'*')))
@@ -719,7 +718,7 @@ def systematic_inclusion_exclusion(
 
     score = True
     if score:
-        sie_pred.evaluate(
+        sie_ml.evaluate(
             SIE_splits, data_dir, dataset_dir_YOLO, training_dir, config_dir=output_dir
         )
     table_filename = ""
@@ -897,10 +896,35 @@ if __name__ == "__main__":
             "Improper command line. For input file named input.json, format is python codex.py input=input.json verbose=True"
         )
         exit()
-
     kwargs = dict(arg.split("=") for arg in sys.argv[1:])
-    verbosity = str(kwargs["verbose"])
+
     input_fp = kwargs["input"]
+    verbosity = str(kwargs["verbose"])
+
+    try:
+        setup_new_dir = (str.lower(kwargs['setup_new_dir']) == 'true')
+    except KeyError:
+        setup_new_dir = None
+    
+    if setup_new_dir is not None:
+        try:  
+            new_dir_name = kwargs['dirname']
+        except:
+            raise KeyError("In creating a new CODEX directory; requires <name of CODEX directory>.")
+        try:
+            new_dir_parent = kwargs['parent_dir']
+        except:
+            new_dir_parent = '..'
+            raise KeyError("In creating a new CODEX directory; requires <parent directory of CODEX directory>.")
+
+        try:
+            include_templates = (str.lower(kwargs['include_templates']) == 'true')
+            include_tutorial = (str.lower(kwargs['include_examples']) == 'true')
+        except:
+            include_templates = False
+            include_tutorial = False
+        setup_new_codex_env(new_dir_name, new_dir_parent, templates=include_templates, tutorial=include_tutorial)   
+
 
     with open(input_fp) as f:
         codex_input = json.load(f)
