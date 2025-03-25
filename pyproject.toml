@@ -8,13 +8,14 @@ version = "2024.1.1"
 requires-python = ">= 3.8"
 dependencies = [
         "pandas>=2.1.0",
-        "numpy==1.24.1",
-        "Bottleneck == 1.4.0",
-        "matplotlib>=3.5.1",
-        "seaborn>=0.13.0",
+        "numpy>=1.24.1",
+        "matplotlib",
+        "seaborn",
         "statsmodels==0.14.2",
-        "Pillow>=10.3.0",
-        "tqdm>=4.66.3"
+
+        "tqdm",
+        "Pillow",
+        "directory_tree==1.0.0"
 ]
 authors = [
   {name = "Erin Lanus", email = "lanus@vt.edu"},
