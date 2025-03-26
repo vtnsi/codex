@@ -22,6 +22,7 @@ import directory_tree
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from codex.modules import combinatorial, output, binning
 from codex.utils import input_handler as input_handler, universe_handler, results_handler, dataset_handler, prereq_handler as prereq_check
+sie_ml = None; sie_analysis=None
 
 
 def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
@@ -44,19 +45,19 @@ def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=
         codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}_{len(existing_codex_dirs)}'))
     os.makedirs(codex_dir_new, exist_ok=False)
 
-    for component in ["binning", "configs", "splits", "performance", "data", "runs", "universe"]:
+    for component in ["binning", "configs", "splits", "performance", "datasets", "runs", "universe"]:
         subdir = os.path.join(codex_dir_new, component)
         os.makedirs(subdir, exist_ok=True)
 
     if templates:
         for filename in os.listdir(os.path.join(exec_dir, "resources", "templates")):
             for subdir in os.listdir(codex_dir_new):
-                if str(subdir) in str(filename):
+                if str(subdir)[:-1] in str(filename):
                     shutil.copy(os.path.join(exec_dir, "resources", "templates", filename), os.path.join(codex_dir_new, subdir, filename))
     if tutorial:
         for filename in os.listdir(os.path.join(exec_dir, "resources", "tutorial")):
             for subdir in os.listdir(codex_dir_new):
-                if str(subdir) in str(filename):
+                if str(subdir)[:-1] in str(filename):
                     shutil.copy(os.path.join(exec_dir, "resources", "tutorial", filename), os.path.join(codex_dir_new, subdir, filename))
 
     directory_tree.DisplayTree(codex_dir_new)
@@ -266,7 +267,7 @@ def dataset_split_evaluation(
 
 
 def dataset_split_comparison(
-    input: dict, split_multiple: dict, performance_multiple: dict, metric: str
+    codex_input: dict, split_multiple: dict, performance_multiple: dict, metric: str
 ):
     """
     Dataset split comparison compares SDCC values from multiple splits
@@ -912,9 +913,11 @@ def main(kwargs):
 
         try:
             include_templates = (str.lower(kwargs['include_templates']) == 'true')
-            include_tutorial = (str.lower(kwargs['include_examples']) == 'true')
-        except:
+        except KeyError:
             include_templates = False
+        try:
+            include_tutorial = (str.lower(kwargs['include_examples']) == 'true')
+        except KeyError:
             include_tutorial = False
         setup_new_codex_env(new_dir_name, new_dir_parent, templates=include_templates, tutorial=include_tutorial)   
         return
