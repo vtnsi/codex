@@ -22,7 +22,6 @@ import directory_tree
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from codex.modules import combinatorial, output, binning
 from codex.utils import input_handler as input_handler, universe_handler, results_handler, dataset_handler, prereq_handler as prereq_check
-from codex.utils import sie_ml, sie_analysis
 
 
 def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
@@ -30,10 +29,19 @@ def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=
 
     # exec_dir = os.path.dirname(os.path.realpath(__file__))
     exec_dir = "../"
+    try:
+        assert os.path.exists(os.path.join(exec_dir, "resources", "templates"))
+    except:
+        exec_dir = './'
+    
+
     if dir_name is None or dir_name == "":
         dir_name = "new_codex_dir"
 
-    codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}_{len(existing_codex_dirs)}'))
+    if len(existing_codex_dirs)  == 0:
+        codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}'))
+    else:
+        codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}_{len(existing_codex_dirs)}'))
     os.makedirs(codex_dir_new, exist_ok=False)
 
     for component in ["binning", "configs", "splits", "performance", "data", "runs", "universe"]:
@@ -885,22 +893,7 @@ def performance_by_frequency_coverage(codex_input, skew_levels:list, test_set_si
 
     return results_all_models
 
-"""
-Use keyword args on command line to pass important info
-    $ python combinatorial.py path=./ sourceName=RarePlanes sourceFile=RarePlanesMetadata_process_binned.csv mode=cc t=2 exp=MsA
-    $ python codex.py input=input.json
-"""
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(
-            "Improper command line. For input file named input.json, format is python codex.py input=input.json verbose=True"
-        )
-        exit()
-    kwargs = dict(arg.split("=") for arg in sys.argv[1:])
-
-    input_fp = kwargs["input"]
-    verbosity = str(kwargs["verbose"])
-
+def main(kwargs):
     try:
         setup_new_dir = (str.lower(kwargs['setup_new_dir']) == 'true')
     except KeyError:
@@ -908,7 +901,7 @@ if __name__ == "__main__":
     
     if setup_new_dir is not None:
         try:  
-            new_dir_name = kwargs['dirname']
+            new_dir_name = kwargs['name']
         except:
             raise KeyError("In creating a new CODEX directory; requires <name of CODEX directory>.")
         try:
@@ -924,10 +917,33 @@ if __name__ == "__main__":
             include_templates = False
             include_tutorial = False
         setup_new_codex_env(new_dir_name, new_dir_parent, templates=include_templates, tutorial=include_tutorial)   
+        return
 
+    input_fp = kwargs["input"]
+    try:
+        verbosity = str(kwargs["verbose"])
+
+        if verbosity not in ['1', '2']:
+            raise NameError("Output verbosity levels supported by CODEX: 1 - coarse; 2 - fine.")
+    except KeyError:
+        verbosity = str(1)
 
     with open(input_fp) as f:
         codex_input = json.load(f)
 
     output_dir, strengths = input_handler.define_experiment_variables(codex_input)
     run(codex_input, verbosity)
+    return
+
+"""
+Use keyword args on command line to pass important info
+    $ python combinatorial.py path=./ sourceName=RarePlanes sourceFile=RarePlanesMetadata_process_binned.csv mode=cc t=2 exp=MsA
+    $ python codex.py input=input.json
+"""
+if __name__ == "__main__":
+    if len(sys.argv) < 1:
+        raise KeyError("Improper command line. Input file required. For input file named input.json, format is python codex.py input=input.json verbose=[1/2]")
+        
+    kwargs = dict(arg.split("=") for arg in sys.argv[1:])
+
+    main(kwargs)

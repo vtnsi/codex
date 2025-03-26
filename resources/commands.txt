@@ -1,0 +1,14 @@
+python codex/codex.py setup_new_dir=true name=<name of directory> 
+					  # Optional: parent_dir=<directory containing new CODEX directory>
+                      # Optional: include_templates=true, include_tutorial=true
+
+##
+
+
+##
+conda env create -f environment.yml 
+conda activate codex
+
+###
+pip install -r requirements.txt
+pip install .

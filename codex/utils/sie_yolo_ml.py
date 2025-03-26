@@ -4,8 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-import torch
-import torchvision
 from multiprocessing import Process, Pool
 
 from ultralytics import YOLO
@@ -22,18 +20,10 @@ print("TorchVision ver: ", torchvision.__version__)'''
 import os
 import sys
 import json
-import yaml
-import shutil
 import glob
 import copy
 import numpy as np
-import matplotlib.pyplot as plt
-import random
 import pandas as pd
-import numpy
-import torch
-import torchvision
-import torchmetrics
 import cv2
 from tqdm import tqdm
 from ultralytics import YOLO

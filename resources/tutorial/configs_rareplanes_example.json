@@ -1,17 +1,17 @@
 {
-    "mode" : "dataset evaluation",
+    "mode" : "dataset split evaluation",
     
-    "codex_directory" : "",
-    "output_directory": "",
-    "config_id" : "example_dataset_eval-0",
+    "codex_directory" : "tutorial/",
+    "output_directory": "tutorial/",
+    "config_id" : "EXAMPLE-dse_rareplanes",
     "dataset_name" : "RarePlanes",
     "model_name" : "",
 
-    "data_directory" : "../../resources/tutorial",
-    "dataset_file" : "dataset_rareplanes_lightweight_EX.csv",
+    "data_directory" : "data/",
+    "dataset_file" : "dataset_rareplanes_lightweight.csv",
     "features" : ["Hour_of_Day", "Season", "off_nadir_max", "avg_pan_resolution", "biome", "CONTROL"],
-    "bin_directory": "../../resources/tutorial",
-    "bin_file" : "binning_rareplanes-complete_EX.txt",
+    "bin_directory": "binning/",
+    "bin_file" : "binning_rareplanes-complete.txt",
     "sample_id_column" : "image_tile_id",
 
     "universe_directory": null,

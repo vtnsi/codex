@@ -1,21 +1,21 @@
 {
-    "split_id": "",
+    "split_id": "<Name of split ID for tracking purposes>",
     "overall performance": {
-        "metric a": 0.0,
-        "metric b": 0.0
+        "<metric 1: 'accuracy', 'precision', 'f1', etc.>": 0.0,
+        "<metric 2: 'accuracy', 'precision', 'f1', etc.>": 0.0
     },
-    "per sample performance": {
+    "per-sample performance": {
         "sample 0": {
-            "metric a": 0.0,
-            "metric b": 0.0
+            "<metric 1: 'accuracy', 'precision', 'f1', etc.>": 0.0,
+            "<metric 2: 'accuracy', 'precision', 'f1', etc.>": 0.0
         },
         "sample 1": {
-            "metric a": 0.0,
-            "metric b": 0.0
+            "<metric 1: 'accuracy', 'precision', 'f1', etc.>": 0.0,
+            "<metric 2: 'accuracy', 'precision', 'f1', etc.>": 0.0
         },
         "sample 2": {
-            "metric a": 0.0,
-            "metric b": 0.0
+            "<metric 1: 'accuracy', 'precision', 'f1', etc.>": 0.0,
+            "<metric 2: 'accuracy', 'precision', 'f1', etc.>": 0.0
         }
     }
 }
