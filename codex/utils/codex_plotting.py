@@ -15,9 +15,11 @@ from datetime import datetime
 from scipy.interpolate import UnivariateSpline, interp1d
 import copy
 import scipy
+import numpy as np
 import statsmodels.api as sm
 from scipy.stats import pearsonr
 import logging
+import matplotlib.patches as patches
 
 from ..utils import codex_metrics, results_handler
 
@@ -474,7 +476,7 @@ def plot_pbi_bar(
 
 def heatmap(
     output_dir,
-    square,
+    square:np.ndarray,
     vmin,
     vmax,
     cmap,
@@ -494,14 +496,14 @@ def heatmap(
     else:
         linewidths=0
 
-    if labrotation<=0:
+    if labrotation<0:
         alignment='bottom'
-    elif labrotation>=0:
+    elif labrotation>0:
         alignment='top'
     else:
         alignment='center'
 
-    plt.figure(figsize=(9, 7))
+    plt.figure(figsize=(10,8))
     heatmap = sns.heatmap(
         square,
         vmin=vmin,
@@ -512,13 +514,24 @@ def heatmap(
         linewidths=linewidths,
         linecolor="black",
     )
+    size = square.shape
+    rect = patches.Rectangle([0,0], width=size[1], height=size[0], 
+                      linewidth=3, edgecolor='black', fill=False)
+    heatmap.add_patch(rect)
     heatmap.tick_params(axis="both", which="both", length=0, rotation=15)
 
     title = textwrap.fill(title, 40)
 
+    title_size = 18
+    axis_size = int(4 * title_size / 5)
+
     cmap.set_under("w")
     # cmap.set_over('k')
     colorbar = heatmap.collections[0].colorbar
+    # testing 0326
+    colorbar.ax.get_yaxis().labelpad = 15
+    colorbar.ax.tick_params(labelsize=12)
+    colorbar.set_label(cbar_kws['label'], fontsize=axis_size)
 
     if mode == "sdcc_binary_constraints_neither":
         colorbar.set_ticks([-0.667, 0, 0.667, 1.667])
@@ -530,12 +543,10 @@ def heatmap(
         colorbar.set_ticks([0, 1])
         colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
 
-    title_size = 18
-    axis_size = int(4 * title_size / 5)
-    plt.title(title, weight="bold", fontsize=title_size, pad=10)
-    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15)
-    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15)
-    plt.yticks(fontsize=12, rotation=labrotation, va='center')
+    plt.title(title, weight="bold", fontsize=title_size, pad=15)
+    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15, weight='bold')
+    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15, weight='bold')
+    plt.yticks(fontsize=12, rotation=labrotation, va=alignment)
     plt.tight_layout(pad=1.5)
 
     # FIGURE SAVE

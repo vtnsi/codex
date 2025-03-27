@@ -77,12 +77,13 @@ def run(codex_input, verbose: str='1'):
     """
     codex_input = input_handler.handle_input_file(codex_input)
     output_dir, strengths = input_handler.define_experiment_variables(codex_input)
-    timed = codex_input["timed_output"]
+    timed = codex_input["timestamp"]
     
     logger_level, filename = output.logger_parameters(verbose, output_dir=output_dir, timed=timed)
     output.intialize_logger(__name__, logger_level, filename)
-    output.intialize_logger(combinatorial.__name__, logger_level, filename)
     output.intialize_logger(output.__name__, logger_level, filename)
+    output.intialize_logger(binning.__name__, logger_level, filename)
+    output.intialize_logger(combinatorial.__name__, logger_level, filename)
 
     mode = codex_input["mode"]
 

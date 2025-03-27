@@ -28,7 +28,7 @@ savefig = True
 timed = False
 
 def logger_parameters(verbosity: str, output_dir="", timed=True):
-    logging.addLevelName(15, 'DEBUG_CODEX')
+    logging.addLevelName(15, 'CODEX_DEBUG')
     logging.addLevelName(25, 'CODEX_INFO')
 
     if timed:
@@ -50,7 +50,11 @@ def logger_parameters(verbosity: str, output_dir="", timed=True):
         )
     
     os.makedirs(os.path.abspath(output_dir), exist_ok=True)
-    filename = os.path.abspath(os.path.join(output_dir, "codex_{}-{}.log".format(level, timestamp)))
+    if timed:
+        filename = os.path.abspath(os.path.join(output_dir, "codex_out_{}-{}.log".format(level.split('_')[-1], timestamp)))
+    else:
+        filename = os.path.abspath(os.path.join(output_dir, "codex_out_{}.log".format(level.split('_')[-1])))
+
 
     return levelnum, filename
 
@@ -567,7 +571,7 @@ def create_coverage_map(
         subset_name = "all"
 
     if mode == "frequency":
-        square, cmap, cbar_kws = maps.frequency_map(square, counts)
+        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map(square, counts)
         cmap.set_under("w")
 
         filename = "CC_frequency-t{}_{}_{}.png".format(t, dataset_name, subset_name)
@@ -594,7 +598,7 @@ def create_coverage_map(
         return
 
     elif mode == "proportion_frequency":
-        square, cmap, cbar_kws = maps.frequency_map_proportion(square, counts)
+        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map_proportion(square, counts)
         # lim = np.max([np.abs(np.min(square)), np.abs(np.max(square))])
         vmin = 0
         vmax = 1
@@ -611,7 +615,7 @@ def create_coverage_map(
         #midpoint = np.mean([vmin, vmax])
 
         square = np.full([len(counts), boxsize], dtype=float, fill_value=-999)
-        square, cmap, cbar_kws = maps.frequency_map_proportion_standardized(
+        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map_proportion_standardized(
             square, counts
         )
         cmap.set_under("w")
@@ -627,7 +631,7 @@ def create_coverage_map(
     elif mode == "performance":
         perf = kwargs["performance_all_interactions"]
         metric = kwargs["metric"]
-        square, cmap, cbar_kws = maps.performance_map(
+        square, cmap, cbar_kws, cbar_ticklabels = maps.performance_map(
             square, counts, perf=perf, metric=metric
         )
         vmin = 0

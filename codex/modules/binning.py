@@ -8,7 +8,6 @@ import sys
 import os
 
 def binfile(unbinnedfile, binningfile, features_original):
-    unbinnedfile = os.path.abspath(unbinnedfile)
     DF = pandas.read_csv(unbinnedfile)
 
     # collect the features and bin levels from the bin file

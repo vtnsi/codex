@@ -23,9 +23,10 @@ def frequency_map(square, counts):
                 # square[row][column] = 0
 
     cmap = sns.cubehelix_palette(as_cmap=True, hue=3)
-    cbar_kws = {"label": "# of Appearences per Interaction"}
+    cbar_kws = {"label": "Number of Appearences per Interaction"}
+    cbar_ticklabels = ["Less Frequent", "More Frequent"]
 
-    return square, cmap, cbar_kws
+    return square, cmap, cbar_kws, cbar_ticklabels
 
 
 def frequency_map_function(square, counts, funct=None, funct_name=None):
@@ -57,6 +58,8 @@ def frequency_map_function(square, counts, funct=None, funct_name=None):
             "{}(# of Appearences per Interaction)".format(funct_name), 55
         )
     }
+    cbar_ticklabels = ["Less Frequent", "More Frequent"]
+
 
     return square, cmap, cbar_kws
 
@@ -80,9 +83,11 @@ def frequency_map_proportion(square, counts):
             "Proportion of Appearences per Interaction for Combination", 55
         )
     }
+    cbar_ticklabels = ["Lower Proportion", "Higher Proportion"]
+
 
     # print(square)
-    return square, cmap, cbar_kws
+    return square, cmap, cbar_kws, cbar_ticklabels
 
 
 def frequency_map_proportion_standardized(square, counts):
@@ -111,9 +116,10 @@ def frequency_map_proportion_standardized(square, counts):
             #+ r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
         )
     }
+    cbar_ticklabels = ["Underrepresented", "Overrepresented"]
 
     # print(square)
-    return square, cmap, cbar_kws
+    return square, cmap, cbar_kws, cbar_ticklabels
 
 
 def performance_map(square, counts, perf, metric):
@@ -140,8 +146,9 @@ def performance_map(square, counts, perf, metric):
             "Performance of Samples of Interaction, {}".format(metric), 55
         )
     }
+    cbar_ticklabels = ["Low", "High"]
 
-    return square, cmap, cbar_kws
+    return square, cmap, cbar_kws, cbar_ticklabels
 
 
 def frequency_map_binary(square, counts):

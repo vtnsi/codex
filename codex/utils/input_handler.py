@@ -21,7 +21,7 @@ def define_experiment_variables(codex_input):
         from the input file.
     '''
 
-    timed = codex_input['timed_output']
+    #timed = codex_input['timestamp']
     # Required for every codex mode
     # CODEX DIR RELATIVE TO CODEX REPO
     codex_dir = codex_input['codex_directory']
@@ -40,11 +40,7 @@ def define_experiment_variables(codex_input):
     output_dir = os.path.abspath(output.make_output_dir_nonexist(output_dir))
     output_dir_config = os.path.realpath(os.path.join(output_dir, config_id))
     
-    if timed:
-        time = datetime.datetime.now().strftime("%m_%d-%Y")
-        output_dir_config = output.make_output_dir_nonexist(output_dir_config, time)
-    else:
-        output_dir_config = output.make_output_dir_nonexist(output_dir_config)
+    output_dir_config = output.make_output_dir_nonexist(output_dir_config)
 
     strengths = codex_input['t']
 

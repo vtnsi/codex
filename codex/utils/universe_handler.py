@@ -73,12 +73,11 @@ def initialize_universe(codex_input):
 
     try:
         dataset_path = os.path.join(data_dir, dataset_filename)
-        print("DATASET PATH:", dataset_path, os.path.exists(dataset_path))
-
-    except RuntimeError:
-        print("Dataset directory not found... Executing with realpath.")
+        assert os.path.exists(dataset_path)
+    except:
         dataset_path = os.path.realpath(os.path.join(codex_dir, data_dir, dataset_filename))
-        print("DATASET PATH:", dataset_path, os.path.exists(dataset_path))
+        
+    print("PATH TO DATASET:", dataset_path)
     provided_universe = None
 
     if codex_input["bin_file"] is not None:
@@ -89,8 +88,10 @@ def initialize_universe(codex_input):
             print("No bin_directory found.")
             bin_directory = ""
         bin_path = os.path.abspath(os.path.join(
-            codex_input["codex_directory"], bin_directory, codex_input["bin_file"]
-        ))
+            codex_input["codex_directory"], bin_directory, codex_input["bin_file"]))
+        
+        print("PATH TO BINNING FILE:", dataset_path)
+
         provided_universe, dataset_path = binning.binfile(dataset_path, bin_path, codex_input['features'])
 
     if codex_input["universe"] is not None and type(codex_input["universe"]) is dict:
