@@ -6,13 +6,13 @@ setup(
     description="Coverage for Data Explorer",
     install_requires=[
         "pandas>=2.1.0",
-        "numpy==1.23.0",
-        "Bottleneck == 1.4.0",
-        "matplotlib>=3.5.1",
-        "seaborn>=0.13.0",
+        "numpy>=1.24.1",
+        "matplotlib==3.5.1",
+        "seaborn",
         "statsmodels==0.14.2",
-        "Pillow",
         "tqdm",
+        "Pillow",
+        "directory_tree==1.0.0"
     ],
     packages=['codex', 'modules', 'utils'],
     entry_points={

@@ -12,7 +12,6 @@ dependencies = [
         "matplotlib==3.5.1",
         "seaborn",
         "statsmodels==0.14.2",
-
         "tqdm",
         "Pillow",
         "directory_tree==1.0.0"
