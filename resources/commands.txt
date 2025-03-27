@@ -12,3 +12,6 @@ conda activate codex
 ###
 pip install -r requirements.txt
 pip install .
+
+##
+leebri2n@hume-lambda:~/PROJECTS/dote_1070-1083/CODEX_NSI_MASTER$ python codex/codex.py setup_new_dir=true name=tutorial parent_dir=./ include_examples=True

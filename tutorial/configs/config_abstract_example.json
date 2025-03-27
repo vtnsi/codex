@@ -2,12 +2,12 @@
     "mode" : "dataset evaluation",
     
     "codex_directory" : "tutorial/",
-    "output_directory": "tutorial/",
+    "output_directory": "tutorial/runs/",
     "config_id" : "EXAMPLE-abstract_hands_on",
     "dataset_name" : "Abstract ABCD",
     "model_name" : "",
 
-    "data_directory" : "data/",
+    "data_directory" : "datasets/",
     "dataset_file" : "<!>",
     "features" : ["<!>"],
     "bin_directory": "binning/",
@@ -26,5 +26,5 @@
     "counting_mode" : "label_exclusive",
     "t": ["<!>"],
 
-    "timed_output": false
+    "timestamp": false
 }
