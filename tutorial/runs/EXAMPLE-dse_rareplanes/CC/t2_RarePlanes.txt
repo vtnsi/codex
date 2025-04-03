@@ -1,3 +1,0 @@
-interactions appearing in RarePlanes: 171
-total possible interactions: 263
-CC(RarePlanes): 0.6501901140684411
