@@ -26,6 +26,12 @@ sie_ml = None; sie_analysis=None
 
 
 def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
+    if templates:
+        print("CODEX env setup: Adding templates")
+    if tutorial:
+        print("CODEX env setup: Adding tutorial materials.")
+
+
     existing_codex_dirs = glob.glob(os.path.realpath(os.path.join(parent_dir, dir_name+'*')))
 
     # exec_dir = os.path.dirname(os.path.realpath(__file__))
@@ -61,8 +67,36 @@ def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=
                     shutil.copy(os.path.join(exec_dir, "resources", "tutorial", filename), os.path.join(codex_dir_new, subdir, filename))
 
     directory_tree.DisplayTree(codex_dir_new)
+    print(f"Successfully constructed CODEX environment at location {os.path.realpath(codex_dir_new)}.")
     return codex_dir_new
 
+def codex_env_checks(kwargs):
+    try:  
+        new_dirname = kwargs['name']
+    except:
+        raise KeyError("In creating a new CODEX directory; requires <name of CODEX directory>.")
+    try:
+        new_parent_dirname = kwargs['parent_dir']
+    except KeyError:
+        new_parent_dirname = '..'
+        print("<parent_dir> was created as None. Defaulting to '../<name>/'...")
+        
+    try:
+        assertpath = os.path.realpath(os.path.join(os.getcwd(), new_parent_dirname))
+        assert os.path.exists(assertpath)
+    except AssertionError:
+        raise FileNotFoundError(f"Creating template CODEX directory failed. Folder {assertpath} does not exist.")
+
+    try:
+        include_templates = (str.lower(kwargs['include_templates']) == 'true')
+    except KeyError:
+        include_templates = False
+    try:
+        include_tutorial = (str.lower(kwargs['include_examples']) == 'true')
+    except KeyError:
+        include_tutorial = False
+
+    return new_dirname, new_parent_dirname, include_templates, include_tutorial
 
 def run(codex_input, verbose: str='1'):
     """
@@ -902,25 +936,8 @@ def main(kwargs):
         setup_new_dir = None
     
     if setup_new_dir is not None:
-        try:  
-            new_dir_name = kwargs['name']
-        except:
-            raise KeyError("In creating a new CODEX directory; requires <name of CODEX directory>.")
-        try:
-            new_dir_parent = kwargs['parent_dir']
-        except:
-            new_dir_parent = '..'
-            raise KeyError("In creating a new CODEX directory; requires <parent directory of CODEX directory>.")
-
-        try:
-            include_templates = (str.lower(kwargs['include_templates']) == 'true')
-        except KeyError:
-            include_templates = False
-        try:
-            include_tutorial = (str.lower(kwargs['include_examples']) == 'true')
-        except KeyError:
-            include_tutorial = False
-        setup_new_codex_env(new_dir_name, new_dir_parent, templates=include_templates, tutorial=include_tutorial)   
+        new_dirname, new_parent_dirname, include_templates, include_tutorial = codex_env_checks(kwargs)
+        setup_new_codex_env(new_dirname, new_parent_dirname, templates=include_templates, tutorial=include_tutorial)   
         return
 
     input_fp = kwargs["input"]
