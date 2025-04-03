@@ -1,5 +1,5 @@
 {
-    "mode" : "dataset evaluation",
+    "mode" : "<!>",
     
     "codex_directory" : "tutorial/",
     "output_directory": "tutorial/",
