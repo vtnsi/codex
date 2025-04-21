@@ -2,7 +2,7 @@
     "mode" : "dataset evaluation",
     
     "codex_directory" : "tutorial/",
-    "output_directory": "tutorial/",
+    "output_directory": "tutorial/runs/",
     "config_id" : "EXAMPLE-abstract_hands_on",
     "dataset_name" : "Abstract ABCD",
     "model_name" : "",

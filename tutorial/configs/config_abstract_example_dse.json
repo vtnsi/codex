@@ -2,12 +2,12 @@
     "mode" : "<!>",
     
     "codex_directory" : "tutorial/",
-    "output_directory": "tutorial/",
-    "config_id" : "EXAMPLE-abstract_hands_on",
+    "output_directory": "tutorial/runs/",
+    "config_id" : "EXAMPLE-dse-abstract_hands_on",
     "dataset_name" : "Abstract ABCD",
     "model_name" : "",
 
-    "data_directory" : "data/",
+    "data_directory" : "datasets/",
     "dataset_file" : "<!>",
     "features" : ["<!>"],
     "bin_directory": "binning/",

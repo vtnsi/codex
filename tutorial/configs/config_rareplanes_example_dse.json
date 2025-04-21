@@ -2,12 +2,12 @@
     "mode" : "dataset split evaluation",
     
     "codex_directory" : "tutorial/",
-    "output_directory": "tutorial/",
+    "output_directory": "tutorial/runs/",
     "config_id" : "EXAMPLE-dse_rareplanes",
     "dataset_name" : "RarePlanes",
     "model_name" : "",
 
-    "data_directory" : "data/",
+    "data_directory" : "datasets/",
     "dataset_file" : "dataset_rareplanes_lightweight.csv",
     "features" : ["Hour_of_Day", "Season", "off_nadir_max", "avg_pan_resolution", "biome", "CONTROL"],
     "bin_directory": "binning/",

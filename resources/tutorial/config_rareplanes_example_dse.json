@@ -2,7 +2,7 @@
     "mode" : "dataset split evaluation",
     
     "codex_directory" : "tutorial/",
-    "output_directory": "tutorial/",
+    "output_directory": "tutorial/runs/",
     "config_id" : "EXAMPLE-dse_rareplanes",
     "dataset_name" : "RarePlanes",
     "model_name" : "",
