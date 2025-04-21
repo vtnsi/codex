@@ -33,7 +33,8 @@ def define_experiment_variables(codex_input):
         output_dir = codex_dir
 
     if output_dir is None:
-        output_dir = './'
+        #output_dir = './'
+        output_dir = os.path.realpath('.')
     
     config_id = codex_input['config_id']
 
