@@ -1,8 +1,0 @@
-{
-    "split_file": "split_01.json",
-    "test": {
-        "Overall Performance": {
-            "accuracy": 0.65234293561926
-        }
-    }
-}

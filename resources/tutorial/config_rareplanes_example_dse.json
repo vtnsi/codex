@@ -26,5 +26,5 @@
     "performance_file": null,
     "metric": null,
 
-    "timed_output": false
+    "timestamp": false
 }

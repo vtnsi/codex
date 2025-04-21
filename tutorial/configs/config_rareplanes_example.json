@@ -20,5 +20,5 @@
     "counting_mode" : "label_exclusive",
     "t": [1,2,3],
 
-    "timed_output": false
+    "timestamp": false
 }

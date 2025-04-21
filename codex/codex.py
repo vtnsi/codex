@@ -34,12 +34,13 @@ def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=
 
     existing_codex_dirs = glob.glob(os.path.realpath(os.path.join(parent_dir, dir_name+'*')))
 
-    # exec_dir = os.path.dirname(os.path.realpath(__file__))
-    exec_dir = "../"
+    # exec_dir = os.path.dirname(os.path.realpath(__file__)) exec_dir = "../"
+    exec_dir = os.path.dirname(os.path.realpath('.'))
     try:
         assert os.path.exists(os.path.join(exec_dir, "resources", "templates"))
     except:
-        exec_dir = './'
+        #exec_dir = './'
+        exec_dir = os.path.realpath('.')
     
 
     if dir_name is None or dir_name == "":
@@ -67,19 +68,23 @@ def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=
                     shutil.copy(os.path.join(exec_dir, "resources", "tutorial", filename), os.path.join(codex_dir_new, subdir, filename))
 
     directory_tree.DisplayTree(codex_dir_new)
-    print(f"Successfully constructed CODEX environment at location {os.path.realpath(codex_dir_new)}.")
+    print(f"Successfully constructed CODEX directory at location {os.path.realpath(codex_dir_new)}.")
     return codex_dir_new
 
 def codex_env_checks(kwargs):
     try:  
+        # requd
         new_dirname = kwargs['name']
     except:
         raise KeyError("In creating a new CODEX directory; requires <name of CODEX directory>.")
     try:
+        # not required
         new_parent_dirname = kwargs['parent_dir']
     except KeyError:
-        new_parent_dirname = '..'
-        print("<parent_dir> was created as None. Defaulting to '../<name>/'...")
+        new_parent_dirname = os.path.dirname(os.path.realpath('.'))
+        print(f"Field <parent_dir> was unspecified. Creating new CODEX directory parent directory, {new_parent_dirname}.")
+
+    new_parent_dirname = os.path.realpath(new_parent_dirname)
         
     try:
         assertpath = os.path.realpath(os.path.join(os.getcwd(), new_parent_dirname))

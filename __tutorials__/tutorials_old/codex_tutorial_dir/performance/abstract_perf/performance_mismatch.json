@@ -1,8 +1,0 @@
-{
-    "split_file": "split_mismatch.json",
-    "test": {
-        "Overall Performance": {
-            "accuracy": 0.929292
-        }
-    }
-}

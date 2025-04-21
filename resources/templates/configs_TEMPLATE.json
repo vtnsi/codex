@@ -26,7 +26,7 @@
     "performance_file" : "<list of corresponding performance files>/<name of single performance file>",   
     "metric": "<name or list of names of performance metric as in performance file>",
 
-    "timed_output": "true/false of whether to include the timestamp part of experiment outputs",
+    "timestamp": "true/false of whether to include the timestamp part of experiment outputs",
 
     "training_params": "<NOT FUNCTIONAL> training parameters for systematic inclusion/exclusion experiment."
 }
