@@ -11,97 +11,21 @@ import sys
 import os
 import logging
 import shutil
-import glob
-
 import json
 import pandas as pd
 from tqdm import tqdm
+import argparse
 
-import directory_tree
+parser = argparse.ArgumentParser(prog='CODEX', description='')
+parser.add_argument('-in', '--input', type=str)
+parser.add_argument('-v', '--verbose', type=str)
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from codex.modules import combinatorial, output, binning
-from codex.utils import input_handler as input_handler, universe_handler, results_handler, dataset_handler, prereq_handler as prereq_check
+#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sie_ml = None; sie_analysis=None
 
+from codex.modules import combinatorial, output, binning
+from codex.utils import checks, dataset, config, results, splitperf, universing
 
-def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
-    if templates:
-        print("CODEX env setup: Adding templates")
-    if tutorial:
-        print("CODEX env setup: Adding tutorial materials.")
-
-
-    existing_codex_dirs = glob.glob(os.path.realpath(os.path.join(parent_dir, dir_name+'*')))
-
-    # exec_dir = os.path.dirname(os.path.realpath(__file__)) exec_dir = "../"
-    exec_dir = os.path.dirname(os.path.realpath('.'))
-    try:
-        assert os.path.exists(os.path.join(exec_dir, "resources", "templates"))
-    except:
-        #exec_dir = './'
-        exec_dir = os.path.realpath('.')
-    
-
-    if dir_name is None or dir_name == "":
-        dir_name = "new_codex_dir"
-
-    if len(existing_codex_dirs)  == 0:
-        codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}'))
-    else:
-        codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}_{len(existing_codex_dirs)}'))
-    os.makedirs(codex_dir_new, exist_ok=False)
-
-    for component in ["binning", "configs", "splits", "performance", "datasets", "runs", "universe"]:
-        subdir = os.path.join(codex_dir_new, component)
-        os.makedirs(subdir, exist_ok=True)
-
-    if templates:
-        for filename in os.listdir(os.path.join(exec_dir, "resources", "templates")):
-            for subdir in os.listdir(codex_dir_new):
-                if str(subdir)[:-1] in str(filename):
-                    shutil.copy(os.path.join(exec_dir, "resources", "templates", filename), os.path.join(codex_dir_new, subdir, filename))
-    if tutorial:
-        for filename in os.listdir(os.path.join(exec_dir, "resources", "tutorial")):
-            for subdir in os.listdir(codex_dir_new):
-                if str(subdir)[:-1] in str(filename):
-                    shutil.copy(os.path.join(exec_dir, "resources", "tutorial", filename), os.path.join(codex_dir_new, subdir, filename))
-
-    directory_tree.DisplayTree(codex_dir_new)
-    print(f"Successfully constructed CODEX directory at location {os.path.realpath(codex_dir_new)}.")
-    return codex_dir_new
-
-def codex_env_checks(kwargs):
-    try:  
-        # requd
-        new_dirname = kwargs['name']
-    except:
-        raise KeyError("In creating a new CODEX directory; requires <name of CODEX directory>.")
-    try:
-        # not required
-        new_parent_dirname = kwargs['parent_dir']
-    except KeyError:
-        new_parent_dirname = os.path.dirname(os.path.realpath('.'))
-        print(f"Field <parent_dir> was unspecified. Creating new CODEX directory parent directory, {new_parent_dirname}.")
-
-    new_parent_dirname = os.path.realpath(new_parent_dirname)
-        
-    try:
-        assertpath = os.path.realpath(os.path.join(os.getcwd(), new_parent_dirname))
-        assert os.path.exists(assertpath)
-    except AssertionError:
-        raise FileNotFoundError(f"Creating template CODEX directory failed. Folder {assertpath} does not exist.")
-
-    try:
-        include_templates = (str.lower(kwargs['include_templates']) == 'true')
-    except KeyError:
-        include_templates = False
-    try:
-        include_tutorial = (str.lower(kwargs['include_examples']) == 'true')
-    except KeyError:
-        include_tutorial = False
-
-    return new_dirname, new_parent_dirname, include_templates, include_tutorial
 
 def run(codex_input, verbose: str='1'):
     """
@@ -114,8 +38,8 @@ def run(codex_input, verbose: str='1'):
     - transfer learning dataset augmentation -- also performs image selection from target to augment source
     - performance by interaction -- identifies every t-strength interaction of features in a dataset and relates model performance of samples containing an interaction.
     """
-    codex_input = input_handler.handle_input_file(codex_input)
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
+    codex_input = config.handle_input_file(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
     timed = codex_input["timestamp"]
     
     logger_level, filename = output.logger_parameters(verbose, output_dir=output_dir, timed=timed)
@@ -130,14 +54,13 @@ def run(codex_input, verbose: str='1'):
         result = dataset_evaluation(codex_input)
 
     elif mode == "dataset split evaluation":
-        source_name, target_name = prereq_check.dse_prereq_check(codex_input)
-        split, performance, metric = input_handler.extract_sp(codex_input)
+        split, performance, metric = config.extract_sp(codex_input)
         result = dataset_split_evaluation(
-            codex_input, split, source_name, target_name, comparison=False
+            codex_input, split, comparison=False
         )
 
     elif mode == "dataset split comparison":
-        split_consolidated, performance_consolidated, metric = input_handler.extract_sp(
+        split_consolidated, performance_consolidated, metric = config.extract_sp(
             codex_input
         )
         result = dataset_split_comparison(
@@ -145,14 +68,14 @@ def run(codex_input, verbose: str='1'):
         )
 
     elif mode == "performance by interaction":
-        split, performance, metric = input_handler.extract_sp(codex_input)
+        split, performance, metric = config.extract_sp(codex_input)
         result = performance_by_interaction(
             codex_input, split, performance, metric, coverage_subset="train"
         )
 
     elif mode == "model probe":
         split_p, split_e, perf_p, perf_e, metric = (
-            input_handler.extract_sp_partitioning(codex_input)
+            config.extract_sp_partitioning(codex_input)
         )
         result = model_probe(codex_input, split_p, split_e, perf_p, perf_e, metric)
 
@@ -197,11 +120,12 @@ def dataset_evaluation(codex_input):
     codex_input: dict
         JSON config dictionary.
     """
-    dataset_name, model_name = input_handler.extract_names(codex_input)
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
-    universe, dataset_df = universe_handler.define_input_space(codex_input)
+    checks.checks_generic(codex_input)
+    dataset_name, model_name = config.extract_names(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
+    universe, dataset_df = universing.define_input_space(codex_input)
 
-    coverage_results = results_handler.stock_results_empty(
+    coverage_results = results.stock_results_empty(
         codex_input, dataset_name, model_name, universe
     )
     for t in strengths:
@@ -244,28 +168,31 @@ def dataset_split_evaluation(
     sdcc_direction: str
         Direction of the set difference between the target and source datasets.
     """
+    checks.checks_generic(codex_input)
+    checks.checks_split(codex_input)
+
     # produces a dataframe for each of the train/val/test subsets given the ids provided in the split file
-    dataset_name, model_name = input_handler.extract_names(codex_input)
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
-    universe, dataset_df = universe_handler.define_input_space(codex_input)
+    dataset_name, model_name = config.extract_names(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
+    universe, dataset_df = universing.define_input_space(codex_input)
 
     split_id = split["split_id"]
     sample_id_col = codex_input["sample_id_column"]
     source_ids = split[source_name]
     target_ids = split[target_name]
-    traindf = dataset_handler.df_slice_by_id_reorder(
+    traindf = dataset.df_slice_by_id_reorder(
         sample_id_col, dataset_df, sample_ids=source_ids
     )
-    testdf = dataset_handler.df_slice_by_id_reorder(
+    testdf = dataset.df_slice_by_id_reorder(
         sample_id_col, dataset_df, sample_ids=target_ids
     )
     if "validation" in split:
         val_ids = split["validation"]
-        val_df = dataset_handler.df_slice_by_id_reorder(
+        val_df = dataset.df_slice_by_id_reorder(
             sample_id_col, dataset_df, sample_ids=val_ids
         )
 
-    coverage_results = results_handler.stock_results_empty(
+    coverage_results = results.stock_results_empty(
         codex_input, dataset_name, model_name, universe, split_id=split_id
     )
     for t in strengths:
@@ -335,12 +262,16 @@ def dataset_split_comparison(
     sdcc_direction: str
         Direction of the set difference between the target and source datasets.
     """
-    dataset_name, model_name = input_handler.extract_names(codex_input)
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
-    universe, dataset_df = universe_handler.define_input_space(codex_input)
+    checks.checks_generic(codex_input)
+    checks.checks_split(codex_input)
+    checks.checks_perf(codex_input)
+
+    dataset_name, model_name = config.extract_names(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
+    universe, dataset_df = universing.define_input_space(codex_input)
 
     split_ids = [split_multiple[split]["split_id"] for split in split_multiple]
-    coverage_results = results_handler.stock_results_empty(
+    coverage_results = results.stock_results_empty(
         codex_input, dataset_name, model_name, universe, split_id=split_ids
     )
     for split_file in split_multiple:
@@ -400,30 +331,34 @@ def performance_by_interaction(
     KeyError
         If IDs of split file do not match those of per-sample performance section.
     """
-    dataset_name, model_name = input_handler.extract_names(codex_input)
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
-    universe, dataset_df = universe_handler.define_input_space(codex_input)
+    checks.checks_generic(codex_input)
+    checks.checks_split(codex_input)
+    checks.checks_perf(codex_input)
+
+    dataset_name, model_name = config.extract_names(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
+    universe, dataset_df = universing.define_input_space(codex_input)
     sample_id_col = codex_input["sample_id_column"]
 
     # SORT, THEN RESET INDEX AND DROP
     train_ids = split["train"]
     test_ids = split["test"]
-    train_df_sorted = dataset_handler.reorder_df_by_sample(
+    train_df_sorted = dataset.reorder_df_by_sample(
         sample_id_col,
-        dataset_handler.df_slice_by_id_reorder(sample_id_col, dataset_df, train_ids),
+        dataset.df_slice_by_id_reorder(sample_id_col, dataset_df, train_ids),
     )
-    test_df_sorted = dataset_handler.reorder_df_by_sample(
+    test_df_sorted = dataset.reorder_df_by_sample(
         sample_id_col,
-        dataset_handler.df_slice_by_id_reorder(sample_id_col, dataset_df, test_ids),
+        dataset.df_slice_by_id_reorder(sample_id_col, dataset_df, test_ids),
     )
-    performance_df = dataset_handler.reorder_df_byindex(
+    performance_df = dataset.reorder_df_byindex(
         performance["test"]["Per-Sample Performance"]
     )
 
-    coverage_results = results_handler.stock_results_empty(
+    coverage_results = results.stock_results_empty(
         codex_input, dataset_name, model_name, universe
     )
-    # coverage_results_sdcc = results_handler.stock_results_empty(codex_input, dataset_name, model_name, universe)
+    # coverage_results_sdcc = results.stock_results_empty(codex_input, dataset_name, model_name, universe)
     for t in strengths:
         coverage_results[t] = combinatorial.performanceByInteraction_main(
             test_df_sorted,
@@ -488,7 +423,7 @@ def performance_by_interaction_partitioning(
     - KeyError: probe or exploit split ID's or per-sample performance is not found under the
         subset names provided.
     """
-    output_dir, strengths = input_handler.define_experiment_variables(input)
+    output_dir, strengths = config.define_experiment_variables(input)
 
     probe_output_dir = os.path.join(output_dir, probe_name)
     exploit_output_dir = os.path.join(output_dir, exploit_name)
@@ -516,7 +451,7 @@ def performance_by_interaction_partitioning(
 
 
 def model_probe(
-    input,
+    codex_input,
     split_p,
     split_e,
     perf_p,
@@ -560,7 +495,11 @@ def model_probe(
     - results: dict
         Coverage results and human readable performance of probing and exploit sets.
     """
-    output_dir, strengths = input_handler.define_experiment_variables(input)
+    checks.checks_generic(codex_input)
+    checks.checks_split(codex_input)
+    checks.checks_perf(codex_input)
+
+    output_dir, strengths = config.define_experiment_variables(input)
     probe_coverage = performance_by_interaction(
         input, split_p, perf_p, metric, subset=name_p, withhold=True
     )
@@ -604,8 +543,8 @@ def balanced_test_set_construction(
         Coverage results on the overall dataset as well as split designations for each withheld
         interaction resulting from post-test set optimzation
     """
-    output_dir, strengths = input_handler.define_experiment_variables(input)
-    universe, dataset_df = universe_handler.define_input_space(input)
+    output_dir, strengths = config.define_experiment_variables(input)
+    universe, dataset_df = universing.define_input_space(input)
 
     if shuffle:
         dataset_df = dataset_df.sample(len(dataset_df))
@@ -659,7 +598,7 @@ def balanced_test_set_construction(
 
 
 def systematic_inclusion_exclusion_demo(codex_input, test_set_size_goal):
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
     filename = "aggregate_SIE_performance-rareplanes-linreg.csv"
     for t in strengths:
         print(
@@ -690,7 +629,7 @@ def systematic_inclusion_exclusion_demo(codex_input, test_set_size_goal):
 def systematic_inclusion_exclusion(
     codex_input, test_set_size_goal, training_params=None
 ):
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
 
     data_dir = codex_input["original_data_directory"]
     dataset_dir_YOLO = codex_input["dataset_directory"]
@@ -782,7 +721,7 @@ def systematic_inclusion_exclusion(
 def systematic_inclusion_exclusion_iq(codex_input, test_set_size_goal):
     iq_data_dir = "../../rfml-datagen/dataset-0912-0/"
     config_path = "/home/hume-users/leebri2n/PROJECTS/dote_1070-1083/py-waspgen/configs/mod_classifier.json"
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
     write_single_files = False
     
     # Awaiting PyWASPgen public release
@@ -891,7 +830,7 @@ def systematic_inclusion_exclusion_binomial_linreg(codex_input, table_filename):
     metrics = codex_input["metrics"]
     features = codex_input["features"]
 
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
 
     results = {}
     if metric == "all":
@@ -919,10 +858,10 @@ def systematic_inclusion_exclusion_binomial_linreg(codex_input, table_filename):
     return results
 
 def performance_by_frequency_coverage(codex_input, skew_levels:list, test_set_size_goal=250):
-    import utils.pbfc_biasing as biasing
+    import modes.pbfc_biasing as biasing
 
-    output_dir, strengths = input_handler.define_experiment_variables(input)
-    universe, dataset_df_init = universe_handler.define_input_space(input)
+    output_dir, strengths = config.define_experiment_variables(input)
+    universe, dataset_df_init = universing.define_input_space(input)
     
     result = balanced_test_set_construction(codex_input, test_set_size_goal, form_exclusions=False)
     
@@ -941,8 +880,8 @@ def main(kwargs):
         setup_new_dir = None
     
     if setup_new_dir is not None:
-        new_dirname, new_parent_dirname, include_templates, include_tutorial = codex_env_checks(kwargs)
-        setup_new_codex_env(new_dirname, new_parent_dirname, templates=include_templates, tutorial=include_tutorial)   
+        new_dirname, new_parent_dirname, include_templates, include_tutorial = config.codex_env_checks(kwargs)
+        config.setup_new_codex_env(new_dirname, new_parent_dirname, templates=include_templates, tutorial=include_tutorial)   
         return
 
     input_fp = kwargs["input"]
@@ -957,7 +896,7 @@ def main(kwargs):
     with open(input_fp) as f:
         codex_input = json.load(f)
 
-    output_dir, strengths = input_handler.define_experiment_variables(codex_input)
+    output_dir, strengths = config.define_experiment_variables(codex_input)
     run(codex_input, verbosity)
     return
 

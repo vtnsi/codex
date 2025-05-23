@@ -22,11 +22,130 @@ import logging
 import matplotlib.patches as patches
 
 from ..utils import codex_metrics, results_handler
+from ..vis import maps, utils
 
 # MAIN PLOTTING ENTRY POINTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 savefig = True
 
+def coverage_map(output_dir, coverage_results):
+    mode = coverage_results['info']['mode']
+    strengths = coverage_results['info']['t']
+
+    square = maps.map_info_data()
+    vmin, vmax, cmap, cbar_kws, cbar_ticks, cbar_ticklabels = maps.map_info_var()
+    title, filename, ylabels = maps.map_info_txtl()
+
+    plt.figure(figsize=(10,8))
+    heatmap = sns.heatmap(
+        square,
+        vmin=vmin,
+        vmax=vmax,
+        cmap=cmap,
+        cbar_kws=cbar_kws,
+        yticklabels=rank_labels,
+        linewidths=linewidths,
+        linecolor="black"
+    )
+    size = square.shape
+
+    maps.__set_colorbar(colorbar=heatmap.collections[0].colorbar)
+    maps.set_plot_axes(title)
+
+
+    if savefig:
+        plt.savefig(filename)
+
+
+
+
+
+def heatmap(
+    output_dir,
+    square:np.ndarray,
+    vmin,
+    vmax,
+    cmap,
+    cbar_kws,
+    rank_labels,
+    title,
+    filename,
+    xlabel=None,
+    ylabel=None,
+    cbar_ticklabels=None,
+    mode=None,
+    outlines=False,
+    labrotation=0
+):
+    if outlines:
+        linewidths=0.5
+    else:
+        linewidths=0
+
+    if labrotation<0:
+        alignment='bottom'
+    elif labrotation>0:
+        alignment='top'
+    else:
+        alignment='center'
+
+    plt.figure(figsize=(10,8))
+    heatmap = sns.heatmap(
+        square,
+        vmin=vmin,
+        vmax=vmax,
+        cmap=cmap,
+        cbar_kws=cbar_kws,
+        yticklabels=rank_labels,
+        linewidths=linewidths,
+        linecolor="black",
+    )
+    size = square.shape
+    rect = patches.Rectangle([0,0], width=size[1], height=size[0], 
+                      linewidth=3, edgecolor='black', fill=False)
+    heatmap.add_patch(rect)
+    heatmap.tick_params(axis="both", which="both", length=0, rotation=15)
+
+    title = textwrap.fill(title, 40)
+
+    title_size = 18
+    axis_size = int(4 * title_size / 5)
+
+    cmap.set_under("w")
+    # cmap.set_over('k')
+    colorbar = heatmap.collections[0].colorbar
+    # testing 0326
+    colorbar.ax.get_yaxis().labelpad = 15
+    colorbar.ax.tick_params(labelsize=12)
+    colorbar.set_label(cbar_kws['label'], fontsize=axis_size)
+
+    if mode == "sdcc_binary_constraints_neither":
+        colorbar.set_ticks([-0.667, 0, 0.667, 1.667])
+        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
+    elif mode == "sdcc_binary_constraints":
+        colorbar.set_ticks([-0.667, 0, 0.667])
+        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
+    elif mode == "binary":
+        colorbar.set_ticks([0, 1])
+        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
+
+    plt.title(title, weight="bold", fontsize=title_size, pad=15)
+    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15, weight='bold')
+    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15, weight='bold')
+    plt.yticks(fontsize=12, rotation=labrotation, va=alignment)
+    plt.tight_layout(pad=1.5)
+
+    # FIGURE SAVE
+    if '.svg' in filename:
+        with open(os.path.join(output_dir, filename), "wb") as f:
+            plt.savefig(f, format='svg')
+    else:
+        with open(os.path.join(output_dir, filename), "wb") as f:
+            plt.savefig(f)
+    
+    plt.clf()
+
+    return
 
 def plot_probe_exploit_suite(
     output_dir,
@@ -472,89 +591,6 @@ def plot_pbi_bar(
 
     plt.clf()
     return interactions
-
-
-def heatmap(
-    output_dir,
-    square:np.ndarray,
-    vmin,
-    vmax,
-    cmap,
-    cbar_kws,
-    rank_labels,
-    title,
-    filename,
-    xlabel=None,
-    ylabel=None,
-    cbar_ticklabels=None,
-    mode=None,
-    outlines=False,
-    labrotation=0
-):
-    if outlines:
-        linewidths=0.5
-    else:
-        linewidths=0
-
-    if labrotation<0:
-        alignment='bottom'
-    elif labrotation>0:
-        alignment='top'
-    else:
-        alignment='center'
-
-    plt.figure(figsize=(10,8))
-    heatmap = sns.heatmap(
-        square,
-        vmin=vmin,
-        vmax=vmax,
-        cmap=cmap,
-        cbar_kws=cbar_kws,
-        yticklabels=rank_labels,
-        linewidths=linewidths,
-        linecolor="black",
-    )
-    size = square.shape
-    rect = patches.Rectangle([0,0], width=size[1], height=size[0], 
-                      linewidth=3, edgecolor='black', fill=False)
-    heatmap.add_patch(rect)
-    heatmap.tick_params(axis="both", which="both", length=0, rotation=15)
-
-    title = textwrap.fill(title, 40)
-
-    title_size = 18
-    axis_size = int(4 * title_size / 5)
-
-    cmap.set_under("w")
-    # cmap.set_over('k')
-    colorbar = heatmap.collections[0].colorbar
-    # testing 0326
-    colorbar.ax.get_yaxis().labelpad = 15
-    colorbar.ax.tick_params(labelsize=12)
-    colorbar.set_label(cbar_kws['label'], fontsize=axis_size)
-
-    if mode == "sdcc_binary_constraints_neither":
-        colorbar.set_ticks([-0.667, 0, 0.667, 1.667])
-        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
-    elif mode == "sdcc_binary_constraints":
-        colorbar.set_ticks([-0.667, 0, 0.667])
-        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
-    elif mode == "binary":
-        colorbar.set_ticks([0, 1])
-        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
-
-    plt.title(title, weight="bold", fontsize=title_size, pad=15)
-    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15, weight='bold')
-    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15, weight='bold')
-    plt.yticks(fontsize=12, rotation=labrotation, va=alignment)
-    plt.tight_layout(pad=1.5)
-
-    # FIGURE SAVE
-    with open(os.path.join(output_dir, filename), "wb") as f:
-        plt.savefig(f)
-    plt.clf()
-
-    return
 
 
 # Displays the CC per t provided in strength file

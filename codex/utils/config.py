@@ -1,8 +1,90 @@
 import os
 import json
 import datetime
+import glob
+import directory_tree
+import shutil
 
 from ..modules import combinatorial, output
+
+def codex_env_checks(kwargs):
+    try:  
+        # requd
+        new_dirname = kwargs['name']
+    except:
+        raise KeyError("In creating a new CODEX directory; requires <name of CODEX directory>.")
+    try:
+        # not required
+        new_parent_dirname = kwargs['parent_dir']
+    except KeyError:
+        new_parent_dirname = os.path.dirname(os.path.realpath('.'))
+        print(f"Field <parent_dir> was unspecified. Creating new CODEX directory parent directory, {new_parent_dirname}.")
+
+    new_parent_dirname = os.path.realpath(new_parent_dirname)
+        
+    try:
+        assertpath = os.path.realpath(os.path.join(os.getcwd(), new_parent_dirname))
+        assert os.path.exists(assertpath)
+    except AssertionError:
+        raise FileNotFoundError(f"Creating template CODEX directory failed. Folder {assertpath} does not exist.")
+
+    try:
+        include_templates = (str.lower(kwargs['include_templates']) == 'true')
+    except KeyError:
+        include_templates = False
+    try:
+        include_tutorial = (str.lower(kwargs['include_examples']) == 'true')
+    except KeyError:
+        include_tutorial = False
+
+    return new_dirname, new_parent_dirname, include_templates, include_tutorial
+
+
+def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
+    if templates:
+        print("CODEX env setup: Adding templates")
+    if tutorial:
+        print("CODEX env setup: Adding tutorial materials.")
+
+
+    existing_codex_dirs = glob.glob(os.path.realpath(os.path.join(parent_dir, dir_name+'*')))
+
+    # exec_dir = os.path.dirname(os.path.realpath(__file__)) exec_dir = "../"
+    exec_dir = os.path.dirname(os.path.realpath('.'))
+    try:
+        assert os.path.exists(os.path.join(exec_dir, "resources", "templates"))
+    except:
+        #exec_dir = './'
+        exec_dir = os.path.realpath('.')
+    
+
+    if dir_name is None or dir_name == "":
+        dir_name = "new_codex_dir"
+
+    if len(existing_codex_dirs)  == 0:
+        codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}'))
+    else:
+        codex_dir_new = os.path.realpath(os.path.join(parent_dir, f'{dir_name}_{len(existing_codex_dirs)}'))
+    os.makedirs(codex_dir_new, exist_ok=False)
+
+    for component in ["binning", "configs", "splits", "performance", "datasets", "runs", "universe"]:
+        subdir = os.path.join(codex_dir_new, component)
+        os.makedirs(subdir, exist_ok=True)
+
+    if templates:
+        for filename in os.listdir(os.path.join(exec_dir, "resources", "templates")):
+            for subdir in os.listdir(codex_dir_new):
+                if str(subdir)[:-1] in str(filename):
+                    shutil.copy(os.path.join(exec_dir, "resources", "templates", filename), os.path.join(codex_dir_new, subdir, filename))
+    if tutorial:
+        for filename in os.listdir(os.path.join(exec_dir, "resources", "tutorial")):
+            for subdir in os.listdir(codex_dir_new):
+                if str(subdir)[:-1] in str(filename):
+                    shutil.copy(os.path.join(exec_dir, "resources", "tutorial", filename), os.path.join(codex_dir_new, subdir, filename))
+
+    directory_tree.DisplayTree(codex_dir_new)
+    print(f"Successfully constructed CODEX directory at location {os.path.realpath(codex_dir_new)}.")
+    return codex_dir_new
 
 #PIPTEST
 def handle_input_file(input):

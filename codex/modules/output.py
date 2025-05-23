@@ -19,7 +19,7 @@ import scipy
 import logging
 import glob
 
-from codex.utils import codex_plotting as plotting, results_handler, coverage_mapping as maps
+from codex.utils import codex_plotting as plotting, results_handler
 
 LOGGER_OUT = logging.getLogger(__name__)
 
@@ -110,6 +110,7 @@ def dataset_eval_vis(
         counts = coverage_results[t]["combination counts"]
         ranks = coverage_results[t]["combinations"]
         cc = coverage_results[t]["CC"]
+        cc = round(cc, 4)
 
         LOGGER_OUT.log(level=25, msg='t = {}\n{}'.format(t, [coverage_results[t]["CC"] for t in strengths]))
 
@@ -176,6 +177,10 @@ def dataset_split_eval_vis(
             source_cc = coverage_results[t][source_name]["CC"]
             target_cc = coverage_results[t][target_name]["CC"]
             sdcc = coverage_results[t][direction]["SDCC"]
+
+            source_cc = round(source_cc, 4)
+            target_cc = round(target_cc, 4)
+            sdcc = round(sdcc, 4)
 
             # SOURCE
             create_coverage_map(
@@ -296,7 +301,7 @@ def dataset_split_eval_vis(
                 target_name=target_name,
                 sdcc_value=sdcc,
             )
-            create_coverage_map(
+            '''create_coverage_map(
                 "sdcc_binary_constraints_neither",
                 sdcc_output_dir,
                 dataset_name,
@@ -306,7 +311,7 @@ def dataset_split_eval_vis(
                 source_name=source_name,
                 target_name=target_name,
                 sdcc_value=sdcc,
-            )
+            )'''
 
         plotting.split_elements_bar(
             output_dir, dataset_name, coverage_results, t, split_id, sdcc_directions
@@ -726,6 +731,21 @@ def create_coverage_map(
         rank_labels,
         title,
         filename,
+        xlabel=xlabel,
+        cbar_ticklabels=cbar_ticklabels,
+        mode=mode,
+    )
+    filename_svg = '{}.svg'.format(filename.split('.')[0])
+    plotting.heatmap(
+        output_dir,
+        square,
+        vmin,
+        vmax,
+        cmap,
+        cbar_kws,
+        rank_labels,
+        title,
+        filename_svg,
         xlabel=xlabel,
         cbar_ticklabels=cbar_ticklabels,
         mode=mode,

@@ -4,6 +4,54 @@ import textwrap
 import matplotlib.colors
 
 from ..utils import codex_metrics as metrics
+import matplotlib.pyplot as plt
+
+TITLE_SIZE = 18
+AXIS_SIZE = int(0.8*TITLE_SIZE)
+
+def set_plot_axes(title):
+    plt.gcf()
+
+    plt.title(title, weight="bold", fontsize=18, pad=15)
+    plt.xlabel("Interactions", fontsize=AXIS_SIZE, labelpad=15, weight='bold')
+    plt.ylabel("Combinations", fontsize=AXIS_SIZE, labelpad=15, weight='bold')
+
+    
+    return
+
+def save_plots():
+    #savefig
+    return
+
+def map_info_data():
+
+    return
+
+def map_info_txtl():
+
+    return
+
+
+def map_info_var():
+
+    return
+
+def __set_colorbar(colorbar, cbar_kws, mode):
+    colorbar.ax.get_yaxis().labelpad = 15
+    colorbar.ax.tick_params(labelsize=12)
+    colorbar.set_label(cbar_kws['label'], fontsize=AXIS_SIZE)
+
+    if mode == "sdcc_binary_constraints_neither":
+        colorbar.set_ticks([-0.667, 0, 0.667, 1.667])
+        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
+    elif mode == "sdcc_binary_constraints":
+        colorbar.set_ticks([-0.667, 0, 0.667])
+        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
+    elif mode == "binary":
+        colorbar.set_ticks([0, 1])
+        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
+
+    return
 
 def frequency_map(square, counts):
     """

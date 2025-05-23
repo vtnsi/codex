@@ -356,7 +356,7 @@ def setDifferenceCombinatorialCoverageConstraints(sourceCoverage, targetCoverage
             # EXPERIMENTAL 07-25-24
             elif targetCoverage["countsAllCombinations"][rank][interaction] == 0:
                 if sourceCoverage["countsAllCombinations"][rank][interaction] == 0:
-                    counts[interaction] = 2
+                    counts[interaction] = -1 # REVERTED FROM 2 05/16/25
                 else:
                     assert counts[interaction] == -1
         setDifferenceStructure["setDifferenceInteractionsCounts"].append(counts)

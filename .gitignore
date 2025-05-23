@@ -163,3 +163,4 @@ cython_debug/
 
 # Codex legacy/output materials
 */runs/*
+archive/
