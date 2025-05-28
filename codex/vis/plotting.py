@@ -21,22 +21,23 @@ from scipy.stats import pearsonr
 import logging
 import matplotlib.patches as patches
 
-from ..utils import codex_metrics, results_handler
-from ..vis import maps, utils
+from utils import results
+from vis import maps, metrics
 
 # MAIN PLOTTING ENTRY POINTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 savefig = True
 
+
 def coverage_map(output_dir, coverage_results):
-    mode = coverage_results['info']['mode']
-    strengths = coverage_results['info']['t']
+    mode = coverage_results["info"]["mode"]
+    strengths = coverage_results["info"]["t"]
 
     square = maps.map_info_data()
     vmin, vmax, cmap, cbar_kws, cbar_ticks, cbar_ticklabels = maps.map_info_var()
     title, filename, ylabels = maps.map_info_txtl()
 
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=(10, 8))
     heatmap = sns.heatmap(
         square,
         vmin=vmin,
@@ -45,24 +46,20 @@ def coverage_map(output_dir, coverage_results):
         cbar_kws=cbar_kws,
         yticklabels=rank_labels,
         linewidths=linewidths,
-        linecolor="black"
+        linecolor="black",
     )
     size = square.shape
 
     maps.__set_colorbar(colorbar=heatmap.collections[0].colorbar)
     maps.set_plot_axes(title)
 
-
     if savefig:
         plt.savefig(filename)
 
 
-
-
-
 def heatmap(
     output_dir,
-    square:np.ndarray,
+    square: np.ndarray,
     vmin,
     vmax,
     cmap,
@@ -75,21 +72,21 @@ def heatmap(
     cbar_ticklabels=None,
     mode=None,
     outlines=False,
-    labrotation=0
+    labrotation=0,
 ):
     if outlines:
-        linewidths=0.5
+        linewidths = 0.5
     else:
-        linewidths=0
+        linewidths = 0
 
-    if labrotation<0:
-        alignment='bottom'
-    elif labrotation>0:
-        alignment='top'
+    if labrotation < 0:
+        alignment = "bottom"
+    elif labrotation > 0:
+        alignment = "top"
     else:
-        alignment='center'
+        alignment = "center"
 
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=(10, 8))
     heatmap = sns.heatmap(
         square,
         vmin=vmin,
@@ -101,8 +98,14 @@ def heatmap(
         linecolor="black",
     )
     size = square.shape
-    rect = patches.Rectangle([0,0], width=size[1], height=size[0], 
-                      linewidth=3, edgecolor='black', fill=False)
+    rect = patches.Rectangle(
+        [0, 0],
+        width=size[1],
+        height=size[0],
+        linewidth=3,
+        edgecolor="black",
+        fill=False,
+    )
     heatmap.add_patch(rect)
     heatmap.tick_params(axis="both", which="both", length=0, rotation=15)
 
@@ -117,7 +120,7 @@ def heatmap(
     # testing 0326
     colorbar.ax.get_yaxis().labelpad = 15
     colorbar.ax.tick_params(labelsize=12)
-    colorbar.set_label(cbar_kws['label'], fontsize=axis_size)
+    colorbar.set_label(cbar_kws["label"], fontsize=axis_size)
 
     if mode == "sdcc_binary_constraints_neither":
         colorbar.set_ticks([-0.667, 0, 0.667, 1.667])
@@ -130,22 +133,23 @@ def heatmap(
         colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
 
     plt.title(title, weight="bold", fontsize=title_size, pad=15)
-    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15, weight='bold')
-    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15, weight='bold')
+    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15, weight="bold")
+    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15, weight="bold")
     plt.yticks(fontsize=12, rotation=labrotation, va=alignment)
     plt.tight_layout(pad=1.5)
 
     # FIGURE SAVE
-    if '.svg' in filename:
+    if ".svg" in filename:
         with open(os.path.join(output_dir, filename), "wb") as f:
-            plt.savefig(f, format='svg')
+            plt.savefig(f, format="svg")
     else:
         with open(os.path.join(output_dir, filename), "wb") as f:
             plt.savefig(f)
-    
+
     plt.clf()
 
     return
+
 
 def plot_probe_exploit_suite(
     output_dir,
@@ -163,7 +167,7 @@ def plot_probe_exploit_suite(
     width = 0.4
 
     bottom_common, bottom_probe_perf, bottom_exploit_perf = (
-        results_handler.consolidated_interaction_info(
+        results.consolidated_interaction_info(
             interactions_probe, interactions_exploit, t
         )
     )
@@ -313,7 +317,7 @@ def __extract_rank_samples__(i, counts, perf, human_readable):
             continue
         else:
             x.append(
-                codex_metrics.standardized_proportion_per_interaction(counts, i, j)
+                metrics.standardized_proportion_per_interaction(counts, i, j)
             )
             y.append(y_raw[j])
 
@@ -339,7 +343,7 @@ def __sort_slope_indices__(counts, perf, human_readable):
             m = (py[-1] - py[0]) / (px[-1] - px[0])
             # b = py[0]-(m*px[0])
 
-            T_test = codex_metrics.slope_test(x, y)
+            T_test = metrics.slope_test(x, y)
             """print(T_test.pvalue[1])"""
             if T_test.pvalue[1] <= 0.05:
                 signif_idx.append(i)
@@ -363,9 +367,22 @@ def __sort_slope_indices__(counts, perf, human_readable):
         )
     return p, ordered_idx, signif_idx
 
-def __plot_regression(subset, counts, perf, human_readable, p_lines, ranks, save_per_interaction, axis_size, labelpad, metric, outputPath):
+
+def __plot_regression(
+    subset,
+    counts,
+    perf,
+    human_readable,
+    p_lines,
+    ranks,
+    save_per_interaction,
+    axis_size,
+    labelpad,
+    metric,
+    outputPath,
+):
     num_combinations = len(counts)
-    
+
     # Slopes
     for i in range(num_combinations):
         if i not in subset:
@@ -380,7 +397,7 @@ def __plot_regression(subset, counts, perf, human_readable, p_lines, ranks, save
 
         no_slope = False
         try:
-            T_test = codex_metrics.slope_test(x, y)
+            T_test = metrics.slope_test(x, y)
             p_value_m = T_test.pvalue[1]
         except:
             no_slope = True
@@ -414,14 +431,17 @@ def __plot_regression(subset, counts, perf, human_readable, p_lines, ranks, save
                 "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
                 fontsize=axis_size,
                 labelpad=labelpad,
-            )  
-            plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)
+            )
+            plt.ylabel(
+                "Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad
+            )
 
             plt.grid(visible=True, axis="y")
             plt.legend()
-            filename = 'pxi_performance_vs_freq-{}.png'.format(ranks[i])
+            filename = "pxi_performance_vs_freq-{}.png".format(ranks[i])
             plt.savefig(os.path.join(outputPath, filename))
             plt.clf()
+
 
 def plot_pbi_frequency_scatter(
     mode,
@@ -443,9 +463,9 @@ def plot_pbi_frequency_scatter(
     axis_size = int(4 * title_size / 5)
 
     p, ordered_idx, signif_idx = __sort_slope_indices__(counts, perf, human_readable)
-    
+
     p_lines = p.get_lines()
-    figsize_custom = (11,8)
+    figsize_custom = (11, 8)
 
     plt.clf()
     if mode == "highlights":
@@ -458,7 +478,7 @@ def plot_pbi_frequency_scatter(
                 ),
                 60,
             ),
-            pad=titlepad+3,
+            pad=titlepad + 3,
             weight="bold",
             fontsize=title_size,
         )
@@ -466,7 +486,7 @@ def plot_pbi_frequency_scatter(
     elif mode == "signif":
         plt.figure(figsize=figsize_custom)
         subset = signif_idx
-        #print("NUMBER OF SIGNIFICANT COMBOS", len(signif_idx))
+        # print("NUMBER OF SIGNIFICANT COMBOS", len(signif_idx))
         plt.title(
             textwrap.fill(
                 "Standardized Proportion of Interaction Frequency against Performance for {}, Statistically Signifcant Regression | t={}".format(
@@ -474,7 +494,7 @@ def plot_pbi_frequency_scatter(
                 ),
                 60,
             ),
-            pad=titlepad+3,
+            pad=titlepad + 3,
             weight="bold",
             fontsize=title_size,
         )
@@ -497,39 +517,66 @@ def plot_pbi_frequency_scatter(
 
     # for all c_l's, min lower bound and max upper bound
     num_combinations = len(counts)
-    __plot_regression(subset, counts, perf, human_readable, p_lines, ranks, save_per_interaction, axis_size, labelpad, metric, outputPath)
-    
+    __plot_regression(
+        subset,
+        counts,
+        perf,
+        human_readable,
+        p_lines,
+        ranks,
+        save_per_interaction,
+        axis_size,
+        labelpad,
+        metric,
+        outputPath,
+    )
 
     N = int(np.sum(counts[0]))
     print("T", t)
-    lower, upper = codex_metrics.standardized_proportion_frequency_bounds_iterative(N, counts)
+    lower, upper = metrics.standardized_proportion_frequency_bounds_iterative(
+        N, counts
+    )
 
-    '''plt.xlabel(
+    """plt.xlabel(
         "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
         fontsize=axis_size,
         labelpad=labelpad,
     )
-    plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)'''
-    #plt.tick_params(fontsize=10)
-    #plt.ticklabel_format(font)
-    
-    #bound_lim = T
+    plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)"""
+    # plt.tick_params(fontsize=10)
+    # plt.ticklabel_format(font)
+
+    # bound_lim = T
     vlines = False
     if vlines:
         plt.vlines(lower, ymin=0.5, ymax=1)
         plt.vlines(upper, ymin=0.5, ymax=1)
     if bound_lim:
-        plt.xlim((lower-0.05, upper+0.05))
+        plt.xlim((lower - 0.05, upper + 0.05))
         plt.ylim((0.5, 1))
     else:
         plt.ylim((0, 1))
-        plt.xlim((-1,1))
-    
+        plt.xlim((-1, 1))
+
     cmap = sns.diverging_palette(145, 300, s=60, as_cmap=True)
 
-    plt.vlines(0.0, ymin=0, ymax=1, color='black', linestyles=['dashed'])
-    plt.fill_betweenx(range(5), -2, 0, color=cmap(55), alpha=0.18, label='Underrepresented interaction')
-    plt.fill_betweenx(range(5), 0, 2, color=cmap(225), alpha=0.18, label='Overrepresentation interaction')
+    plt.vlines(0.0, ymin=0, ymax=1, color="black", linestyles=["dashed"])
+    plt.fill_betweenx(
+        range(5),
+        -2,
+        0,
+        color=cmap(55),
+        alpha=0.18,
+        label="Underrepresented interaction",
+    )
+    plt.fill_betweenx(
+        range(5),
+        0,
+        2,
+        color=cmap(225),
+        alpha=0.18,
+        label="Overrepresentation interaction",
+    )
 
     plt.tight_layout(pad=4)
     plt.xlabel(
@@ -537,13 +584,17 @@ def plot_pbi_frequency_scatter(
         fontsize=axis_size,
         labelpad=labelpad,
     )
-    plt.ylabel("Per-interaction Performance: predicting on {}".format(metric), fontsize=axis_size, labelpad=labelpad)
+    plt.ylabel(
+        "Per-interaction Performance: predicting on {}".format(metric),
+        fontsize=axis_size,
+        labelpad=labelpad,
+    )
     plt.grid(visible=True, axis="y")
     plt.legend()
 
     if savefig:
         plt.savefig(os.path.join(outputPath, filename))
-    
+
     plt.cla()
     return
 

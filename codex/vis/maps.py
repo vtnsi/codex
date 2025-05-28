@@ -2,44 +2,45 @@ import seaborn as sns
 import numpy as np
 import textwrap
 import matplotlib.colors
-
-from ..utils import codex_metrics as metrics
 import matplotlib.pyplot as plt
 
+from vis import metrics
+
 TITLE_SIZE = 18
-AXIS_SIZE = int(0.8*TITLE_SIZE)
+AXIS_SIZE = int(0.8 * TITLE_SIZE)
+
 
 def set_plot_axes(title):
     plt.gcf()
 
     plt.title(title, weight="bold", fontsize=18, pad=15)
-    plt.xlabel("Interactions", fontsize=AXIS_SIZE, labelpad=15, weight='bold')
-    plt.ylabel("Combinations", fontsize=AXIS_SIZE, labelpad=15, weight='bold')
+    plt.xlabel("Interactions", fontsize=AXIS_SIZE, labelpad=15, weight="bold")
+    plt.ylabel("Combinations", fontsize=AXIS_SIZE, labelpad=15, weight="bold")
 
-    
     return
+
 
 def save_plots():
-    #savefig
+    # savefig
     return
+
 
 def map_info_data():
-
     return
 
-def map_info_txtl():
 
+def map_info_txtl():
     return
 
 
 def map_info_var():
-
     return
+
 
 def __set_colorbar(colorbar, cbar_kws, mode):
     colorbar.ax.get_yaxis().labelpad = 15
     colorbar.ax.tick_params(labelsize=12)
-    colorbar.set_label(cbar_kws['label'], fontsize=AXIS_SIZE)
+    colorbar.set_label(cbar_kws["label"], fontsize=AXIS_SIZE)
 
     if mode == "sdcc_binary_constraints_neither":
         colorbar.set_ticks([-0.667, 0, 0.667, 1.667])
@@ -52,6 +53,7 @@ def __set_colorbar(colorbar, cbar_kws, mode):
         colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
 
     return
+
 
 def frequency_map(square, counts):
     """
@@ -108,7 +110,6 @@ def frequency_map_function(square, counts, funct=None, funct_name=None):
     }
     cbar_ticklabels = ["Less Frequent", "More Frequent"]
 
-
     return square, cmap, cbar_kws
 
 
@@ -132,7 +133,6 @@ def frequency_map_proportion(square, counts):
         )
     }
     cbar_ticklabels = ["Lower Proportion", "Higher Proportion"]
-
 
     # print(square)
     return square, cmap, cbar_kws, cbar_ticklabels
@@ -160,8 +160,8 @@ def frequency_map_proportion_standardized(square, counts):
             "Proportion of Appearences per Interaction for Combination, "
             + "Standardized proportion",
             55,
-            #", "
-            #+ r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
+            # ", "
+            # + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
         )
     }
     cbar_ticklabels = ["Underrepresented", "Overrepresented"]

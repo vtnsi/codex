@@ -1,54 +1,31 @@
-import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-
-from multiprocessing import Process, Pool
-
-from ultralytics import YOLO
-from ultralytics.utils.plotting import plt_color_scatter
-from ultralytics.utils.plotting import plot_results
-
-import typing_extensions
-import importlib
-importlib.reload(typing_extensions)
-'''print("PyTorch ver: ", torch.__version__)
-print("TorchVision ver: ", torchvision.__version__)'''
-
-
-import os
-import sys
-import json
-import glob
-import copy
-import numpy as np
-import pandas as pd
-import cv2
-from tqdm import tqdm
-from ultralytics import YOLO
-from ultralytics.utils.plotting import plot_results
-from ultralytics.utils.plotting import plt_color_scatter
-from collections import OrderedDict
-
-import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-
-import torch
-import torchvision
-from multiprocessing import Process, Pool
-
-from ultralytics import YOLO
-from ultralytics.utils.plotting import plt_color_scatter
-from ultralytics.utils.plotting import plot_results
-
-import typing_extensions
-import importlib
-
 from ..modules import output
+import torchvision
+import torch
+from collections import OrderedDict
+import cv2
+import copy
+import glob
+import json
+import sys
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+
+from multiprocessing import Process, Pool
+
+from ultralytics import YOLO
+from ultralytics.utils.plotting import plt_color_scatter
+from ultralytics.utils.plotting import plot_results
+
+import typing_extensions
+import importlib
+
+importlib.reload(typing_extensions)
+"""print("PyTorch ver: ", torch.__version__)
+print("TorchVision ver: ", torchvision.__version__)"""
+
 
 def __write_yml_cls(wf):
     wf.write("names:\n")
@@ -257,6 +234,7 @@ def train(
         print("No path found to store results.csv")
 
     return model
+
 
 def get_image_paths(interaction_id, dataset_dir):
     with open(os.path.join(dataset_dir, interaction_id + "test_incl.txt")) as f:
@@ -629,7 +607,7 @@ def evaluate(
     config_dir,
     iou_threshold=0.7,
     table=True,
-    verbose=True
+    verbose=True,
 ):
     model_paths = glob.glob(os.path.join(training_dir, "*train*", "weights", "best.pt"))
     pbar = tqdm(model_paths, leave=False)

@@ -3,7 +3,8 @@ import logging
 import copy
 import pandas as pd
 
-from ..modules import binning
+from modules import binning
+
 
 def extract_metadataset(codex_input, dataset_path):
     """
@@ -67,34 +68,41 @@ def initialize_universe(codex_input):
     forward and form universe from the specified bins. If preexisting universe is given,
     automatically use that.
     """
-    data_dir = codex_input['data_directory']
-    dataset_filename = codex_input['dataset_file']
-    codex_dir = codex_input['codex_directory']
+    codex_dir = codex_input["codex_dir"]
+    data_dir = codex_input["dataset_dir"]
+    dataset_filename = codex_input["dataset_filename"]
 
     try:
         dataset_path = os.path.join(data_dir, dataset_filename)
         assert os.path.exists(dataset_path)
     except:
-        dataset_path = os.path.realpath(os.path.join(codex_dir, data_dir, dataset_filename))
-        
+        dataset_path = os.path.realpath(
+            os.path.join(codex_dir, data_dir, dataset_filename)
+        )
+
     print("PATH TO DATASET:", dataset_path)
     provided_universe = None
 
-    if codex_input["bin_file"] is not None:
+    if codex_input["binning_filename"] is not None:
         try:
-            bin_directory = codex_input["bin_directory"]
+            bin_directory = codex_input["binning_dir"]
             assert bin_directory is not None
         except:
-            print("No bin_directory found.")
+            print("No binning directory found.")
             bin_directory = ""
-        bin_path = os.path.abspath(os.path.join(
-            codex_input["codex_directory"], bin_directory, codex_input["bin_file"]))
-        
+        bin_path = os.path.abspath(
+            os.path.join(
+                codex_input["codex_dir"], bin_directory, codex_input["binning_filename"]
+            )
+        )
+
         print("PATH TO BINNING FILE:", bin_path)
 
-        provided_universe, dataset_path = binning.binfile(dataset_path, bin_path, codex_input['features'])
+        provided_universe, dataset_path = binning.binfile(
+            dataset_path, bin_path, codex_input["features"]
+        )
 
-    if codex_input["universe"] is not None and type(codex_input["universe"]) is dict:
+    if codex_input["universe_filename"] is not None and type(codex_input["universe_filename"]) is dict:
         print("Universe provided")
         logging.getLogger(__name__).info(
             "Universe provided via input file: {}".format("codex_input['universe']")
@@ -195,7 +203,7 @@ def define_input_space(codex_input, forceuse_augmented=False):
     if "Binned" in dataset_path:
         logging.getLogger(__name__ + ".binning").info(
             "Binning file provided. Opting to using binned dataset. Universe provided via bin file: {}.".format(
-                codex_input["bin_file"]
+                codex_input["binning_filename"]
             )
         )
     else:

@@ -1,6 +1,7 @@
 import numpy as np
 import copy
 
+
 def stock_results_empty(codex_input, dataset_name, model_name, universe, **kwargs):
     coverage_results = {
         "info": {"dataset name": dataset_name, "model name": model_name},

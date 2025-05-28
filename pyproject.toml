@@ -1,32 +1,53 @@
 [build-system]
-requires = ["setuptools >= 70.0", "wheel >= 0.43"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "codex"
 version = "2024.1.2"
+readme = "README.md"
 requires-python = ">= 3.8"
-dependencies = [
-        "pandas>=2.1.0",
-        "numpy>=1.24.1",
-        "matplotlib==3.5.1",
-        "seaborn",
-        "statsmodels==0.14.2",
-        "tqdm",
-        "Pillow",
-        "directory_tree==1.0.0"
-]
+license = "MIT"
+keywords = []
 authors = [
   {name = "Erin Lanus", email = "lanus@vt.edu"},
   {name = "Brian Lee", email = "leebri2n@vt.edu"}
 ]
-maintainers = [
-  {name = "Virginia Tech National Security Institute"}
+dependencies = [
+  "pandas",
+  "numpy",
+  "matplotlib",
+  "seaborn",
+  "statsmodels",
+  "scikit-learn",
+  "tqdm",
+  "directory_tree"
 ]
-description = "COverage for Datasets EXplorer (CODEX)"
-readme = "README.md"
-license = {text = "MIT License"}
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["codex", "codex.utils", "codex.modules", "codex.modes", "codex.vis"]
+[tool.hatch.version]
+path = "codex/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:codex}"
+
+[tool.coverage.run]
+source_pkgs = ["codex"]
+branch = true
+parallel = true
+omit = [
+  "codex/__about__.py",
+]
+
+[tool.coverage.paths]
+codex = ["codex", "*/codex/codex"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]

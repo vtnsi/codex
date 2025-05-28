@@ -7,7 +7,6 @@
 # -------------------- Imported Modules --------------------
 import os
 import math
-import random
 import numpy as np
 import pandas as pd
 import json
@@ -15,8 +14,11 @@ from scipy.special import comb
 import copy
 import logging
 
-from ..modules import output
-#from codex.modules import output
+from modules import output
+from modes import pbfc_biasing as biasing
+from modes import pbfc_data
+
+import codex
 
 # -------------------- Global Variables               --------------------#
 labelCentric = False
@@ -124,7 +126,7 @@ def convertValueComboToIndex(representation, set, row):
     multiplier = 1
     for col in range(0, len(set)):
         index += representation.data[row][set[col]] * multiplier
-        #print(representation.values[set[col]])
+        # print(representation.values[set[col]])
         multiplier *= len(representation.values[set[col]])
     return index
 
@@ -196,7 +198,9 @@ def combinatorialCoverage(representation, t):
 
     LOGGER_COMBI.log(
         level=25,
-        msg="k: {}\n k': {}\n, t: {}\n, t': {}\n, k choose t: {}".format(k, kprime, t, tprime, kct)
+        msg="k: {}\n k': {}\n, t: {}\n, t': {}\n, k choose t: {}".format(
+            k, kprime, t, tprime, kct
+        ),
     )
 
     coverageDataStructure = {
@@ -234,12 +238,13 @@ def combinatorialCoverage(representation, t):
 
         countsAllCombinations.append(countsEachCombination)
         LOGGER_COMBI.log(
-            level = 15,
-            msg = "Rank:{}, set:{}, combinations:{}".format(rank, set, interactionsForRank)
+            level=15,
+            msg="Rank:{}, set:{}, combinations:{}".format(
+                rank, set, interactionsForRank
+            ),
         )
         LOGGER_COMBI.log(
-            level = 15,
-            msg = "Counts of each combination:{}".format(countsEachCombination)
+            level=15, msg="Counts of each combination:{}".format(countsEachCombination)
         )
 
         # update the count -- since might be more than 0, count if a cell is nonzero rather than summing the counts
@@ -284,8 +289,7 @@ def setDifferenceCombinatorialCoverage(sourceCoverage, targetCoverage):
         "setDifferenceInteractionsCounts": setDifferenceInteractionsCounts,
     }
     for rank in range(0, len(targetCoverage["countsAllCombinations"])):
-        LOGGER_COMBI.log(level = 15,
-                         msg = targetCoverage['countsAllCombinations'][rank])
+        LOGGER_COMBI.log(level=15, msg=targetCoverage["countsAllCombinations"][rank])
 
         counts = [
             0 for i in range(0, len(targetCoverage["countsAllCombinations"][rank]))
@@ -301,9 +305,8 @@ def setDifferenceCombinatorialCoverage(sourceCoverage, targetCoverage):
     setDifferenceStructure["interactionsInTarget"] = interactionsInTarget
     setDifferenceStructure["setDifferenceInteractions"] = setDifferenceInteractions
 
-    LOGGER_COMBI.log(level=15,
-                     msg=setDifferenceStructure)
-    
+    LOGGER_COMBI.log(level=15, msg=setDifferenceStructure)
+
     return setDifferenceStructure
 
 
@@ -338,8 +341,7 @@ def setDifferenceCombinatorialCoverageConstraints(sourceCoverage, targetCoverage
         "setDifferenceInteractionsCounts": setDifferenceInteractionsCounts,
     }
     for rank in range(0, len(targetCoverage["countsAllCombinations"])):
-        LOGGER_COMBI.log(level=15,
-                         msg = targetCoverage['countsAllCombinations'][rank])
+        LOGGER_COMBI.log(level=15, msg=targetCoverage["countsAllCombinations"][rank])
 
         counts = [
             -1 for i in range(0, len(targetCoverage["countsAllCombinations"][rank]))
@@ -356,15 +358,16 @@ def setDifferenceCombinatorialCoverageConstraints(sourceCoverage, targetCoverage
             # EXPERIMENTAL 07-25-24
             elif targetCoverage["countsAllCombinations"][rank][interaction] == 0:
                 if sourceCoverage["countsAllCombinations"][rank][interaction] == 0:
-                    counts[interaction] = -1 # REVERTED FROM 2 05/16/25
+                    counts[interaction] = -1  # REVERTED FROM 2 05/16/25
                 else:
                     assert counts[interaction] == -1
         setDifferenceStructure["setDifferenceInteractionsCounts"].append(counts)
     setDifferenceStructure["interactionsInTarget"] = interactionsInTarget
     setDifferenceStructure["setDifferenceInteractions"] = setDifferenceInteractions
 
-    LOGGER_COMBI.log(level=15,
-                     msg = 'Set difference structure: {}'.format(setDifferenceStructure))
+    LOGGER_COMBI.log(
+        level=15, msg="Set difference structure: {}".format(setDifferenceStructure)
+    )
 
     return setDifferenceStructure
 
@@ -396,8 +399,9 @@ def computeMissingInteractions(representation, combinatorialCoverageStructure):
     if labelCentric:
         tprime -= 1  # require t-1 way interactions of all other columns
 
-    LOGGER_COMBI.log(msg='t: {}, t\': {}, k choose t: {}'.format(t, tprime, kct),
-                     level=25)
+    LOGGER_COMBI.log(
+        msg="t: {}, t': {}, k choose t: {}".format(t, tprime, kct), level=25
+    )
 
     # stores missing combinations lists of tuples: one for each t-way interaction with (col,val) pair
     missing = []
@@ -436,8 +440,7 @@ def computeMissingInteractions(representation, combinatorialCoverageStructure):
             countAppearingInteractionsInRank / numinteractionsForRank
         )
 
-    LOGGER_COMBI.log(msg='Missing interactions: {}'.format(missing),
-                     level=25)
+    LOGGER_COMBI.log(msg="Missing interactions: {}".format(missing), level=25)
 
     return missing
 
@@ -709,7 +712,9 @@ def SDCC_main(
     target = encoding(targetDF, mMap, True)
 
     LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
-    LOGGER_COMBI.log(msg="'Source' data representation:\n{}".format(source_data), level=15)
+    LOGGER_COMBI.log(
+        msg="'Source' data representation:\n{}".format(source_data), level=15
+    )
     LOGGER_COMBI.log(msg="'Target' data representation:\n{}".format(target), level=15)
 
     k = len(source_data.features)
@@ -720,7 +725,6 @@ def SDCC_main(
 
     LOGGER_COMBI.log(msg="Source CC:\n".format(sourceCC), level=15)
     LOGGER_COMBI.log(msg="Target CC:\n".format(targetCC), level=15)
-
 
     """Caution: 06.03.24"""
     if comparison_mode:
@@ -891,12 +895,16 @@ def frequencyInteractions(CC, goalSamples):
             ]
             appearancesList.append(temp)
 
-            LOGGER_COMBI.log(msg = "Rank {}, index {} appears {} times, frequency of {}.".format(str(rank), str(index), 
-                                                                                                 appearancesThisInteraction, 
-                                                                                                 round(percentageOfAllInteractions, 3), 
-                                                                                                 decodeInteraction(data, interaction)),
-                                                                                                 level=15)
-                
+            LOGGER_COMBI.log(
+                msg="Rank {}, index {} appears {} times, frequency of {}.".format(
+                    str(rank),
+                    str(index),
+                    appearancesThisInteraction,
+                    round(percentageOfAllInteractions, 3),
+                    decodeInteraction(data, interaction),
+                ),
+                level=15,
+            )
 
             if appearancesThisInteraction < goalSamples[rank]:
                 print(
@@ -915,10 +923,12 @@ def frequencyInteractions(CC, goalSamples):
                     goalSamples[rank],
                 )
 
-        LOGGER_COMBI.log(msg = "Coverage for rank {} is {}".format(
+        LOGGER_COMBI.log(
+            msg="Coverage for rank {} is {}".format(
                 rank, countAppearingInteractionsInRank / numInteractionsForRank
             ),
-            level=25)
+            level=25,
+        )
     return appearancesList
 
 
@@ -1076,20 +1086,29 @@ def testsetPostOptimization(IDs, testCC, goal):
         r.append(i)
         redundancy.append(r)
 
-    LOGGER_COMBI.log(msg = "Interaction redundancy list:\n{}{}".format(redundancy, type(redundancy)),
-                     level=15)
+    LOGGER_COMBI.log(
+        msg="Interaction redundancy list:\n{}{}".format(redundancy, type(redundancy)),
+        level=15,
+    )
     redundancy.sort(key=lambda x: x[1], reverse=True)
-    LOGGER_COMBI.log(msg = "Interaction redundancy list, sorted:\n{}{}".format(redundancy, type(redundancy)),
-                     level=15)
-
+    LOGGER_COMBI.log(
+        msg="Interaction redundancy list, sorted:\n{}{}".format(
+            redundancy, type(redundancy)
+        ),
+        level=15,
+    )
 
     for r in redundancy:
         rank = r[0]
         interactions = r[2]
         interactions.sort(key=lambda x: x[1], reverse=True)
 
-        LOGGER_COMBI.log(msg="Sorted list for finding redundant coverage:\nRank: {}, Interactions: {}".format(rank, interactions),
-                         level=15)
+        LOGGER_COMBI.log(
+            msg="Sorted list for finding redundant coverage:\nRank: {}, Interactions: {}".format(
+                rank, interactions
+            ),
+            level=15,
+        )
 
         for i in interactions:
             index = i[0]
@@ -1107,8 +1126,12 @@ def testsetPostOptimization(IDs, testCC, goal):
                             match = False
                             break
                     if match:
-                        LOGGER_COMBI.log(level=15,
-                                         msg = "Rank {}-index {} match on row {}".format(rank, index, row))
+                        LOGGER_COMBI.log(
+                            level=15,
+                            msg="Rank {}-index {} match on row {}".format(
+                                rank, index, row
+                            ),
+                        )
 
                         # determine if removing this row would drop any interaction below the goal for interaction coverage in test
                         remove = True
@@ -1119,14 +1142,18 @@ def testsetPostOptimization(IDs, testCC, goal):
                             index2 = convertValueComboToIndex(representation, set2, row)
 
                             #    symbols = convertIndexToValueCombo(representation, index2, set2, t)
-                            LOGGER_COMBI.log(level=15,
-                                             msg = "Row \t{}\t has symbols: {} corresponding to index {}".format(
-                                                row, symbols, index2
-                                        )
-                                    )
-                            LOGGER_COMBI.log(level=15,
-                                             msg="Row \t{}\t has symbols: {} corresponding to index {}".format(row, symbols, index2)
-                                )
+                            LOGGER_COMBI.log(
+                                level=15,
+                                msg="Row \t{}\t has symbols: {} corresponding to index {}".format(
+                                    row, symbols, index2
+                                ),
+                            )
+                            LOGGER_COMBI.log(
+                                level=15,
+                                msg="Row \t{}\t has symbols: {} corresponding to index {}".format(
+                                    row, symbols, index2
+                                ),
+                            )
 
                             if (
                                 testCC["countsAllCombinations"][rank2][index2]
@@ -1137,14 +1164,15 @@ def testsetPostOptimization(IDs, testCC, goal):
                         if remove:
                             modifyTest(IDs, testCC, row, add=False)
 
-                            LOGGER_COMBI.log(level=15,
-                                             msg="Removing row {}, {}".format(
-                                                row, representation.data[row]
-                                            )
-                                        )
-                            LOGGER_COMBI.log(level=15,
-                                             msg="Resultant test CC: {}".format(testCC)
-                                        )
+                            LOGGER_COMBI.log(
+                                level=15,
+                                msg="Removing row {}, {}".format(
+                                    row, representation.data[row]
+                                ),
+                            )
+                            LOGGER_COMBI.log(
+                                level=15, msg="Resultant test CC: {}".format(testCC)
+                            )
     return
 
 
@@ -1159,7 +1187,7 @@ def balanced_test_set(
     output_dir,
     include_baseline=True,
     baseline_seed=1,
-    form_exclusions=None
+    form_exclusions=None,
 ):
     global verbose, labelCentric, identifyImages
     labelCentric = False
@@ -1174,11 +1202,13 @@ def balanced_test_set(
     data_representation = encoding(dataDF, mMap, True)
 
     LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
-    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data_representation), level=15)
+    LOGGER_COMBI.log(
+        msg="Data representation:\n{}".format(data_representation), level=15
+    )
     LOGGER_COMBI.log(msg="DataFrame:\n{}".format(dataDF), level=15)
 
     k = len(data_representation.features)
-    t = max(strengths) # maximum t
+    t = max(strengths)  # maximum t
     if t > k:
         print("t =", t, " cannot be greater than number of features k =", k)
         return
@@ -1216,8 +1246,13 @@ def balanced_test_set(
     sortedFrequency = copy.deepcopy(frequency)
     sortedFrequency.sort(key=lambda x: x[3])
 
-    LOGGER_COMBI.log(level=25, msg="\nGoal # samples per rank in test set: {}\n".format(goal))
-    LOGGER_COMBI.log(level=25, msg="Sorted number and frequency of interactions: {}".format(sortedFrequency))
+    LOGGER_COMBI.log(
+        level=25, msg="\nGoal # samples per rank in test set: {}\n".format(goal)
+    )
+    LOGGER_COMBI.log(
+        level=25,
+        msg="Sorted number and frequency of interactions: {}".format(sortedFrequency),
+    )
 
     # create a data structure that maps sample IDs from data to the index in the data representation of encoded
     # features of the sample as well as whether the sample has been added to the Test set
@@ -1250,13 +1285,15 @@ def balanced_test_set(
             )
             maxPoolForInteraction = allsamplesize - testsamplesize - samplesnotintest
 
-            LOGGER_COMBI.log(level=25, msg="Rank {}, i {}, maximum pool size for interaction: {}".format(
+            LOGGER_COMBI.log(
+                level=25,
+                msg="Rank {}, i {}, maximum pool size for interaction: {}".format(
                     rank, i, maxPoolForInteraction
-                )
+                ),
             )
 
             m = min(m, maxPoolForInteraction)
-            print('!!!', m)
+            print("!!!", m)
 
     LOGGER_COMBI.log(level=15, msg="\nAll samples: {}".format(allsamplesize))
     LOGGER_COMBI.log(level=15, msg="Number of test samples: {}".format(testsamplesize))
@@ -1326,14 +1363,16 @@ def balanced_test_set(
             trainpoolmodelDF = trainpoolDF[trainpoolDF[feature] != value].reset_index(
                 drop=True
             )  # check if equivalent
-            print('Trainpool dim', trainpoolmodelDF.shape)
+            print("Trainpool dim", trainpoolmodelDF.shape)
             trainpoolmodelDFrepresentation = encoding(trainpoolmodelDF, mMap, True)
             trainpoolmodelCC = combinatorialCoverage(trainpoolmodelDFrepresentation, t)
 
-            LOGGER_COMBI.log(level=15, msg="Training pool model counts: {}".format(
+            LOGGER_COMBI.log(
+                level=15,
+                msg="Training pool model counts: {}".format(
                     trainpoolmodelCC["countsAllCombinations"]
-                    )
-                )
+                ),
+            )
 
             # TODO: update from feature to interaction
             for rank in range(0, kct):  # go rank by rank
@@ -1346,7 +1385,7 @@ def balanced_test_set(
                         coveredimpossible = (
                             True  # found a 0 that isn't the withheld interaction
                         )
-                        m = len(trainpoolmodelDF) # EXP ADDED 12.03.2024
+                        m = len(trainpoolmodelDF)  # EXP ADDED 12.03.2024
                         print(
                             "Warning: Model's Training Pool does not cover all other interactions, so constructed train can't either."
                         )
@@ -1354,18 +1393,25 @@ def balanced_test_set(
             while True:  # execute at least once no matter what
                 # sample from whole train pool
                 trainDF = trainpoolmodelDF.sample(m).reset_index(drop=True)
-                
-                LOGGER_COMBI.log(level=15, msg = "Number of samples containing {} in training set: {}".format(
+
+                LOGGER_COMBI.log(
+                    level=15,
+                    msg="Number of samples containing {} in training set: {}".format(
                         value, len(trainDF[trainDF[feature] == value])
-                    )
+                    ),
                 )
-                LOGGER_COMBI.log(level=25, msg="Training set:\n{}".format(trainDF.to_string()))
+                LOGGER_COMBI.log(
+                    level=25, msg="Training set:\n{}".format(trainDF.to_string())
+                )
 
                 # check that constructed training set covers everything EXCEPT the withheld interaction
                 trainDFrepresentation = encoding(trainDF, mMap, True)
                 trainCC = combinatorialCoverage(trainDFrepresentation, t)
 
-                LOGGER_COMBI.log(level=25, msg="Train CC counts {}".format(trainCC["countsAllCombinations"]))
+                LOGGER_COMBI.log(
+                    level=25,
+                    msg="Train CC counts {}".format(trainCC["countsAllCombinations"]),
+                )
 
                 # TODO: update from feature to interaction
                 covered = True  # REFERNCING AFTER ASSIGNMENT BC UNBOUND LOCAL ERROR THIS MIGHT CAUSE ERRORS
@@ -1392,9 +1438,11 @@ def balanced_test_set(
                 )
             )
 
-            LOGGER_COMBI.log(level=15, msg="\n Model {} excludes interaction {}, {}".format(
+            LOGGER_COMBI.log(
+                level=15,
+                msg="\n Model {} excludes interaction {}, {}".format(
                     modelnumber, feature, value
-                )
+                ),
             )
 
             trainlist = list(trainDF[sampleID])
@@ -1405,12 +1453,16 @@ def balanced_test_set(
             includeTestDF = testsetDF[testsetDF[feature] != value]
             excludeTestDF.to_csv(
                 os.path.join(
-                    output_dir, "splits_by_csv", "notcovered_" + modelnumber + "_t{}.csv".format(t)
+                    output_dir,
+                    "splits_by_csv",
+                    "notcovered_" + modelnumber + "_t{}.csv".format(t),
                 )
             )
             includeTestDF.to_csv(
                 os.path.join(
-                    output_dir, "splits_by_csv", "covered_" + modelnumber + "_t{}.csv".format(t)
+                    output_dir,
+                    "splits_by_csv",
+                    "covered_" + modelnumber + "_t{}.csv".format(t),
                 )
             )
 
@@ -1436,7 +1488,7 @@ def balanced_test_set(
             "train": trainlist[:cut],
             "validation": trainlist[cut:],
         }
-    
+
     jsondict["test"] = test
     jsondict["train_pool"] = trainpool
 
@@ -1482,7 +1534,12 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
     # for metric in metrics:
     #    performanceDataStructure[metric] =
 
-    LOGGER_COMBI.log(level=25, msg="k: {}, k': {}, t: {}, t': {}, k choose t: {}".format(k, kprime, t, tprime, kct))
+    LOGGER_COMBI.log(
+        level=25,
+        msg="k: {}, k': {}, t: {}, t': {}, k choose t: {}".format(
+            k, kprime, t, tprime, kct
+        ),
+    )
     coverageDataStructure = {
         "subset": None,
         "t": t,
@@ -1541,7 +1598,9 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
     coverageDataStructure["totalPossibleInteractions"] = totalPossibleInteractions
     coverageDataStructure["countAppearingInteractions"] = countAppearingInteractions
 
-    LOGGER_COMBI.log(level=25, msg="PERFORMANCE Data Structure:\n{}".format(performanceDF))
+    LOGGER_COMBI.log(
+        level=25, msg="PERFORMANCE Data Structure:\n{}".format(performanceDF)
+    )
 
     return coverageDataStructure, performanceDataStructure
 
@@ -1703,15 +1762,19 @@ def performanceByInteraction_main(
         )
 
     # computes CC for one dataset as well as the performance
-    CC_test, perf = computePerformanceByInteraction(data, t, performanceDF=performanceDF)
+    CC_test, perf = computePerformanceByInteraction(
+        data, t, performanceDF=performanceDF
+    )
     CC_train = combinatorialCoverage(data_train, t)
 
-    if coverage_subset=='train':
+    if coverage_subset == "train":
         CC = CC_train
-    elif coverage_subset=='test':
-        CC=CC_test
+    elif coverage_subset == "test":
+        CC = CC_test
     else:
-        raise KeyError('Coverage over subset {} not found in split file.'.format(coverage_subset))
+        raise KeyError(
+            "Coverage over subset {} not found in split file.".format(coverage_subset)
+        )
 
     LOGGER_COMBI.log(level=15, msg="CC over train: {}".format(CC))
 
@@ -1738,78 +1801,132 @@ def performanceByInteraction_main(
     jsondict["coverage subset"] = coverage_subset
     return jsondict
 
-def performance_by_frequency_coverage_main(trainpool_df, test_df_balanced, entire_df_cont, universe, t, output_dir, skew_level, id=None):
-    import utils.pbfc_data as data
-    import utils.pbfc_biasing as biasing
-    import utils.pbfc_ml as classifier
+
+def performance_by_frequency_coverage_main(
+    trainpool_df,
+    test_df_balanced,
+    entire_df_cont,
+    universe,
+    t,
+    output_dir,
+    skew_level,
+    id=None,
+):
 
     EXP_NAME = id
-    
+
     combination_list = biasing.get_combinations(universe, t)
     for combination in combination_list:
-        indices_per_interaction, combination_names = biasing.interaction_indices_t2(df=trainpool_df)
+        indices_per_interaction, combination_names = biasing.interaction_indices_t2(
+            df=trainpool_df
+        )
 
-        train_df_biased, train_df_selected_filename, combo_int_selected, interaction_selected = biasing.skew_dataset_relative(
-            df=trainpool_df, 
-            interaction_indices=indices_per_interaction, 
+        (
+            train_df_biased,
+            train_df_selected_filename,
+            combo_int_selected,
+            interaction_selected,
+        ) = biasing.skew_dataset_relative(
+            df=trainpool_df,
+            interaction_indices=indices_per_interaction,
             skew_level=skew_level,
             extract_combination=combination,
-            output_dir=output_dir)
-        
-        train_df = entire_df_cont.loc[entire_df_cont.index.isin(train_df_biased.index.tolist())]
-        test_df = entire_df_cont.loc[entire_df_cont.index.isin(test_df_STATIC_1211.index.tolist())]
+            output_dir=output_dir,
+        )
+
+        # TO EDIT (052825): ~~~~~~~~~~~~
+        test_df_STATIC_1211 = pd.DataFrame()
+        original_data_filename = ''
+        drop_list = []
+        classifier = None
+        split_dir = ''
+        performance_dir = ''
+        INPUT_DICT = None
+        scaler = None
+        metric = None
+        results_multiple_model = None
+        jsondict = None
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        train_df = entire_df_cont.loc[
+            entire_df_cont.index.isin(train_df_biased.index.tolist())
+        ]
+        test_df = entire_df_cont.loc[
+            entire_df_cont.index.isin(test_df_STATIC_1211.index.tolist())
+        ]
 
         full_df_combo = pd.concat([train_df, test_df], axis=0)
-        full_df_cont_combo_filename = '{}-{}_Skewed.csv'.format(original_data_file_name, EXP_NAME)
-        #full_df_combo.to_csv(os.path.join(data_dir_skew, full_df_cont_combo_filename))
-    
-        X_train, X_test, Y_train, Y_test, split_filename = data.prep_split_data(None, train_df=train_df, test_df=test_df, name=EXP_NAME, drop_list=drop_list,
-                                                                                        split_dir=split_dir, target_col='Diabetes_binary', id_col='ID')
+        full_df_cont_combo_filename = "{}-{}_Skewed.csv".format(
+            original_data_filename, EXP_NAME
+        )
+        # full_df_combo.to_csv(os.path.join(data_dir_skew, full_df_cont_combo_filename))
 
-        perf_filenames = classifier.model_suite(X_train, Y_train, X_test, Y_test, 
-                            experiment_name=EXP_NAME,
-                            output_dir = performance_dir,
-                            scaler=scaler)
-        
+        X_train, X_test, Y_train, Y_test, split_filename = pbfc_data.prep_split_data(
+            None,
+            train_df=train_df,
+            test_df=test_df,
+            name=EXP_NAME,
+            drop_list=drop_list,
+            split_dir=split_dir,
+            target_col="Diabetes_binary",
+            id_col="ID",
+        )
+
+        perf_filenames = classifier.model_suite(
+            X_train,
+            Y_train,
+            X_test,
+            Y_test,
+            experiment_name=EXP_NAME,
+            output_dir=performance_dir,
+            scaler=scaler,
+        )
+
         for perf_filename in perf_filenames:
             input_dict_new = copy.deepcopy(INPUT_DICT)
 
-            if '_gnb' in perf_filename:
-                model_name = 'Gaussian Naive Bayes'
-                model_name_small = 'gnb'
-            elif '_lr' in perf_filename:
-                model_name = 'Logistic Regression'
-                model_name_small = 'lr'
-            elif '_rf' in perf_filename:
-                model_name = 'Random Forest'
-                model_name_small = 'rf'
-            elif '_knn' in perf_filename:
-                model_name = 'KNN'
-                model_name_small = 'knn'
-            elif '_svm' in perf_filename:
-                model_name = 'SVM'
-                model_name_small = 'svm'
+            if "_gnb" in perf_filename:
+                model_name = "Gaussian Naive Bayes"
+                model_name_small = "gnb"
+            elif "_lr" in perf_filename:
+                model_name = "Logistic Regression"
+                model_name_small = "lr"
+            elif "_rf" in perf_filename:
+                model_name = "Random Forest"
+                model_name_small = "rf"
+            elif "_knn" in perf_filename:
+                model_name = "KNN"
+                model_name_small = "knn"
+            elif "_svm" in perf_filename:
+                model_name = "SVM"
+                model_name_small = "svm"
             else:
                 print("No model name found!")
 
             # Static
-            input_dict_new['metric'] = metric
-            input_dict_new['dataset_file'] = full_df_cont_combo_filename
-            input_dict_new['split_file'] = split_filename
+            input_dict_new["metric"] = metric
+            input_dict_new["dataset_file"] = full_df_cont_combo_filename
+            input_dict_new["split_file"] = split_filename
             # Change per model
-            save_dir = '_runs/pbi_pipeline/pbi-{}-{}'.format(EXP_NAME, model_name_small)
-            input_dict_new['config_id'] = save_dir
-            input_dict_new['model_name'] = model_name
-            input_dict_new['dataset_name'] = "CDC Diabetes, skewed {}, {}".format(skew_level, model_name)
-            input_dict_new['performance_file'] = perf_filename
-                
+            save_dir = "_runs/pbi_pipeline/pbi-{}-{}".format(EXP_NAME, model_name_small)
+            input_dict_new["config_id"] = save_dir
+            input_dict_new["model_name"] = model_name
+            input_dict_new["dataset_name"] = "CDC Diabetes, skewed {}, {}".format(
+                skew_level, model_name
+            )
+            input_dict_new["performance_file"] = perf_filename
+
             # CODEX ~~~~~~~~~~~~~~~
-                # of chosen combo, skew_level, model
-            result = codex.run(input_dict_new, verbose='1')
-            results_multiple_model[model_name_small] = {'coverage': result, 'save_dir': save_dir}
-    
+            # of chosen combo, skew_level, model
+            result = codex.run(input_dict_new, verbose="1")
+            results_multiple_model[model_name_small] = {
+                "coverage": result,
+                "save_dir": save_dir,
+            }
+
     print("CHECK DOESNT CHANGE:", interaction_selected)
-    results_multiple_model['interaction_skewed'] = interaction_selected
-    results_multiple_model['training_size'] = len(train_df_biased)
+    results_multiple_model["interaction_skewed"] = interaction_selected
+    results_multiple_model["training_size"] = len(train_df_biased)
 
     return jsondict

@@ -35,18 +35,23 @@ def slope_test(x, y):
     T_test = results.t_test(np.diag(r))
     return T_test
 
-def standardized_proportion_frequency_bounds(N:int, c_i:int):
-    upper_bound = (N-(N/c_i))/N
-    lower_bound = (0-(N/c_i))/N
 
-    return lower_bound, upper_bound #np.floor(lower_bound), np.ceil(upper_bound)
+def standardized_proportion_frequency_bounds(N: int, c_i: int):
+    upper_bound = (N - (N / c_i)) / N
+    lower_bound = (0 - (N / c_i)) / N
+
+    # np.floor(lower_bound), np.ceil(upper_bound)
+    return lower_bound, upper_bound
+
 
 def standardized_proportion_frequency_bounds_iterative(N, counts):
     uppers = []
     lowers = []
     for counts_combo_i in counts:
         c_i = len(counts_combo_i)
-        lower_candidate, upper_candidate = standardized_proportion_frequency_bounds(N, c_i)
+        lower_candidate, upper_candidate = standardized_proportion_frequency_bounds(
+            N, c_i
+        )
         uppers.append(upper_candidate)
         lowers.append(lower_candidate)
 

@@ -1,61 +1,60 @@
-from ..utils import input_handler
+import utils.config as config
 
 MIN_REQ = [
-    'mode',
-    'codex_dir',
-    'config_id',
-    'output_dir',
-    
-    'dataset_dir',
-    'dataset_filename',
-    'features',
-    'binning_dir',
-    'binning_filename',
-    'sample_id_column',
-
-    't'
+    "mode",
+    "codex_dir",
+    "config_id",
+    "output_dir",
+    "dataset_dir",
+    "dataset_filename",
+    "features",
+    "binning_dir",
+    "binning_filename",
+    "sample_id_column",
+    "t",
 ]
 
 OPT_REQ = {
-    'universe_save_dir': None,
-    'universe_filename': None,
-    'use_augmented_universe': False,
-    'counting_mode': 'label_exclusive',
-    'timestamp': False
+    "universe_save_dir": None,
+    "universe_filename": None,
+    "use_augmented_universe": False,
+    "counting_mode": "label_exclusive",
+    "timestamp": False,
 }
 
-def checks_generic(codex_input:dict):
+
+def checks_generic(codex_input: dict):
     for field in MIN_REQ:
         assert field in codex_input.keys()
 
+
 def checks_split(codex_input):
     split_fields = [
-        'split_dir',
-        'split_filename',
+        "split_dir",
+        "split_filename",
     ]
 
     for field in split_fields:
         assert field in codex_input.keys()
 
+
 def checks_perf(codex_input):
-    perf_fields = [
-        'performance_dir',
-        'performance_filename',
-        'metric'
-    ]
+    perf_fields = ["performance_dir", "performance_filename", "metric"]
 
     for field in perf_fields:
         assert field in codex_input.keys()
+
 
 def def_default_values(codex_input):
     for field in OPT_REQ:
         if field not in codex_input:
             codex_input[field] = OPT_REQ[field]
-    
+
     return codex_input
 
+
 def dse_prereq_check(codex_input):
-    split, performance, metric = input_handler.extract_sp(codex_input)
+    split, performance, metric = config.extract_sp(codex_input)
 
     if split is None:
         raise ValueError("No split file given.")
@@ -107,7 +106,7 @@ def dse_prereq_check(codex_input):
 
 
 def dsc_prereq_check(codex_input):
-    split, performance, metric = input_handler.extract_sp(codex_input)
+    split, performance, metric = config.extract_sp(codex_input)
     try:
         assert len(split) == len(performance)
     except:

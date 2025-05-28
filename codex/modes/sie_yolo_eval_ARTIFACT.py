@@ -48,8 +48,6 @@ def json_pretty_write(json_obj, file_path, sort=False):
     return json_str
 
 
-
-
 def train_SIE(
     SIE_splits,
     data_config_dir,
@@ -144,6 +142,7 @@ def train(
         print("No path found to store results.csv")
 
     return model
+
 
 def get_image_paths(interaction_id, data_config_dir):
     with open(os.path.join(data_config_dir, interaction_id + "test_incl.txt")) as f:
@@ -516,7 +515,7 @@ def evaluate(
     config_dir,
     iou_threshold=0.7,
     table=True,
-    verbose=True
+    verbose=True,
 ):
     model_paths = glob.glob(os.path.join(training_dir, "*train*", "weights", "best.pt"))
     pbar = tqdm(model_paths, leave=False)

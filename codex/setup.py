@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages, find_namespace_packages
+
 print(find_namespace_packages())
 setup(
     name="codex",
@@ -12,13 +13,8 @@ setup(
         "statsmodels==0.14.2",
         "tqdm",
         "Pillow",
-        "directory_tree==1.0.0"
+        "directory_tree==1.0.0",
     ],
-    packages=['codex', 'modules', 'utils'],
-    entry_points={
-    "console_scripts": [
-        "codex=codex:main"
-        ]
-    }
+    packages=["codex", "modules", "utils"],
+    entry_points={"console_scripts": ["codex=codex:main"]},
 )
-

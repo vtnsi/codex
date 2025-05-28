@@ -2,6 +2,9 @@
 # Created Date: Mar 1 2023
 # Updated Date: 23 September, 2024
 
+from utils import checks, dataset, config, results, splitperf, universing
+from modules import combinatorial, output, binning
+
 if __name__ == "__main__":
     MODE_CLI = True
 else:
@@ -16,18 +19,18 @@ import pandas as pd
 from tqdm import tqdm
 import argparse
 
-parser = argparse.ArgumentParser(prog='CODEX', description='')
-parser.add_argument('-in', '--input', type=str)
-parser.add_argument('-v', '--verbose', type=str)
+parser = argparse.ArgumentParser(prog="CODEX", description="")
+parser.add_argument("-in", "--input", type=str)
+parser.add_argument("-v", "--verbose", type=str)
+parser.add_argument("-n", "--new_codex_dir", type=str)
+ARGS = parser.parse_args()
 
-#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sie_ml = None; sie_analysis=None
-
-from codex.modules import combinatorial, output, binning
-from codex.utils import checks, dataset, config, results, splitperf, universing
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sie_ml = None
+sie_analysis = None
 
 
-def run(codex_input, verbose: str='1'):
+def run(codex_input, verbose: str = "1"):
     """
     Allows for different modes that can lead to different functionalities
     modes:
@@ -41,8 +44,10 @@ def run(codex_input, verbose: str='1'):
     codex_input = config.handle_input_file(codex_input)
     output_dir, strengths = config.define_experiment_variables(codex_input)
     timed = codex_input["timestamp"]
-    
-    logger_level, filename = output.logger_parameters(verbose, output_dir=output_dir, timed=timed)
+
+    logger_level, filename = output.logger_parameters(
+        verbose, output_dir=output_dir, timed=timed
+    )
     output.intialize_logger(__name__, logger_level, filename)
     output.intialize_logger(output.__name__, logger_level, filename)
     output.intialize_logger(binning.__name__, logger_level, filename)
@@ -55,9 +60,7 @@ def run(codex_input, verbose: str='1'):
 
     elif mode == "dataset split evaluation":
         split, performance, metric = config.extract_sp(codex_input)
-        result = dataset_split_evaluation(
-            codex_input, split, comparison=False
-        )
+        result = dataset_split_evaluation(codex_input, split, comparison=False)
 
     elif mode == "dataset split comparison":
         split_consolidated, performance_consolidated, metric = config.extract_sp(
@@ -74,8 +77,8 @@ def run(codex_input, verbose: str='1'):
         )
 
     elif mode == "model probe":
-        split_p, split_e, perf_p, perf_e, metric = (
-            config.extract_sp_partitioning(codex_input)
+        split_p, split_e, perf_p, perf_e, metric = config.extract_sp_partitioning(
+            codex_input
         )
         result = model_probe(codex_input, split_p, split_e, perf_p, perf_e, metric)
 
@@ -374,10 +377,12 @@ def performance_by_interaction(
         )
         # coverage_results_sdcc[t] = combinatorial.SDCC_main(trainDF, 'train', testDF, 'test', universe, t, output_dir, split_id=split_id)
     try:
-        coverage_results['info']['Overall Performance'] = performance['test']['Overall Performance']
+        coverage_results["info"]["Overall Performance"] = performance["test"][
+            "Overall Performance"
+        ]
     except:
         print("No overall performance section found...")
-        
+
     coverage_results = output.performance_by_interaction_vis(
         output_dir,
         dataset_name,
@@ -388,8 +393,7 @@ def performance_by_interaction(
         display_n,
         subset=coverage_subset,
     )  # , display_all_lr=display_all_ranks)
-    
-    
+
     return coverage_results
 
 
@@ -526,7 +530,12 @@ def model_probe(
 
 
 def balanced_test_set_construction(
-    input, test_set_size_goal, include_baseline=True, shuffle=False, adjusted_size=None, form_exclusions=False
+    input,
+    test_set_size_goal,
+    include_baseline=True,
+    shuffle=False,
+    adjusted_size=None,
+    form_exclusions=False,
 ):
     """
     Runs test set post optimization in order to construct as balanced a test set as possible
@@ -561,7 +570,7 @@ def balanced_test_set_construction(
             int(test_set_size_goal),
             output_dir,
             include_baseline=include_baseline,
-            form_exclusions=form_exclusions
+            form_exclusions=form_exclusions,
         )
     else:
         result = combinatorial.balanced_test_set(
@@ -573,7 +582,7 @@ def balanced_test_set_construction(
             int(adjusted_size),
             output_dir,
             include_baseline=include_baseline,
-            form_exclusions=form_exclusions
+            form_exclusions=form_exclusions,
         )
 
     if not os.path.exists(os.path.join(output_dir, "splits_by_json")):
@@ -723,7 +732,7 @@ def systematic_inclusion_exclusion_iq(codex_input, test_set_size_goal):
     config_path = "/home/hume-users/leebri2n/PROJECTS/dote_1070-1083/py-waspgen/configs/mod_classifier.json"
     output_dir, strengths = config.define_experiment_variables(codex_input)
     write_single_files = False
-    
+
     # Awaiting PyWASPgen public release
     sie_iq = None
 
@@ -857,41 +866,57 @@ def systematic_inclusion_exclusion_binomial_linreg(codex_input, table_filename):
 
     return results
 
-def performance_by_frequency_coverage(codex_input, skew_levels:list, test_set_size_goal=250):
+
+def performance_by_frequency_coverage(
+    codex_input, skew_levels: list, test_set_size_goal=250
+):
     import modes.pbfc_biasing as biasing
 
     output_dir, strengths = config.define_experiment_variables(input)
     universe, dataset_df_init = universing.define_input_space(input)
-    
-    result = balanced_test_set_construction(codex_input, test_set_size_goal, form_exclusions=False)
-    
+
+    result = balanced_test_set_construction(
+        codex_input, test_set_size_goal, form_exclusions=False
+    )
+
     for t in strengths:
         results_all_models = combinatorial.performance_by_frequency_coverage_main()
 
-    output.output_json_readable(results_all_models, write_json=True, 
-                                file_path=os.path.join(output_dir, 'pbcf.json'))
+    output.output_json_readable(
+        results_all_models,
+        write_json=True,
+        file_path=os.path.join(output_dir, "pbcf.json"),
+    )
 
     return results_all_models
 
+
 def main(kwargs):
     try:
-        setup_new_dir = (str.lower(kwargs['setup_new_dir']) == 'true')
+        #setup_new_dir = str.lower(kwargs["setup_new_dir"]) == "true"
+        setup_new_dir = ARGS.new_codex_dir is not None
     except KeyError:
-        setup_new_dir = None
-    
-    if setup_new_dir is not None:
-        new_dirname, new_parent_dirname, include_templates, include_tutorial = config.codex_env_checks(kwargs)
-        config.setup_new_codex_env(new_dirname, new_parent_dirname, templates=include_templates, tutorial=include_tutorial)   
+        setup_new_dir = False
+
+    if setup_new_dir:
+        new_dirname, new_parent_dirname, include_templates, include_tutorial = (
+            config.codex_env_checks(kwargs)
+        )
+        config.setup_new_codex_env(
+            new_dirname,
+            new_parent_dirname,
+            templates=include_templates,
+            tutorial=include_tutorial,
+        )
         return
 
-    input_fp = kwargs["input"]
-    try:
-        verbosity = str(kwargs["verbose"])
+    input_fp = ARGS.input
+    verbosity = ARGS.verbose
 
-        if verbosity not in ['1', '2']:
-            raise NameError("Output verbosity levels supported by CODEX: 1 - coarse; 2 - fine.")
-    except KeyError:
-        verbosity = str(1)
+    if verbosity is None:
+        verbosity = '1'
+    else:
+        assert verbosity in ['1', '2']
 
     with open(input_fp) as f:
         codex_input = json.load(f)
@@ -900,15 +925,17 @@ def main(kwargs):
     run(codex_input, verbosity)
     return
 
+
 """
 Use keyword args on command line to pass important info
     $ python combinatorial.py path=./ sourceName=RarePlanes sourceFile=RarePlanesMetadata_process_binned.csv mode=cc t=2 exp=MsA
     $ python codex.py input=input.json
 """
 if __name__ == "__main__":
-    if len(sys.argv) < 1:
-        raise KeyError("Improper command line. Input file required. For input file named input.json, format is python codex.py input=input.json verbose=[1/2]")
-        
-    kwargs = dict(arg.split("=") for arg in sys.argv[1:])
+    '''if len(sys.argv) < 1:
+        raise KeyError(
+            "Improper command line. Input file required. For input file named input.json, format is python codex.py input=input.json verbose=[1/2]"
+        )
 
-    main(kwargs)
+    kwargs = dict(arg.split("=") for arg in sys.argv)'''
+    main(None)

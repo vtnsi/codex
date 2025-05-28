@@ -5,7 +5,6 @@
 
 import pandas
 import sys
-import os
 
 def binfile(unbinnedfile, binningfile, features_original):
     DF = pandas.read_csv(unbinnedfile)
@@ -28,10 +27,10 @@ def binfile(unbinnedfile, binningfile, features_original):
                 levels.append(element)
             universe["features"].append(feature)
             universe["levels"].append(levels)
-    
+
     # go through the csv and replace each value with the bin
     na_dropped = None
-        
+
     if DF.isnull().values.any():
         na_dropped = DF[~DF.index.isin(DF.dropna().index)]
         DF = DF.dropna()
@@ -64,8 +63,8 @@ def binfile(unbinnedfile, binningfile, features_original):
                 if type(value) is str:
                     pre_bin = value.split(",")
                     try:
-                        '''upper = float(pre_bin[1])
-                        lower = float(pre_bin[0])'''
+                        """upper = float(pre_bin[1])
+                        lower = float(pre_bin[0])"""
                         if len(pre_bin) != 1:
                             upper = float(pre_bin[1])
                             lower = float(pre_bin[0])
@@ -80,9 +79,9 @@ def binfile(unbinnedfile, binningfile, features_original):
                         )
                     value = average_value_for_binning
 
-                '''if value == np.nan:
+                """if value == np.nan:
                     print("NaN value encountered. Continuing")
-                    continue'''
+                    continue"""
                 # print(value, type(value))
                 found = False
                 for j in range(0, len(levels)):
@@ -116,9 +115,13 @@ def binfile(unbinnedfile, binningfile, features_original):
                         found = True
                         rows[i] = universe["levels"][f][j]
                         break
-                
+
                 if not found:
-                    raise ValueError("Error: bin not found for value {}. Feature {}, level {} ".format(value, feature, level))
+                    raise ValueError(
+                        "Error: bin not found for value {}. Feature {}, level {} ".format(
+                            value, feature, level
+                        )
+                    )
             colindex = DF.columns.get_loc(feature)
             del DF[feature]
             DF.insert(colindex, feature, rows, allow_duplicates=False)

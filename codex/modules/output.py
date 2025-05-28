@@ -19,7 +19,8 @@ import scipy
 import logging
 import glob
 
-from codex.utils import codex_plotting as plotting, results_handler
+from vis import plotting, maps, metrics
+from utils import results
 
 LOGGER_OUT = logging.getLogger(__name__)
 
@@ -27,19 +28,20 @@ showfig = False
 savefig = True
 timed = False
 
+
 def logger_parameters(verbosity: str, output_dir="", timed=True):
-    logging.addLevelName(15, 'CODEX_DEBUG')
-    logging.addLevelName(25, 'CODEX_INFO')
+    logging.addLevelName(15, "CODEX_DEBUG")
+    logging.addLevelName(25, "CODEX_INFO")
 
     if timed:
         timestamp = datetime.now().strftime("%Y_%m_%d-%I:%M")
     else:
-        timestamp=''
+        timestamp = ""
 
-    if verbosity == '2':
+    if verbosity == "2":
         level = logging.getLevelName(15)
         levelnum = 15
-    elif verbosity == '1':
+    elif verbosity == "1":
         level = logging.getLevelName(25)
         levelnum = 25
     else:
@@ -48,24 +50,31 @@ def logger_parameters(verbosity: str, output_dir="", timed=True):
                 verbosity
             )
         )
-    
+
     os.makedirs(os.path.abspath(output_dir), exist_ok=True)
     if timed:
-        filename = os.path.abspath(os.path.join(output_dir, "codex_out_{}-{}.log".format(level.split('_')[-1], timestamp)))
+        filename = os.path.abspath(
+            os.path.join(
+                output_dir,
+                "codex_out_{}-{}.log".format(level.split("_")[-1], timestamp),
+            )
+        )
     else:
-        filename = os.path.abspath(os.path.join(output_dir, "codex_out_{}.log".format(level.split('_')[-1])))
-
+        filename = os.path.abspath(
+            os.path.join(output_dir, "codex_out_{}.log".format(level.split("_")[-1]))
+        )
 
     return levelnum, filename
+
 
 def intialize_logger(logger_name, levelnum, filename):
     logging.basicConfig(filename=filename, level=levelnum)
     logger_for_file = logging.getLogger(logger_name)
     logger_for_file.setLevel(levelnum)
-    logger_for_file.log(level=levelnum, 
-                        msg=f"Logger for {logger_name} intialized.")
-    
+    logger_for_file.log(level=levelnum, msg=f"Logger for {logger_name} intialized.")
+
     return levelnum
+
 
 # NOTE: DEPRECATE subset variable in pbi, dataset eval
 
@@ -104,7 +113,6 @@ def output_json_readable(
 def dataset_eval_vis(
     output_dir, dataset_name, coverage_results, strengths, funct=[math.log10]
 ):
-
     output_dir = make_output_dir_nonexist(os.path.join(output_dir, "CC"))
     for t in strengths:
         counts = coverage_results[t]["combination counts"]
@@ -112,7 +120,10 @@ def dataset_eval_vis(
         cc = coverage_results[t]["CC"]
         cc = round(cc, 4)
 
-        LOGGER_OUT.log(level=25, msg='t = {}\n{}'.format(t, [coverage_results[t]["CC"] for t in strengths]))
+        LOGGER_OUT.log(
+            level=25,
+            msg="t = {}\n{}".format(t, [coverage_results[t]["CC"] for t in strengths]),
+        )
 
         create_coverage_map(
             "binary", output_dir, dataset_name, t, counts, ranks, cc_value=cc
@@ -137,7 +148,6 @@ def dataset_eval_vis(
             t,
             counts,
             ranks,
-
         )
     plt.close("all")
 
@@ -301,7 +311,7 @@ def dataset_split_eval_vis(
                 target_name=target_name,
                 sdcc_value=sdcc,
             )
-            '''create_coverage_map(
+            """create_coverage_map(
                 "sdcc_binary_constraints_neither",
                 sdcc_output_dir,
                 dataset_name,
@@ -311,7 +321,7 @@ def dataset_split_eval_vis(
                 source_name=source_name,
                 target_name=target_name,
                 sdcc_value=sdcc,
-            )'''
+            )"""
 
         plotting.split_elements_bar(
             output_dir, dataset_name, coverage_results, t, split_id, sdcc_directions
@@ -424,7 +434,7 @@ def performance_by_interaction_vis(
             metric=metric,
         )
 
-        interactions_consolidated = results_handler.consolidated_interaction_info(
+        interactions_consolidated = results.consolidated_interaction_info(
             coverage_results, strengths, metric, order=order, display_n=display_n
         )
         plotting.plot_pbi_bar(
@@ -516,10 +526,10 @@ def model_probing_vis(
             subset,
         )
 
-        interactions_probe = results_handler.consolidated_interaction_info(
+        interactions_probe = results.consolidated_interaction_info(
             coverage_probe_results, strengths, metric, order, display_n
         )
-        interactions_exploit = results_handler.consolidated_interaction_info(
+        interactions_exploit = results.consolidated_interaction_info(
             coverage_exploit_results, strengths, metric, order, display_n
         )
         plotting.plot_probe_exploit_suite(
@@ -603,7 +613,9 @@ def create_coverage_map(
         return
 
     elif mode == "proportion_frequency":
-        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map_proportion(square, counts)
+        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map_proportion(
+            square, counts
+        )
         # lim = np.max([np.abs(np.min(square)), np.abs(np.max(square))])
         vmin = 0
         vmax = 1
@@ -614,14 +626,14 @@ def create_coverage_map(
 
     elif mode == "proportion_frequency_standardized":
         c_is = [len(counts_one_combo) for counts_one_combo in counts]
-        vmin = -1 #round(0 - (1/np.min(c_is)), 4)
-        vmax = 1 #round(1 - (1/np.max(c_is)))
+        vmin = -1  # round(0 - (1/np.min(c_is)), 4)
+        vmax = 1  # round(1 - (1/np.max(c_is)))
 
-        #midpoint = np.mean([vmin, vmax])
+        # midpoint = np.mean([vmin, vmax])
 
         square = np.full([len(counts), boxsize], dtype=float, fill_value=-999)
-        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map_proportion_standardized(
-            square, counts
+        square, cmap, cbar_kws, cbar_ticklabels = (
+            maps.frequency_map_proportion_standardized(square, counts)
         )
         cmap.set_under("w")
 
@@ -631,7 +643,8 @@ def create_coverage_map(
         title = "{}-way Standardized Proportion Frequency Coverage of {}".format(
             t, dataset_name
         )
-        xlabel = None# "Interactions"#, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
+        # "Interactions"#, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
+        xlabel = None
 
     elif mode == "performance":
         perf = kwargs["performance_all_interactions"]
@@ -735,7 +748,7 @@ def create_coverage_map(
         cbar_ticklabels=cbar_ticklabels,
         mode=mode,
     )
-    filename_svg = '{}.svg'.format(filename.split('.')[0])
+    filename_svg = "{}.svg".format(filename.split(".")[0])
     plotting.heatmap(
         output_dir,
         square,
@@ -776,17 +789,23 @@ def writeCCtToFile(output_dir, name, t, CC):
         cc = CC["countAppearingInteractions"] / CC["totalPossibleInteractions"]
         tfile.write("CC({}): {}\n".format(name, cc))
 
-    LOGGER_OUT.log(level=15, msg = "interactions appearing in {}: {}\n".format(
-                name, CC["countAppearingInteractions"]
-            )
-        )
-    LOGGER_OUT.log(level=15, msg="interactions appearing in {}: {}\n".format(
-                name, CC["countAppearingInteractions"]
-            )
-        )
-    LOGGER_OUT.log(level=15, msg="total possible interactions: {}\n".format(CC["totalPossibleInteractions"])
-            )
-    #print(tfile.write("CC({}): {}\n".format(name, cc)))
+    LOGGER_OUT.log(
+        level=15,
+        msg="interactions appearing in {}: {}\n".format(
+            name, CC["countAppearingInteractions"]
+        ),
+    )
+    LOGGER_OUT.log(
+        level=15,
+        msg="interactions appearing in {}: {}\n".format(
+            name, CC["countAppearingInteractions"]
+        ),
+    )
+    LOGGER_OUT.log(
+        level=15,
+        msg="total possible interactions: {}\n".format(CC["totalPossibleInteractions"]),
+    )
+    # print(tfile.write("CC({}): {}\n".format(name, cc)))
 
 
 # writes the SDCC for a t to the t file
@@ -812,10 +831,19 @@ def writeSDCCtToFile(output_dir, sourcename, targetname, t, SDCC):
         "SDCC({}-{}): {}\n".format(targetname, sourcename, sdcc)
         tfile.write("SDCC({}-{}): {}\n".format(targetname, sourcename, sdcc))
 
-    LOGGER_OUT.log(level=15, msg="Interactions in {}: {}\n".format(targetname, SDCC["interactionsInTarget"]))
-    LOGGER_OUT.log(level=15, msg="Interactions in {} not in {}: {}\n".format(
-                targetname, sourcename, SDCC["setDifferenceInteractions"]))
-    LOGGER_OUT.log(level=15, msg="SDCC({}-{}): {}\n".format(targetname, sourcename, sdcc))
+    LOGGER_OUT.log(
+        level=15,
+        msg="Interactions in {}: {}\n".format(targetname, SDCC["interactionsInTarget"]),
+    )
+    LOGGER_OUT.log(
+        level=15,
+        msg="Interactions in {} not in {}: {}\n".format(
+            targetname, sourcename, SDCC["setDifferenceInteractions"]
+        ),
+    )
+    LOGGER_OUT.log(
+        level=15, msg="SDCC({}-{}): {}\n".format(targetname, sourcename, sdcc)
+    )
 
 
 # writes the missing interactions for a t to the t file

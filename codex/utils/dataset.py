@@ -5,6 +5,7 @@ import glob
 import json
 import uuid
 
+
 def reorder_df_byindex(df_to_sort, order_ascending=True):
     if type(df_to_sort) is dict:
         print("Sorting and transposing performance JSON...")
@@ -32,6 +33,7 @@ def df_slice_by_id_reorder(
         .drop(columns="index")
     )
     return sliced_df
+
 
 def add_noise_feature(df_dir, high, low, filename=None, save=True):
     if type(df_dir) is str:
