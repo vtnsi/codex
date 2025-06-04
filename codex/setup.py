@@ -12,9 +12,8 @@ setup(
         "seaborn",
         "statsmodels==0.14.2",
         "tqdm",
-        "Pillow",
         "directory_tree==1.0.0",
     ],
-    packages=["codex", "modules", "utils"],
+    packages=["codex", "modules", "utils", "vis", "modes"],
     entry_points={"console_scripts": ["codex=codex:main"]},
 )

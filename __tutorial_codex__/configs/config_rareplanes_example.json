@@ -3,7 +3,7 @@
     
     "codex_dir" : "__tutorial_codex__/",
     "output_dir": "__tutorial_codex__/runs/",
-    "config_id" : "EXAMPLE-de_rareplanes",
+    "config_id" : "EXAMPLE-de_rareplanes_test_ref",
     "dataset_name" : "RarePlanes",
     "model_name" : "",
 

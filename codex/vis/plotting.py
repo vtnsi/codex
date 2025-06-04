@@ -29,228 +29,53 @@ from vis import maps, metrics
 savefig = True
 
 
-def coverage_map(output_dir, coverage_results):
-    mode = coverage_results["info"]["mode"]
-    strengths = coverage_results["info"]["t"]
-
-    square = maps.map_info_data()
-    vmin, vmax, cmap, cbar_kws, cbar_ticks, cbar_ticklabels = maps.map_info_var()
-    title, filename, ylabels = maps.map_info_txtl()
-
-    plt.figure(figsize=(10, 8))
-    heatmap = sns.heatmap(
-        square,
-        vmin=vmin,
-        vmax=vmax,
-        cmap=cmap,
-        cbar_kws=cbar_kws,
-        yticklabels=rank_labels,
-        linewidths=linewidths,
-        linecolor="black",
-    )
-    size = square.shape
-
-    maps.__set_colorbar(colorbar=heatmap.collections[0].colorbar)
-    maps.set_plot_axes(title)
-
-    if savefig:
-        plt.savefig(filename)
-
-
-def heatmap(
-    output_dir,
-    square: np.ndarray,
-    vmin,
-    vmax,
-    cmap,
-    cbar_kws,
-    rank_labels,
-    title,
-    filename,
-    xlabel=None,
-    ylabel=None,
-    cbar_ticklabels=None,
-    mode=None,
-    outlines=False,
-    labrotation=0,
+def coverage_map(
+    map_var, coverage_results, t, output_dir, coverage_subset=None, **kwargs
 ):
-    if outlines:
-        linewidths = 0.5
-    else:
-        linewidths = 0
+    counts = coverage_results["results"][t]["combination counts"]
+    # print(counts)
+    combination_names = coverage_results["results"][t]["combinations"]
 
-    if labrotation < 0:
-        alignment = "bottom"
-    elif labrotation > 0:
-        alignment = "top"
-    else:
-        alignment = "center"
+    square = maps.map_info_data(map_var=map_var, counts=counts, kwargs=kwargs)
+    vmin, vmax, cmap, cbar_kws = maps.map_info_var(map_var, kwargs=kwargs)
+    title, filename = maps.map_info_txtl(
+        map_var, coverage_results, t, coverage_subset, kwargs=kwargs
+    )
 
     plt.figure(figsize=(10, 8))
+    plt.tight_layout(pad=1.5)
     heatmap = sns.heatmap(
         square,
         vmin=vmin,
         vmax=vmax,
         cmap=cmap,
-        cbar_kws=cbar_kws,
-        yticklabels=rank_labels,
-        linewidths=linewidths,
+        # cbar_kws=cbar_kws,
+        yticklabels=combination_names,
+        linewidths=0.5,
         linecolor="black",
     )
+    heatmap.tick_params(axis="both", which="both", length=0, rotation=0)
     size = square.shape
-    rect = patches.Rectangle(
-        [0, 0],
-        width=size[1],
-        height=size[0],
-        linewidth=3,
-        edgecolor="black",
-        fill=False,
+    heatmap.add_patch(
+        patches.Rectangle(
+            [0, 0],
+            width=size[1],
+            height=size[0],
+            linewidth=3,
+            edgecolor="black",
+            fill=False,
+        )
     )
-    heatmap.add_patch(rect)
-    heatmap.tick_params(axis="both", which="both", length=0, rotation=15)
-
-    title = textwrap.fill(title, 40)
-
-    title_size = 18
-    axis_size = int(4 * title_size / 5)
 
     cmap.set_under("w")
-    # cmap.set_over('k')
-    colorbar = heatmap.collections[0].colorbar
-    # testing 0326
-    colorbar.ax.get_yaxis().labelpad = 15
-    colorbar.ax.tick_params(labelsize=12)
-    colorbar.set_label(cbar_kws["label"], fontsize=axis_size)
+    cbar = heatmap.collections[0].colorbar
+    maps.set_colorbar(cbar, cbar_kws)
+    maps.set_plot_text(title)
 
-    if mode == "sdcc_binary_constraints_neither":
-        colorbar.set_ticks([-0.667, 0, 0.667, 1.667])
-        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
-    elif mode == "sdcc_binary_constraints":
-        colorbar.set_ticks([-0.667, 0, 0.667])
-        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
-    elif mode == "binary":
-        colorbar.set_ticks([0, 1])
-        colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
-
-    plt.title(title, weight="bold", fontsize=title_size, pad=15)
-    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15, weight="bold")
-    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15, weight="bold")
-    plt.yticks(fontsize=12, rotation=labrotation, va=alignment)
-    plt.tight_layout(pad=1.5)
-
-    # FIGURE SAVE
-    if ".svg" in filename:
-        with open(os.path.join(output_dir, filename), "wb") as f:
-            plt.savefig(f, format="svg")
-    else:
-        with open(os.path.join(output_dir, filename), "wb") as f:
-            plt.savefig(f)
+    maps.save_plots(output_dir, filename)
 
     plt.clf()
-
-    return
-
-
-def plot_probe_exploit_suite(
-    output_dir,
-    interactions_probe,
-    interactions_exploit,
-    t,
-    separate=False,
-    savefig=True,
-):
-    gridspec = {"width_ratios": [3, 1], "height_ratios": [1, 1]}
-    fig, ax = plt.subplots(2, 2, gridspec_kw=gridspec, figsize=(12, 10))
-    fig.suptitle("Model Probing", weight="bold", fontsize=24)
-
-    # t = str(t)
-    width = 0.4
-
-    bottom_common, bottom_probe_perf, bottom_exploit_perf = (
-        results.consolidated_interaction_info(
-            interactions_probe, interactions_exploit, t
-        )
-    )
-    bottom_common = [textwrap.fill(string, 12) for string in bottom_common]
-    idx = np.arange(len(bottom_common))
-
-    plt.subplot(2, 2, 1)
-    plt.title("Performance by interaction, Probe vs. Exploit, t = {}".format(t))
-    plt.tight_layout(pad=2)
-    plt.bar(idx - 0.2, bottom_probe_perf, width)
-    plt.bar(idx + 0.2, bottom_exploit_perf, width)
-
-    plt.ylabel("Precision")
-    plt.ylim(0, 1)
-    plt.xlabel("Interactions")
-    plt.xticks(ticks=idx, labels=bottom_common, rotation=20)
-    plt.grid(visible=True, axis="y")
-
-    plt.subplot(2, 2, 2)
-    plt.title("Interactions in probe set", pad=32, weight="bold")
-    # plt.tight_layout()
-    """output_json_readable(interactions_probe, print_json=True)
-    for interaction in interactions_probe[t]:
-        if interaction != 'top interactions' and interaction != 'bottom interactions':
-            print(interactions_probe[t][interaction]['counts'])
-    exit()"""
-    sizes = [
-        interactions_probe[t][interaction]["counts"]
-        for interaction in interactions_probe[t]
-        if interaction != "bottom interactions" and interaction != "top interactions"
-    ]
-    labels = [
-        textwrap.fill(interaction, 12)
-        for interaction in interactions_probe[t]
-        if interaction != "bottom interactions" and interaction != "top interactions"
-    ]
-    if len(labels) >= 10:
-        labels = None
-    plt.pie(sizes, labels=labels)
-
-    plt.subplot(2, 2, 4)
-    plt.title("Interactions in exploit set", pad=32, weight="bold")
-    # plt.tight_layout()
-
-    sizes_ex = [
-        interactions_exploit[t][interaction]["counts"]
-        for interaction in interactions_exploit[t]
-        if interaction != "bottom interactions" and interaction != "top interactions"
-    ]
-    labels_ex = [
-        textwrap.fill(interaction, 12)
-        for interaction in interactions_exploit[t]
-        if interaction != "bottom interactions" and interaction != "top interactions"
-    ]
-    if len(labels_ex) >= 10:
-        labels_ex = None
-    plt.pie(sizes_ex, labels=labels_ex)
-
-    plt.subplot(2, 2, 3)
-    plt.title("Distribution of per-interaction performance")
-    plt.tight_layout()
-    performances = [
-        interactions_probe[t][interaction]["performance"]
-        for interaction in interactions_probe[t]
-        if interaction != "bottom interactions" and interaction != "top interactions"
-    ]
-    performances_ex = [
-        interactions_exploit[t][interaction]["performance"]
-        for interaction in interactions_exploit[t]
-        if interaction != "bottom interactions" and interaction != "top interactions"
-    ]
-    performances_all = performances + performances_ex
-    plt.hist(performances_all, color="Purple")
-    plt.xlim(0, max(performances_all))
-    plt.xlabel("Performance")
-
-    if savefig:
-        plt.savefig(
-            os.path.join(output_dir, "model_probing_SUITE-t{}.png".format(str(t)))
-        )
-
-    plt.clf()
-    return
+    return heatmap
 
 
 def split_comp_scatter(
@@ -316,9 +141,7 @@ def __extract_rank_samples__(i, counts, perf, human_readable):
         if y_raw[j] is None:
             continue
         else:
-            x.append(
-                metrics.standardized_proportion_per_interaction(counts, i, j)
-            )
+            x.append(metrics.standardized_proportion_per_interaction(counts, i, j))
             y.append(y_raw[j])
 
     return x, y, z
@@ -533,9 +356,7 @@ def plot_pbi_frequency_scatter(
 
     N = int(np.sum(counts[0]))
     print("T", t)
-    lower, upper = metrics.standardized_proportion_frequency_bounds_iterative(
-        N, counts
-    )
+    lower, upper = metrics.standardized_proportion_frequency_bounds_iterative(N, counts)
 
     """plt.xlabel(
         "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",

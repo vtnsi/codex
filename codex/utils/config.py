@@ -7,6 +7,7 @@ import shutil
 
 from modules import combinatorial, output
 
+
 def codex_env_checks(kwargs):
     try:
         # requd
@@ -143,10 +144,10 @@ def define_experiment_variables(codex_input):
 
     config_id = codex_input["config_id"]
 
-    output_dir = os.path.abspath(output.make_output_dir_nonexist(output_dir))
+    output_dir = os.path.abspath(output.create_output_dir(output_dir))
     output_dir_config = os.path.realpath(os.path.join(output_dir, config_id))
 
-    output_dir_config = output.make_output_dir_nonexist(output_dir_config)
+    output_dir_config = output.create_output_dir(output_dir_config)
 
     strengths = codex_input["t"]
 

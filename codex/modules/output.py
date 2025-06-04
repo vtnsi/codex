@@ -110,46 +110,24 @@ def output_json_readable(
     return json_obj
 
 
-def dataset_eval_vis(
-    output_dir, dataset_name, coverage_results, strengths, funct=[math.log10]
-):
-    output_dir = make_output_dir_nonexist(os.path.join(output_dir, "CC"))
-    for t in strengths:
-        counts = coverage_results[t]["combination counts"]
-        ranks = coverage_results[t]["combinations"]
-        cc = coverage_results[t]["CC"]
-        cc = round(cc, 4)
+def dataset_eval_vis(output_dir, coverage_results):
+    output_dir = create_output_dir(os.path.join(output_dir, "CC"))
 
+    strengths = coverage_results["info"]["t"]
+    for t in strengths:
         LOGGER_OUT.log(
             level=25,
-            msg="t = {}\n{}".format(t, [coverage_results[t]["CC"] for t in strengths]),
+            msg="t = {}\n{}".format(
+                t, [coverage_results["results"][t]["CC"] for t in strengths]
+            ),
         )
 
-        create_coverage_map(
-            "binary", output_dir, dataset_name, t, counts, ranks, cc_value=cc
+        plotting.coverage_map("binary", coverage_results, t, output_dir)
+        plotting.coverage_map("frequency", coverage_results, t, output_dir)
+        plotting.coverage_map("proportion_frequency", coverage_results, t, output_dir)
+        plotting.coverage_map(
+            "proportion_frequency_standardized", coverage_results, t, output_dir
         )
-        create_coverage_map("frequency", output_dir, dataset_name, t, counts, ranks)
-        create_coverage_map(
-            "function_frequency",
-            output_dir,
-            dataset_name,
-            t,
-            counts,
-            ranks,
-            funct=funct,
-        )
-        create_coverage_map(
-            "proportion_frequency", output_dir, dataset_name, t, counts, ranks
-        )
-        create_coverage_map(
-            "proportion_frequency_standardized",
-            output_dir,
-            dataset_name,
-            t,
-            counts,
-            ranks,
-        )
-    plt.close("all")
 
     return output_json_readable(
         coverage_results,
@@ -168,160 +146,89 @@ def dataset_split_eval_vis(
     comparison=False,
 ):
     if comparison:
-        output_dir = make_output_dir_nonexist(os.path.join(output_dir, split_id))
-    cc_output_dir = make_output_dir_nonexist(os.path.join(output_dir, "CC"))
-    sdcc_output_dir = make_output_dir_nonexist(os.path.join(output_dir, "SDCC"))
+        output_dir = create_output_dir(os.path.join(output_dir, split_id))
+    cc_output_dir = create_output_dir(os.path.join(output_dir, "CC"))
+    sdcc_output_dir = create_output_dir(os.path.join(output_dir, "SDCC"))
+
+    sdcc_directions = None
+    sdcc_directions = [
+        key for key in coverage_results["results"][t] if "-" in key and "val" not in key
+    ]
 
     for t in strengths:
-        sdcc_directions = [
-            key for key in coverage_results[t] if "-" in key and "val" not in key
-        ]
         for direction in sdcc_directions:
             target_name = direction.split("-")[0]
             source_name = direction.split("-")[1]
-            sourceCC = coverage_results[t][source_name]
-            targetCC = coverage_results[t][target_name]
-            source_ranks = coverage_results[t][direction]["combinations"]
-            target_ranks = coverage_results[t][direction]["combinations"]
 
-            source_cc = coverage_results[t][source_name]["CC"]
-            target_cc = coverage_results[t][target_name]["CC"]
-            sdcc = coverage_results[t][direction]["SDCC"]
+            source_coverage_results = coverage_results["results"][t][source_name]
+            target_coverage_results = coverage_results["results"][t][target_name]
+            setdif_coverage_results = coverage_results["results"][t][direction]
 
-            source_cc = round(source_cc, 4)
-            target_cc = round(target_cc, 4)
-            sdcc = round(sdcc, 4)
-
-            # SOURCE
-            create_coverage_map(
+            plotting.coverage_map(
                 "binary",
-                cc_output_dir,
-                dataset_name,
+                source_coverage_results,
                 t,
-                sourceCC["combination counts"],
-                source_ranks,
-                cc_value=source_cc,
-                subset_name=source_name,
+                cc_output_dir,
+                coverage_subset=source_name,
             )
-            create_coverage_map(
+            plotting.coverage_map(
                 "frequency",
-                cc_output_dir,
-                dataset_name,
+                source_coverage_results,
                 t,
-                sourceCC["combination counts"],
-                source_ranks,
-                cc_value=source_cc,
-                subset_name=source_name,
-            )
-            create_coverage_map(
-                "function_frequency",
                 cc_output_dir,
-                dataset_name,
-                t,
-                sourceCC["combination counts"],
-                source_ranks,
-                funct=funct,
-                cc_value=source_cc,
-                subset_name=source_name,
+                coverage_subset=source_name,
             )
-            create_coverage_map(
+            plotting.coverage_map(
                 "proportion_frequency",
-                cc_output_dir,
-                dataset_name,
+                source_coverage_results,
                 t,
-                sourceCC["combination counts"],
-                source_ranks,
-                cc_value=source_cc,
-                subset_name=source_name,
+                cc_output_dir,
+                coverage_subset=source_name,
             )
-            create_coverage_map(
+            plotting.coverage_map(
                 "proportion_frequency_standardized",
-                cc_output_dir,
-                dataset_name,
+                source_coverage_results,
                 t,
-                sourceCC["combination counts"],
-                source_ranks,
-                cc_value=source_cc,
-                subset_name=source_name,
+                cc_output_dir,
+                coverage_subset=source_name,
             )
 
-            # TARGET
-            create_coverage_map(
+            plotting.coverage_map(
                 "binary",
-                cc_output_dir,
-                dataset_name,
+                target_coverage_results,
                 t,
-                targetCC["combination counts"],
-                target_ranks,
-                cc_value=target_cc,
-                subset_name=target_name,
+                cc_output_dir,
+                coverage_subset=target_name,
             )
-            create_coverage_map(
+            plotting.coverage_map(
                 "frequency",
-                cc_output_dir,
-                dataset_name,
+                target_coverage_results,
                 t,
-                targetCC["combination counts"],
-                target_ranks,
-                cc_value=target_cc,
-                subset_name=target_name,
-            )
-            create_coverage_map(
-                "function_frequency",
                 cc_output_dir,
-                dataset_name,
-                t,
-                targetCC["combination counts"],
-                target_ranks,
-                funct=funct,
-                cc_value=target_cc,
-                subset_name=target_name,
+                coverage_subset=target_name,
             )
-            create_coverage_map(
+            plotting.coverage_map(
                 "proportion_frequency",
-                cc_output_dir,
-                dataset_name,
+                target_coverage_results,
                 t,
-                targetCC["combination counts"],
-                target_ranks,
-                cc_value=target_cc,
-                subset_name=target_name,
+                cc_output_dir,
+                coverage_subset=target_name,
             )
-            create_coverage_map(
+            plotting.coverage_map(
                 "proportion_frequency_standardized",
-                cc_output_dir,
-                dataset_name,
+                target_coverage_results,
                 t,
-                targetCC["combination counts"],
-                target_ranks,
-                cc_value=target_cc,
-                subset_name=target_name,
+                cc_output_dir,
+                coverage_subset=target_name,
             )
 
-            SDCCconstraints = coverage_results[t][direction]
-            assert source_ranks == target_ranks
-            create_coverage_map(
+            plotting.coverage_map(
                 "sdcc_binary_constraints",
-                sdcc_output_dir,
-                dataset_name,
+                setdif_coverage_results,
                 t,
-                SDCCconstraints["sdcc counts"],
-                source_ranks,
-                source_name=source_name,
-                target_name=target_name,
-                sdcc_value=sdcc,
+                sdcc_output_dir,
+                direction=direction,
             )
-            """create_coverage_map(
-                "sdcc_binary_constraints_neither",
-                sdcc_output_dir,
-                dataset_name,
-                t,
-                SDCCconstraints["sdcc counts"],
-                source_ranks,
-                source_name=source_name,
-                target_name=target_name,
-                sdcc_value=sdcc,
-            )"""
 
         plotting.split_elements_bar(
             output_dir, dataset_name, coverage_results, t, split_id, sdcc_directions
@@ -344,14 +251,14 @@ def dataset_split_comp_vis(
     metric,
     split_ids=None,
 ):
-    output_dir_outer = make_output_dir_nonexist(output_dir)
+    output_dir_outer = create_output_dir(output_dir)
 
     for split_id in split_ids:
         # for split in coverage_multi:
-        cc_output_dir = make_output_dir_nonexist(
+        cc_output_dir = create_output_dir(
             os.path.join(output_dir_outer, split_id, "CC")
         )
-        sdcc_output_dir = make_output_dir_nonexist(
+        sdcc_output_dir = create_output_dir(
             os.path.join(output_dir_outer, split_id, "SDCC")
         )
 
@@ -386,105 +293,75 @@ def performance_by_interaction_vis(
     dataset_name,
     coverage_results,
     strengths,
-    metric,
+    metrics,
     order,
     display_n,
     subset,
     display_all_lr=False,
 ):
-    cc_output_dir = make_output_dir_nonexist(os.path.join(output_dir, "CC"))
+    cc_output_dir = create_output_dir(os.path.join(output_dir, "CC"))
     for t in strengths:
-        counts = coverage_results[t]["combination counts"]
-        ranks = coverage_results[t]["combinations"]
-        perf = coverage_results[t]["performance"][metric]
+        for metric in metrics:
+            plotting.coverage_map("binary", coverage_results, t)
+            plotting.coverage_map("frequency", coverage_results, t)
+            plotting.coverage_map("proportion_frequency", coverage_results, t)
+            plotting.coverage_map(
+                "proportion_frequency_standardized", coverage_results, t
+            )
 
-        create_coverage_map(
-            "binary", cc_output_dir, dataset_name, t, counts, ranks, subset
-        )
-        create_coverage_map(
-            "frequency", cc_output_dir, dataset_name, t, counts, ranks, subset
-        )
-        create_coverage_map(
-            "proportion_frequency",
-            cc_output_dir,
-            dataset_name,
-            t,
-            counts,
-            ranks,
-            subset,
-        )
-        create_coverage_map(
-            "proportion_frequency_standardized",
-            cc_output_dir,
-            dataset_name,
-            t,
-            counts,
-            ranks,
-            subset,
-        )
-        create_coverage_map(
-            "performance",
-            cc_output_dir,
-            dataset_name,
-            t,
-            counts,
-            ranks,
-            subset,
-            performance_all_interactions=perf,
-            metric=metric,
-        )
+            plotting.coverage_map("performance", coverage_results, t, metric=metric)
 
-        interactions_consolidated = results.consolidated_interaction_info(
-            coverage_results, strengths, metric, order=order, display_n=display_n
-        )
-        plotting.plot_pbi_bar(
-            output_dir, interactions_consolidated, t, metric, display_n, order
-        )
+            """interactions_consolidated = results.consolidated_interaction_info(
+                coverage_results, strengths, metric, order=order, display_n=display_n
+            )
+            plotting.plot_pbi_bar(
+                output_dir, interactions_consolidated, t, metric, display_n, order
+            )
 
-        human_readable = coverage_results[t]["human readable performance"][metric]
-        plotting.plot_pbi_frequency_scatter(
-            "all",
-            output_dir,
-            dataset_name,
-            counts,
-            perf,
-            human_readable,
-            t,
-            metric,
-            ranks,
-            display_all_lr,
-        )
-        plotting.plot_pbi_frequency_scatter(
-            "signif",
-            output_dir,
-            dataset_name,
-            counts,
-            perf,
-            human_readable,
-            t,
-            metric,
-            ranks,
-            display_all_lr,
-        )
-        plotting.plot_pbi_frequency_scatter(
-            "highlights",
-            output_dir,
-            dataset_name,
-            counts,
-            perf,
-            human_readable,
-            t,
-            metric,
-            ranks,
-            display_all_lr,
-        )
+            human_readable = coverage_results['results'][t]["human readable performance"][metric]
+            plotting.plot_pbi_frequency_scatter(
+                "all",
+                output_dir,
+                dataset_name,
+                counts,
+                perf,
+                human_readable,
+                t,
+                metric,
+                ranks,
+                display_all_lr,
+            )
+            plotting.plot_pbi_frequency_scatter(
+                "signif",
+                output_dir,
+                dataset_name,
+                counts,
+                perf,
+                human_readable,
+                t,
+                metric,
+                ranks,
+                display_all_lr,
+            )
+            plotting.plot_pbi_frequency_scatter(
+                "highlights",
+                output_dir,
+                dataset_name,
+                counts,
+                perf,
+                human_readable,
+                t,
+                metric,
+                ranks,
+                display_all_lr,
+            )"""
 
-    coverage_results = output_json_readable(
-        coverage_results,
-        write_json=True,
-        file_path=os.path.join(output_dir, "coverage.json"),
-    )
-    plt.close("all")
+        coverage_results = output_json_readable(
+            coverage_results,
+            write_json=True,
+            file_path=os.path.join(output_dir, "coverage.json"),
+        )
+        plt.close("all")
     return coverage_results
 
 
@@ -501,7 +378,7 @@ def model_probing_vis(
     subset,
     funct=[math.log10],
 ):
-    output_dir = make_output_dir_nonexist(output_dir)
+    output_dir = create_output_dir(output_dir)
     for t in strengths:
         performance_by_interaction_vis(
             os.path.join(output_dir, "probe"),
@@ -546,235 +423,12 @@ def model_probing_vis(
     return result
 
 
-# -------------------- Coverage maps -------------------- #
-
-
-def create_coverage_map(
-    mode,
-    output_dir,
-    dataset_name,
-    t,
-    counts,
-    rank_labels,
-    cc_value=None,
-    sdcc_value=None,
-    subset_name=None,
-    **kwargs,
-):
-    """
-    Creates square heatmaps for coverage visualization.
-
-    Modes:
-    - frequency: Raw frequency of interactions. Scaled from fewest to greatest.
-    - function_frequency: Function applied to raw frequency. Scaled from funct(fewest) to funct(greatest).
-    - proportion_frequency: Proportion of an interaction's appearences for a given combination. Intended
-        to measure dominance of an interaction within a combination of features. Scaled from 0-1.
-    - performance: Per-interaction performance drawn from per-sample performance. Scaled from 0-1.
-        Requires calculated per-sample performance file.
-    - binary: True/False appearence of an interaction. Values are 0 or 1.
-    """
-    boxsize = max(len(x) for x in counts)
-    square = np.full([len(counts), boxsize], dtype=float, fill_value=-1)
-    filename = None
-    cmap = None
-    cbar_kws = None
-    cbar_ticklabels = None
-    vmax = None
-    vmin = 0
-    xlabel = None
-    if subset_name is None:
-        subset_name = "all"
-
-    if mode == "frequency":
-        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map(square, counts)
-        cmap.set_under("w")
-
-        filename = "CC_frequency-t{}_{}_{}.png".format(t, dataset_name, subset_name)
-        title = "{}-way Frequency Coverage of {}".format(t, dataset_name)
-
-    elif mode == "function_frequency":
-        funct = kwargs["funct"]
-
-        assert type(funct) is list
-        for i, function in enumerate(funct):
-            funct_name = str(function)
-
-            square, cmap, cbar_kws = maps.frequency_map_function(
-                square, counts, function
-            )
-            cmap.set_under("w")
-
-            filename = "CC_function_frequency-{}-t{}_{}_{}.png".format(
-                funct_name, t, dataset_name, subset_name
-            )
-            title = "{}-way {} Frequency Coverage of {} over".format(
-                t, funct_name, dataset_name
-            )
-        return
-
-    elif mode == "proportion_frequency":
-        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map_proportion(
-            square, counts
-        )
-        # lim = np.max([np.abs(np.min(square)), np.abs(np.max(square))])
-        vmin = 0
-        vmax = 1
-        filename = "CC_frequency_proportion-t{}_{}_{}.png".format(
-            t, dataset_name, subset_name
-        )
-        title = "{}-way Proportion Frequency Coverage of {}".format(t, dataset_name)
-
-    elif mode == "proportion_frequency_standardized":
-        c_is = [len(counts_one_combo) for counts_one_combo in counts]
-        vmin = -1  # round(0 - (1/np.min(c_is)), 4)
-        vmax = 1  # round(1 - (1/np.max(c_is)))
-
-        # midpoint = np.mean([vmin, vmax])
-
-        square = np.full([len(counts), boxsize], dtype=float, fill_value=-999)
-        square, cmap, cbar_kws, cbar_ticklabels = (
-            maps.frequency_map_proportion_standardized(square, counts)
-        )
-        cmap.set_under("w")
-
-        filename = "CC_frequency_proportion_standardized-t{}_{}_{}.png".format(
-            t, dataset_name, subset_name
-        )
-        title = "{}-way Standardized Proportion Frequency Coverage of {}".format(
-            t, dataset_name
-        )
-        # "Interactions"#, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$"
-        xlabel = None
-
-    elif mode == "performance":
-        perf = kwargs["performance_all_interactions"]
-        metric = kwargs["metric"]
-        square, cmap, cbar_kws, cbar_ticklabels = maps.performance_map(
-            square, counts, perf=perf, metric=metric
-        )
-        vmin = 0
-        vmax = 1
-
-        filename = "CC_pi_performance-t{}_{}_{}.png".format(
-            t, dataset_name, subset_name
-        )
-        title = "Performance, {}, per {}-way Interactions in {}".format(
-            metric, t, dataset_name
-        )
-
-    elif mode == "binary":
-        # Takes in a list of lists that represents interaction coverage
-        # produces a map and colors the times an interaction appears
-        # 0 = not covered, x > 0 --> covered x times, -1 indicates invalid interaction
-        # one list per rank, but rank lists have different size
-        # one row per list, possibly with white space
-
-        if dataset_name == "testD":
-            dataset_name = "$test_D$"
-
-        square, cmap, cbar_kws, cbar_ticklabels = maps.frequency_map_binary(
-            square, counts
-        )
-
-        filename = "CC_binary-t{}_{}_{}.png".format(t, dataset_name, subset_name)
-        title = "{}-way Binary Coverage for {} over {} (CC={})".format(
-            t, dataset_name, subset_name, cc_value
-        )
-
-    elif mode == "sdcc_binary_constraints":
-        square_sdcc = np.full([len(counts), boxsize], dtype=float, fill_value=-2)
-
-        source_name = kwargs["source_name"]
-        target_name = kwargs["target_name"]
-        vmin = -1
-        vmax = 1
-
-        square, cmap, cbar_kws, cbar_ticklabels = maps.sd_map_binary_constrained(
-            square_sdcc, counts
-        )
-
-        title = "{}-way Coverage in {} not appearing in {}, {} (SDCC={})".format(
-            t, target_name, source_name, dataset_name, sdcc_value
-        )
-        filename = "SDCC-t{}-way Set Diff {} not appearing in {}_{}.png".format(
-            t, target_name, source_name, dataset_name
-        )
-
-    elif mode == "sdcc_binary_constraints_neither":
-        square_sdcc = np.full([len(counts), boxsize], dtype=float, fill_value=-2)
-
-        source_name = kwargs["source_name"]
-        target_name = kwargs["target_name"]
-
-        if target_name == "testC":
-            target_name = "$test_C$"
-        if target_name == "testD":
-            target_name = "$test_D$"
-        if source_name == "trainC":
-            source_name = "$train_C$"
-
-        vmin = -1
-        vmax = 2
-
-        square, cmap, cbar_kws, cbar_ticklabels = (
-            maps.sd_map_binary_constrained_neither(
-                square_sdcc, counts, source_name=source_name
-            )
-        )
-        title = "{}-way Coverage in {} not appearing in {}, {} (SDCC={})".format(
-            t, target_name, source_name, dataset_name, sdcc_value
-        )
-        filename = (
-            "SDCC-t{}-way Set Diff {} not appearing in {}_{}_wneither.png".format(
-                t, target_name, source_name, dataset_name
-            )
-        )
-
-    else:
-        raise NameError("No coverage map scheme found! For mode: <{}>".format(mode))
-
-    # HEATMAP CALL
-    plotting.heatmap(
-        output_dir,
-        square,
-        vmin,
-        vmax,
-        cmap,
-        cbar_kws,
-        rank_labels,
-        title,
-        filename,
-        xlabel=xlabel,
-        cbar_ticklabels=cbar_ticklabels,
-        mode=mode,
-    )
-    filename_svg = "{}.svg".format(filename.split(".")[0])
-    plotting.heatmap(
-        output_dir,
-        square,
-        vmin,
-        vmax,
-        cmap,
-        cbar_kws,
-        rank_labels,
-        title,
-        filename_svg,
-        xlabel=xlabel,
-        cbar_ticklabels=cbar_ticklabels,
-        mode=mode,
-    )
-
-    plt.clf()
-    plt.close("all")
-    return
-
-
 # -------------------------- WRITING -------------------------- #
 # writes the CC for a t to the t file
 
 
 def writeCCtToFile(output_dir, name, t, CC):
-    output_dir = make_output_dir_nonexist(os.path.join(output_dir, "CC"))
+    output_dir = create_output_dir(os.path.join(output_dir, "CC"))
     filename = os.path.join(output_dir, "t{}_{}.txt".format(t, name))
 
     with open(filename, "w") as tfile:
@@ -810,7 +464,7 @@ def writeCCtToFile(output_dir, name, t, CC):
 
 # writes the SDCC for a t to the t file
 def writeSDCCtToFile(output_dir, sourcename, targetname, t, SDCC):
-    output_dir = make_output_dir_nonexist(os.path.join(output_dir, "SDCC"))
+    output_dir = create_output_dir(os.path.join(output_dir, "SDCC"))
     filename = os.path.join(
         output_dir, "t{}_{}-{}_SDCC.txt".format(t, sourcename, targetname)
     )
@@ -850,7 +504,7 @@ def writeSDCCtToFile(output_dir, sourcename, targetname, t, SDCC):
 
 
 def writeMissingtoFile(output_dir, name, t, decodedMissing):
-    output_dir = make_output_dir_nonexist(os.path.join(output_dir, "CC"))
+    output_dir = create_output_dir(os.path.join(output_dir, "CC"))
     filename = os.path.join(output_dir, "t{}_{}_missing.txt".format(t, name))
 
     with open(filename, mode="w") as tfile:
@@ -863,7 +517,7 @@ def writeMissingtoFile(output_dir, name, t, decodedMissing):
 def writeSetDifferencetoFile(
     output_dir, sourcename, targetname, t, setDifferenceInteractions
 ):
-    output_dir = make_output_dir_nonexist(os.path.join(output_dir, "SDCC"))
+    output_dir = create_output_dir(os.path.join(output_dir, "SDCC"))
     filename = os.path.join(
         output_dir, "t{}_{}-{}_setDifference.txt".format(t, targetname, sourcename)
     )
@@ -892,7 +546,7 @@ def writeImagestoFile(output_dir, sourcename, targetname, t, setDifferenceImages
     setDifferenceImages.to_csv(filename, index=False)
 
 
-def make_output_dir_nonexist(output_dir_new, timed=False):
+def create_output_dir(output_dir_new, timed=False):
     """
     Makes a new output directory, either based on time or based on
     whether or not it already exists, using the existing directory if it does.

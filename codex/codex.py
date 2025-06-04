@@ -20,7 +20,7 @@ from tqdm import tqdm
 import argparse
 
 parser = argparse.ArgumentParser(prog="CODEX", description="")
-parser.add_argument("-in", "--input", type=str)
+parser.add_argument("-in", "--input")
 parser.add_argument("-v", "--verbose", type=str)
 parser.add_argument("-n", "--new_codex_dir", type=str)
 ARGS = parser.parse_args()
@@ -128,17 +128,13 @@ def dataset_evaluation(codex_input):
     output_dir, strengths = config.define_experiment_variables(codex_input)
     universe, dataset_df = universing.define_input_space(codex_input)
 
-    coverage_results = results.stock_results_empty(
-        codex_input, dataset_name, model_name, universe
-    )
+    coverage_results = results.stock_results_empty(codex_input, universe)
     for t in strengths:
-        coverage_results[t] = combinatorial.CC_main(
+        coverage_results["results"][t] = combinatorial.CC_main(
             dataset_df, dataset_name, universe, t, output_dir
         )
 
-    coverage_results_formatted = output.dataset_eval_vis(
-        output_dir, dataset_name, coverage_results, strengths
-    )
+    coverage_results_formatted = output.dataset_eval_vis(output_dir, coverage_results)
     return coverage_results_formatted
 
 
@@ -199,7 +195,7 @@ def dataset_split_evaluation(
         codex_input, dataset_name, model_name, universe, split_id=split_id
     )
     for t in strengths:
-        coverage_results[t] = combinatorial.SDCC_main(
+        coverage_results["results"][t] = combinatorial.SDCC_main(
             traindf,
             source_name,
             testdf,
@@ -211,7 +207,7 @@ def dataset_split_evaluation(
             split_id=split_id,
         )
         if "validation" in split:
-            coverage_results[t].update(
+            coverage_results["results"][t].update(
                 combinatorial.SDCC_main(
                     traindf,
                     source_name,
@@ -358,9 +354,7 @@ def performance_by_interaction(
         performance["test"]["Per-Sample Performance"]
     )
 
-    coverage_results = results.stock_results_empty(
-        codex_input, dataset_name, model_name, universe
-    )
+    coverage_results = results.stock_results_empty(codex_input)
     # coverage_results_sdcc = results.stock_results_empty(codex_input, dataset_name, model_name, universe)
     for t in strengths:
         coverage_results[t] = combinatorial.performanceByInteraction_main(
@@ -893,7 +887,7 @@ def performance_by_frequency_coverage(
 
 def main(kwargs):
     try:
-        #setup_new_dir = str.lower(kwargs["setup_new_dir"]) == "true"
+        # setup_new_dir = str.lower(kwargs["setup_new_dir"]) == "true"
         setup_new_dir = ARGS.new_codex_dir is not None
     except KeyError:
         setup_new_dir = False
@@ -914,9 +908,9 @@ def main(kwargs):
     verbosity = ARGS.verbose
 
     if verbosity is None:
-        verbosity = '1'
+        verbosity = "1"
     else:
-        assert verbosity in ['1', '2']
+        assert verbosity in ["1", "2"]
 
     with open(input_fp) as f:
         codex_input = json.load(f)
@@ -932,10 +926,10 @@ Use keyword args on command line to pass important info
     $ python codex.py input=input.json
 """
 if __name__ == "__main__":
-    '''if len(sys.argv) < 1:
+    """if len(sys.argv) < 1:
         raise KeyError(
             "Improper command line. Input file required. For input file named input.json, format is python codex.py input=input.json verbose=[1/2]"
         )
 
-    kwargs = dict(arg.split("=") for arg in sys.argv)'''
+    kwargs = dict(arg.split("=") for arg in sys.argv)"""
     main(None)

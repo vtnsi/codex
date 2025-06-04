@@ -102,7 +102,10 @@ def initialize_universe(codex_input):
             dataset_path, bin_path, codex_input["features"]
         )
 
-    if codex_input["universe_filename"] is not None and type(codex_input["universe_filename"]) is dict:
+    if (
+        codex_input["universe_filename"] is not None
+        and type(codex_input["universe_filename"]) is dict
+    ):
         print("Universe provided")
         logging.getLogger(__name__).info(
             "Universe provided via input file: {}".format("codex_input['universe']")

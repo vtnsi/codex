@@ -2,11 +2,16 @@ import numpy as np
 import copy
 
 
-def stock_results_empty(codex_input, dataset_name, model_name, universe, **kwargs):
+def stock_results_empty(codex_input, universe, **kwargs):
     coverage_results = {
-        "info": {"dataset name": dataset_name, "model name": model_name},
+        "info": {
+            "dataset name": codex_input["dataset_name"],
+            "model name": codex_input["model_name"],
+            "mode": codex_input["mode"],
+            "t": codex_input["t"],
+        },
         "universe": universe,
-        "mode": codex_input["mode"],
+        "results": {},
     }
 
     for kwarg in kwargs:

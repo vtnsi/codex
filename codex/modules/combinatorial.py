@@ -1812,7 +1812,6 @@ def performance_by_frequency_coverage_main(
     skew_level,
     id=None,
 ):
-
     EXP_NAME = id
 
     combination_list = biasing.get_combinations(universe, t)
@@ -1836,18 +1835,17 @@ def performance_by_frequency_coverage_main(
 
         # TO EDIT (052825): ~~~~~~~~~~~~
         test_df_STATIC_1211 = pd.DataFrame()
-        original_data_filename = ''
+        original_data_filename = ""
         drop_list = []
         classifier = None
-        split_dir = ''
-        performance_dir = ''
+        split_dir = ""
+        performance_dir = ""
         INPUT_DICT = None
         scaler = None
         metric = None
         results_multiple_model = None
         jsondict = None
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
         train_df = entire_df_cont.loc[
             entire_df_cont.index.isin(train_df_biased.index.tolist())
