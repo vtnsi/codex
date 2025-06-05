@@ -728,9 +728,9 @@ def SDCC_main(
 
     """Caution: 06.03.24"""
     if comparison_mode:
-        output_dir = output.make_output_dir_nonexist(os.path.join(output_dir, split_id))
+        output_dir = output.create_output_dir(os.path.join(output_dir, split_id))
     else:
-        output_dir = output.make_output_dir_nonexist(output_dir)
+        output_dir = output.create_output_dir(output_dir)
 
     source_ranks = decodeCombinations(source_data, sourceCC, t)
     target_ranks = decodeCombinations(target, targetCC, t)

@@ -117,7 +117,7 @@ def dataset_eval_vis(output_dir, coverage_results):
     for t in strengths:
         LOGGER_OUT.log(
             level=25,
-            msg="t = {}\n{}".format(
+            msg="CC: t = {}\n{}".format(
                 t, [coverage_results["results"][t]["CC"] for t in strengths]
             ),
         )
@@ -138,24 +138,20 @@ def dataset_eval_vis(output_dir, coverage_results):
 
 def dataset_split_eval_vis(
     output_dir,
-    dataset_name,
     coverage_results,
-    strengths,
-    split_id,
-    funct=[math.log10],
-    comparison=False,
+    split_id=None,
+    comparison=None,
 ):
     if comparison:
         output_dir = create_output_dir(os.path.join(output_dir, split_id))
     cc_output_dir = create_output_dir(os.path.join(output_dir, "CC"))
     sdcc_output_dir = create_output_dir(os.path.join(output_dir, "SDCC"))
 
-    sdcc_directions = None
-    sdcc_directions = [
-        key for key in coverage_results["results"][t] if "-" in key and "val" not in key
-    ]
-
+    strengths = coverage_results["info"]["t"]
     for t in strengths:
+        sdcc_directions = [
+            key for key in coverage_results["results"][t] if "-" in key  # and "val" not in key
+        ]
         for direction in sdcc_directions:
             target_name = direction.split("-")[0]
             source_name = direction.split("-")[1]
@@ -222,6 +218,7 @@ def dataset_split_eval_vis(
                 coverage_subset=target_name,
             )
 
+            # SDCC
             plotting.coverage_map(
                 "sdcc_binary_constraints",
                 setdif_coverage_results,
@@ -242,74 +239,56 @@ def dataset_split_eval_vis(
     )
 
 
-def dataset_split_comp_vis(
-    output_dir,
-    dataset_name,
-    coverage_multi,
-    performance_multi,
-    strengths,
-    metric,
-    split_ids=None,
-):
-    output_dir_outer = create_output_dir(output_dir)
-
-    for split_id in split_ids:
-        # for split in coverage_multi:
-        cc_output_dir = create_output_dir(
-            os.path.join(output_dir_outer, split_id, "CC")
-        )
-        sdcc_output_dir = create_output_dir(
-            os.path.join(output_dir_outer, split_id, "SDCC")
-        )
-
-        coverage = coverage_multi[split_id]
-        for t in strengths:
-            sdcc_directions = [
-                key for key in coverage[t] if "-" in key
-            ]  # and 'val' not in key]
-            for direction in sdcc_directions:
-                plotting.split_comp_scatter(
-                    output_dir_outer,
-                    dataset_name,
-                    coverage_multi,
-                    performance_multi,
-                    t,
-                    direction,
-                    metric,
-                    split_ids=split_ids,
-                )
-
-    result = output_json_readable(
-        coverage_multi,
-        write_json=True,
-        file_path=os.path.join(output_dir, "coverage_aggregate.json"),
-    )
-    plt.close("all")
-    return result
-
-
 def performance_by_interaction_vis(
     output_dir,
-    dataset_name,
     coverage_results,
-    strengths,
-    metrics,
-    order,
-    display_n,
-    subset,
-    display_all_lr=False,
+    display_interaction_order="ascending",
+    display_interaction_num=10,
+    coverage_subset="train",
 ):
     cc_output_dir = create_output_dir(os.path.join(output_dir, "CC"))
+
+    strengths = coverage_results["info"]["t"]
+    metrics = coverage_results["info"]["metrics"]
     for t in strengths:
         for metric in metrics:
-            plotting.coverage_map("binary", coverage_results, t)
-            plotting.coverage_map("frequency", coverage_results, t)
-            plotting.coverage_map("proportion_frequency", coverage_results, t)
             plotting.coverage_map(
-                "proportion_frequency_standardized", coverage_results, t
+                "binary",
+                coverage_results,
+                t,
+                output_dir=cc_output_dir,
+                coverage_subset=coverage_subset,
+            )
+            plotting.coverage_map(
+                "frequency",
+                coverage_results,
+                t,
+                output_dir=cc_output_dir,
+                coverage_subset=coverage_subset,
+            )
+            plotting.coverage_map(
+                "proportion_frequency",
+                coverage_results,
+                t,
+                output_dir=cc_output_dir,
+                coverage_subset=coverage_subset,
+            )
+            plotting.coverage_map(
+                "proportion_frequency_standardized",
+                coverage_results,
+                t,
+                output_dir=cc_output_dir,
+                coverage_subset=coverage_subset,
             )
 
-            plotting.coverage_map("performance", coverage_results, t, metric=metric)
+            plotting.coverage_map(
+                "performance",
+                coverage_results,
+                t,
+                metric=metric,
+                output_dir=cc_output_dir,
+                coverage_subset=coverage_subset,
+            )
 
             """interactions_consolidated = results.consolidated_interaction_info(
                 coverage_results, strengths, metric, order=order, display_n=display_n
@@ -363,6 +342,52 @@ def performance_by_interaction_vis(
         )
         plt.close("all")
     return coverage_results
+
+
+def dataset_split_comp_vis(
+    output_dir,
+    dataset_name,
+    coverage_multi,
+    performance_multi,
+    strengths,
+    metric,
+    split_ids=None,
+):
+    output_dir_outer = create_output_dir(output_dir)
+
+    for split_id in split_ids:
+        # for split in coverage_multi:
+        cc_output_dir = create_output_dir(
+            os.path.join(output_dir_outer, split_id, "CC")
+        )
+        sdcc_output_dir = create_output_dir(
+            os.path.join(output_dir_outer, split_id, "SDCC")
+        )
+
+        coverage = coverage_multi[split_id]
+        for t in strengths:
+            sdcc_directions = [
+                key for key in coverage[t] if "-" in key
+            ]  # and 'val' not in key]
+            for direction in sdcc_directions:
+                plotting.split_comp_scatter(
+                    output_dir_outer,
+                    dataset_name,
+                    coverage_multi,
+                    performance_multi,
+                    t,
+                    direction,
+                    metric,
+                    split_ids=split_ids,
+                )
+
+    result = output_json_readable(
+        coverage_multi,
+        write_json=True,
+        file_path=os.path.join(output_dir, "coverage_aggregate.json"),
+    )
+    plt.close("all")
+    return result
 
 
 def model_probing_vis(

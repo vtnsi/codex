@@ -268,15 +268,15 @@ def extract_sp(codex_input, split_filename=None, performance_filename=None):
     metric: str
         Chosen metric to evaluate performance for the experiment.
     """
-    codex_dir = codex_input["codex_directory"]
-    split_folder = codex_input["split_folder"]
-    performance_folder = codex_input["performance_folder"]
+    codex_dir = codex_input["codex_dir"]
+    split_folder = codex_input["split_dir"]
+    performance_folder = codex_input["performance_dir"]
     metric = codex_input["metric"]
 
     # Initial pass
     if split_filename is None and performance_filename is None:
-        split_filename = codex_input["split_file"]
-        performance_filename = codex_input["performance_file"]
+        split_filename = codex_input["split_filename"]
+        performance_filename = codex_input["performance_filename"]
 
     # Might be list if multiple, str if single
     if type(split_filename) is list:

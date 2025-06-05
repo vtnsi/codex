@@ -89,14 +89,17 @@ def run(codex_input, verbose: str = "1"):
     elif mode == "sie":
         test_set_size_goal = codex_input["test set size goal"]
         result = systematic_inclusion_exclusion(codex_input, test_set_size_goal)
+
     elif mode == "sie rfml":
         test_set_size_goal = codex_input["test set size goal"]
         result = systematic_inclusion_exclusion_iq(codex_input)
+
     elif mode == "sie analysis":
         test_set_size_goal = codex_input["test set size goal"]
         result = systematic_inclusion_exclusion_binomial_linreg(
             codex_input, "aggregate_SIE_performance-rareplanes-linreg.csv"
         )
+
     elif mode == "sie demo":
         test_set_size_goal = codex_input["test set size goal"]
         result = systematic_inclusion_exclusion_demo(codex_input, test_set_size_goal)
@@ -144,7 +147,7 @@ def dataset_split_evaluation(
     split: dict,
     source_name="train",
     target_name="test",
-    comparison=False,
+    comparison=False
 ):
     """
     Dataset split evaluation computes SDCC from a split and plots it against its resultant
@@ -192,7 +195,7 @@ def dataset_split_evaluation(
         )
 
     coverage_results = results.stock_results_empty(
-        codex_input, dataset_name, model_name, universe, split_id=split_id
+        codex_input, universe, split_id=split_id
     )
     for t in strengths:
         coverage_results["results"][t] = combinatorial.SDCC_main(
@@ -223,9 +226,7 @@ def dataset_split_evaluation(
 
     coverage_results_formatted = output.dataset_split_eval_vis(
         output_dir,
-        dataset_name,
         coverage_results,
-        strengths,
         split_id,
         comparison=comparison,
     )

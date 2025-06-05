@@ -115,7 +115,7 @@ def map_info_txtl(map_var, coverage_results, t, coverage_subset, **kwargs):
     - Performance: metric
     """
     cc = round(coverage_results["results"][t]["CC"], 3)
-    dataset_name = coverage_results["info"]["dataset name"]
+    dataset_name = coverage_results["info"]["dataset_name"]
 
     if coverage_subset is None:
         subset_specification = ""

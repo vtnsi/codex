@@ -25,8 +25,10 @@ OPT_REQ = {
 
 def checks_generic(codex_input: dict):
     for field in MIN_REQ:
-        assert field in codex_input.keys()
-
+        try:
+            assert field in codex_input.keys()
+        except:
+            raise KeyError(f"Minimum requirement <{field}> not included in input file.")
 
 def checks_split(codex_input):
     split_fields = [

@@ -5,8 +5,8 @@ import copy
 def stock_results_empty(codex_input, universe, **kwargs):
     coverage_results = {
         "info": {
-            "dataset name": codex_input["dataset_name"],
-            "model name": codex_input["model_name"],
+            "dataset_name": codex_input["dataset_name"],
+            "model_name": codex_input["model_name"],
             "mode": codex_input["mode"],
             "t": codex_input["t"],
         },
@@ -15,7 +15,7 @@ def stock_results_empty(codex_input, universe, **kwargs):
     }
 
     for kwarg in kwargs:
-        coverage_results[kwarg] = kwargs[kwarg]
+        coverage_results['info'][kwarg] = kwargs[kwarg]
 
     return coverage_results
 
