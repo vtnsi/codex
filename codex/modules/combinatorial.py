@@ -695,10 +695,10 @@ def SDCC_main(
     targetDF,
     targetName,
     universe,
-    t,
+    strengths,
     output_dir,
     comparison_mode,
-    split_id=None,
+    split_id,
 ):
     """
     Main entry point to computing set difference combinatorial coverage between two
@@ -719,102 +719,119 @@ def SDCC_main(
 
     k = len(source_data.features)
 
-    # no combos appearing
-    sourceCC = combinatorialCoverage(source_data, t)
-    targetCC = combinatorialCoverage(target, t)
+    sdccdict = {
+        sourceName: {t: {} for t in strengths},
+        targetName: {t: {} for t in strengths},
+        f"{targetName}-{sourceName}": {t: {} for t in strengths},
+        f"{sourceName}-{targetName}": {t: {} for t in strengths},
+    }
 
-    LOGGER_COMBI.log(msg="Source CC:\n".format(sourceCC), level=15)
-    LOGGER_COMBI.log(msg="Target CC:\n".format(targetCC), level=15)
+    for t in strengths:
+        # no combos appearing
+        sourceCC = combinatorialCoverage(source_data, t)
+        targetCC = combinatorialCoverage(target, t)
 
-    """Caution: 06.03.24"""
-    if comparison_mode:
-        output_dir = output.create_output_dir(os.path.join(output_dir, split_id))
-    else:
-        output_dir = output.create_output_dir(output_dir)
+        LOGGER_COMBI.log(msg="Source CC:\n".format(sourceCC), level=15)
+        LOGGER_COMBI.log(msg="Target CC:\n".format(targetCC), level=15)
 
-    source_ranks = decodeCombinations(source_data, sourceCC, t)
-    target_ranks = decodeCombinations(target, targetCC, t)
-    assert source_ranks == target_ranks
+        """Caution: 06.03.24"""
+        if comparison_mode:
+            output_dir = output.create_output_dir(os.path.join(output_dir, split_id))
+        else:
+            output_dir = output.create_output_dir(output_dir)
 
-    sourceDecodedMissing = decodeMissingInteractions(
-        source_data, computeMissingInteractions(source_data, sourceCC)
-    )
-    targetDecodedMissing = decodeMissingInteractions(
-        target, computeMissingInteractions(target, targetCC)
-    )
+        source_ranks = decodeCombinations(source_data, sourceCC, t)
+        target_ranks = decodeCombinations(target, targetCC, t)
+        assert source_ranks == target_ranks
 
-    # create t file with results for this t -- CC and missing interactions list
-
-    # create t file with results for this t -- CC and missing interactions list
-
-    # compute set difference target \ source
-    SDCCconstraints = setDifferenceCombinatorialCoverageConstraints(sourceCC, targetCC)
-    output.writeSDCCtToFile(output_dir, sourceName, targetName, t, SDCCconstraints)
-    setDifferenceInteractions = computeSetDifferenceInteractions(
-        target, SDCCconstraints
-    )
-    decodedSetDifferenceInteractions = decodeSetDifferenceInteractions(
-        target, setDifferenceInteractions
-    )
-    output.writeSetDifferencetoFile(
-        output_dir, sourceName, targetName, t, decodedSetDifferenceInteractions
-    )
-
-    if identifyImages and len(decodedSetDifferenceInteractions) > 0:
-        IDS = identifyImagesWithSetDifferenceInteractions(
-            targetDF, decodedSetDifferenceInteractions
+        sourceDecodedMissing = decodeMissingInteractions(
+            source_data, computeMissingInteractions(source_data, sourceCC)
         )
-        output.writeImagestoFile(output_dir, sourceName, targetName, t, IDS)
-        print(
-            "number of target images containing an interaction not present in source: ",
-            len(IDS),
+        targetDecodedMissing = decodeMissingInteractions(
+            target, computeMissingInteractions(target, targetCC)
         )
 
-    # compute opposite direction source \ target
-    reverseSDCCconstraints = setDifferenceCombinatorialCoverageConstraints(
-        targetCC, sourceCC
-    )
-    output.writeSDCCtToFile(
-        output_dir, targetName, sourceName, t, reverseSDCCconstraints
-    )
-    reversesetDifferenceInteractions = computeSetDifferenceInteractions(
-        source_data, reverseSDCCconstraints
-    )
-    reversedecodedSetDifferenceInteractions = decodeSetDifferenceInteractions(
-        source_data, reversesetDifferenceInteractions
-    )
-    output.writeSetDifferencetoFile(
-        output_dir, targetName, sourceName, t, reversedecodedSetDifferenceInteractions
-    )
+        # create t file with results for this t -- CC and missing interactions list
 
-    # if identifyImages and len(decodedSetDifferenceInteractions) > 0:
-    #            identifyImagesWithSetDifferenceInteractions(sourceDF, reversedecodedSetDifferenceInteractions)
+        # create t file with results for this t -- CC and missing interactions list
 
-    sdccdict = {}
+        # compute set difference target \ source
+        SDCCconstraints = setDifferenceCombinatorialCoverageConstraints(
+            sourceCC, targetCC
+        )
+        output.writeSDCCtToFile(output_dir, sourceName, targetName, t, SDCCconstraints)
+        setDifferenceInteractions = computeSetDifferenceInteractions(
+            target, SDCCconstraints
+        )
+        decodedSetDifferenceInteractions = decodeSetDifferenceInteractions(
+            target, setDifferenceInteractions
+        )
+        output.writeSetDifferencetoFile(
+            output_dir, sourceName, targetName, t, decodedSetDifferenceInteractions
+        )
 
-    sdccdict[sourceName] = cc_dict(sourceCC)
-    sdccdict[sourceName]["combinations"] = source_ranks
-    sdccdict[sourceName]["combination counts"] = sourceCC["countsAllCombinations"]
-    sdccdict[sourceName]["missing interactions"] = sourceDecodedMissing
+        if identifyImages and len(decodedSetDifferenceInteractions) > 0:
+            IDS = identifyImagesWithSetDifferenceInteractions(
+                targetDF, decodedSetDifferenceInteractions
+            )
+            output.writeImagestoFile(output_dir, sourceName, targetName, t, IDS)
+            print(
+                "number of target images containing an interaction not present in source: ",
+                len(IDS),
+            )
 
-    sdccdict[targetName] = cc_dict(targetCC)
-    sdccdict[targetName]["missing interactions"] = targetDecodedMissing
-    sdccdict[targetName]["combinations"] = target_ranks
-    sdccdict[targetName]["combination counts"] = targetCC["countsAllCombinations"]
-    sdccdict[targetName]["missing interactions"] = targetDecodedMissing
+        # compute opposite direction source \ target
+        reverseSDCCconstraints = setDifferenceCombinatorialCoverageConstraints(
+            targetCC, sourceCC
+        )
+        output.writeSDCCtToFile(
+            output_dir, targetName, sourceName, t, reverseSDCCconstraints
+        )
+        reversesetDifferenceInteractions = computeSetDifferenceInteractions(
+            source_data, reverseSDCCconstraints
+        )
+        reversedecodedSetDifferenceInteractions = decodeSetDifferenceInteractions(
+            source_data, reversesetDifferenceInteractions
+        )
+        output.writeSetDifferencetoFile(
+            output_dir,
+            targetName,
+            sourceName,
+            t,
+            reversedecodedSetDifferenceInteractions,
+        )
 
-    sdccdict[targetName + "-" + sourceName] = sdcc_dict(SDCCconstraints)
-    sdccdict[targetName + "-" + sourceName]["combinations"] = source_ranks
-    sdccdict[targetName + "-" + sourceName]["sdcc counts"] = SDCCconstraints[
-        "setDifferenceInteractionsCounts"
-    ]
+        # if identifyImages and len(decodedSetDifferenceInteractions) > 0:
+        #            identifyImagesWithSetDifferenceInteractions(sourceDF, reversedecodedSetDifferenceInteractions)
 
-    sdccdict[sourceName + "-" + targetName] = sdcc_dict(reverseSDCCconstraints)
-    sdccdict[sourceName + "-" + targetName]["combinations"] = source_ranks
-    sdccdict[sourceName + "-" + targetName]["sdcc counts"] = reverseSDCCconstraints[
-        "setDifferenceInteractionsCounts"
-    ]
+        # See commit before e736442
+        sdccdict[sourceName][t] = cc_dict(sourceCC)
+        sdccdict[sourceName][t]["combinations"] = source_ranks
+        sdccdict[sourceName][t]["combination counts"] = sourceCC[
+            "countsAllCombinations"
+        ]
+        sdccdict[sourceName][t]["missing interactions"] = sourceDecodedMissing
 
+        sdccdict[targetName][t] = cc_dict(targetCC)
+        sdccdict[targetName][t]["missing interactions"] = targetDecodedMissing
+        sdccdict[targetName][t]["combinations"] = target_ranks
+        sdccdict[targetName][t]["combination counts"] = targetCC[
+            "countsAllCombinations"
+        ]
+        sdccdict[targetName][t]["missing interactions"] = targetDecodedMissing
+
+        sdccdict[f"{targetName}-{sourceName}"][t] = sdcc_dict(SDCCconstraints)
+        sdccdict[f"{targetName}-{sourceName}"][t]["combinations"] = source_ranks
+        sdccdict[f"{targetName}-{sourceName}"][t]["sdcc counts"] = SDCCconstraints[
+            "setDifferenceInteractionsCounts"
+        ]
+
+        sdccdict[f"{sourceName}-{targetName}"][t] = sdcc_dict(reverseSDCCconstraints)
+        sdccdict[f"{sourceName}-{targetName}"][t]["combinations"] = source_ranks
+        sdccdict[f"{sourceName}-{targetName}"][t]["sdcc counts"] = (
+            reverseSDCCconstraints["setDifferenceInteractionsCounts"]
+        )
+    
     return sdccdict
 
 

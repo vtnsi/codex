@@ -15,7 +15,7 @@ def stock_results_empty(codex_input, universe, **kwargs):
     }
 
     for kwarg in kwargs:
-        coverage_results['info'][kwarg] = kwargs[kwarg]
+        coverage_results["info"][kwarg] = kwargs[kwarg]
 
     return coverage_results
 

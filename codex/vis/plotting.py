@@ -32,15 +32,22 @@ savefig = True
 def coverage_map(
     map_var, coverage_results, t, output_dir, coverage_subset=None, **kwargs
 ):
-    counts = coverage_results["results"][t]["combination counts"]
-    # print(counts)
-    combination_names = coverage_results["results"][t]["combinations"]
+    if coverage_subset is None:
+        counts = coverage_results["results"][t]["combination counts"]
+        combination_names = coverage_results["results"][t]["combinations"]
+    else:
+        try:
+            counts = coverage_results["results"][coverage_subset][t]["combination counts"]
+        except:
+            counts = coverage_results["results"][coverage_subset][t]["sdcc counts"]
+        combination_names = coverage_results["results"][coverage_subset][t]["combinations"]
 
     square = maps.map_info_data(map_var=map_var, counts=counts, kwargs=kwargs)
     vmin, vmax, cmap, cbar_kws = maps.map_info_var(map_var, kwargs=kwargs)
     title, filename = maps.map_info_txtl(
         map_var, coverage_results, t, coverage_subset, kwargs=kwargs
     )
+    print(square)
 
     plt.figure(figsize=(10, 8))
     plt.tight_layout(pad=1.5)
@@ -68,6 +75,7 @@ def coverage_map(
     )
 
     cmap.set_under("w")
+    cmap.set_over("k")
     cbar = heatmap.collections[0].colorbar
     maps.set_colorbar(cbar, cbar_kws)
     maps.set_plot_text(title)

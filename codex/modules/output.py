@@ -150,40 +150,42 @@ def dataset_split_eval_vis(
     strengths = coverage_results["info"]["t"]
     for t in strengths:
         sdcc_directions = [
-            key for key in coverage_results["results"][t] if "-" in key  # and "val" not in key
+            key
+            for key in coverage_results["results"]
+            if "-" in key  # and "val" not in key
         ]
         for direction in sdcc_directions:
             target_name = direction.split("-")[0]
             source_name = direction.split("-")[1]
 
-            source_coverage_results = coverage_results["results"][t][source_name]
-            target_coverage_results = coverage_results["results"][t][target_name]
-            setdif_coverage_results = coverage_results["results"][t][direction]
+            source_coverage_results = coverage_results["results"][source_name]
+            target_coverage_results = coverage_results["results"][target_name]
+            setdif_coverage_results = coverage_results["results"][direction]
 
             plotting.coverage_map(
                 "binary",
-                source_coverage_results,
+                coverage_results,
                 t,
                 cc_output_dir,
                 coverage_subset=source_name,
             )
             plotting.coverage_map(
                 "frequency",
-                source_coverage_results,
+                coverage_results,
                 t,
                 cc_output_dir,
                 coverage_subset=source_name,
             )
             plotting.coverage_map(
                 "proportion_frequency",
-                source_coverage_results,
+                coverage_results,
                 t,
                 cc_output_dir,
                 coverage_subset=source_name,
             )
             plotting.coverage_map(
                 "proportion_frequency_standardized",
-                source_coverage_results,
+                coverage_results,
                 t,
                 cc_output_dir,
                 coverage_subset=source_name,
@@ -191,28 +193,28 @@ def dataset_split_eval_vis(
 
             plotting.coverage_map(
                 "binary",
-                target_coverage_results,
+                coverage_results,
                 t,
                 cc_output_dir,
                 coverage_subset=target_name,
             )
             plotting.coverage_map(
                 "frequency",
-                target_coverage_results,
+                coverage_results,
                 t,
                 cc_output_dir,
                 coverage_subset=target_name,
             )
             plotting.coverage_map(
                 "proportion_frequency",
-                target_coverage_results,
+                coverage_results,
                 t,
                 cc_output_dir,
                 coverage_subset=target_name,
             )
             plotting.coverage_map(
                 "proportion_frequency_standardized",
-                target_coverage_results,
+                coverage_results,
                 t,
                 cc_output_dir,
                 coverage_subset=target_name,
@@ -221,14 +223,15 @@ def dataset_split_eval_vis(
             # SDCC
             plotting.coverage_map(
                 "sdcc_binary_constraints",
-                setdif_coverage_results,
+                coverage_results,
                 t,
                 sdcc_output_dir,
                 direction=direction,
+                coverage_subset=direction
             )
 
         plotting.split_elements_bar(
-            output_dir, dataset_name, coverage_results, t, split_id, sdcc_directions
+            output_dir, coverage_results['info']['dataset_name'], coverage_results, t, split_id, sdcc_directions
         )
     plt.close("all")
 

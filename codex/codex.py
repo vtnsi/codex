@@ -147,7 +147,7 @@ def dataset_split_evaluation(
     split: dict,
     source_name="train",
     target_name="test",
-    comparison=False
+    comparison=False,
 ):
     """
     Dataset split evaluation computes SDCC from a split and plots it against its resultant
@@ -197,32 +197,34 @@ def dataset_split_evaluation(
     coverage_results = results.stock_results_empty(
         codex_input, universe, split_id=split_id
     )
-    for t in strengths:
-        coverage_results["results"][t] = combinatorial.SDCC_main(
-            traindf,
-            source_name,
-            testdf,
-            target_name,
-            universe,
-            t,
-            output_dir,
-            comparison_mode=comparison,
-            split_id=split_id,
-        )
-        if "validation" in split:
-            coverage_results["results"][t].update(
-                combinatorial.SDCC_main(
-                    traindf,
-                    source_name,
-                    val_df,
-                    "val",
-                    universe,
-                    t,
-                    output_dir,
-                    comparison_mode=comparison,
-                    split_id=split_id,
-                )
+    # for t in strengths:
+
+    coverage_results["results"] = combinatorial.SDCC_main(
+        traindf,
+        source_name,
+        testdf,
+        target_name,
+        universe,
+        strengths,
+        output_dir,
+        comparison_mode=comparison,
+        split_id=split_id,
+    )
+    if "validation" in split:
+        coverage_results["results"][t].update(
+            combinatorial.SDCC_main(
+                traindf,
+                source_name,
+                val_df,
+                "val",
+                universe,
+                t,
+                output_dir,
+                comparison_mode=comparison,
+                split_id=split_id,
             )
+        )
+
 
     coverage_results_formatted = output.dataset_split_eval_vis(
         output_dir,

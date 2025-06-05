@@ -109,12 +109,18 @@ def map_info_data(map_var, counts, **kwargs):
     return square
 
 
-def map_info_txtl(map_var, coverage_results, t, coverage_subset, **kwargs):
+def map_info_txtl(map_var, coverage_results, t, coverage_subset, kwargs):
     """ "
     Mode-specific kwargs:
     - Performance: metric
     """
-    cc = round(coverage_results["results"][t]["CC"], 3)
+    if coverage_subset is None:
+        cc = round(coverage_results["results"][t]["CC"], 3)
+    else:
+        try:
+            cc = round(coverage_results["results"][coverage_subset][t]["CC"], 3)
+        except:
+            cc = round(coverage_results["results"][coverage_subset][t]["SDCC"], 3)
     dataset_name = coverage_results["info"]["dataset_name"]
 
     if coverage_subset is None:
@@ -146,11 +152,12 @@ def map_info_txtl(map_var, coverage_results, t, coverage_subset, **kwargs):
         file_basename = f"perf_{metric}_t{t}-{dataset_name}{subset_spec_fn}"
 
     elif map_var == "sdcc_binary_constraints":
+        print(kwargs)
         direction = kwargs["direction"]
         target_name = direction.split("-")[0]
         source_name = direction.split("-")[1]
 
-        sdcc = round(coverage_results["results"][t][direction]["SDCC"], 3)
+        sdcc = round(coverage_results["results"][direction][t]["SDCC"], 3)
 
         title = f"Set Difference Coverage of {t}-way Interactions of {target_name} not in {source_name} in {dataset_name}, | (SDCC = {sdcc})"
         file_basename = (

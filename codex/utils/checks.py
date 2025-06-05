@@ -30,6 +30,7 @@ def checks_generic(codex_input: dict):
         except:
             raise KeyError(f"Minimum requirement <{field}> not included in input file.")
 
+
 def checks_split(codex_input):
     split_fields = [
         "split_dir",
