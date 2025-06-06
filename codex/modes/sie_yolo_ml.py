@@ -1,4 +1,4 @@
-from ..modules import output
+from ..src import output
 import torchvision
 import torch
 from collections import OrderedDict

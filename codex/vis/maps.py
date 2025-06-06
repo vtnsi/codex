@@ -109,12 +109,16 @@ def map_info_data(map_var, counts, **kwargs):
     return square
 
 
-def map_info_txtl(map_var, coverage_results, t, coverage_subset, **kwargs):
+def map_info_txtl(map_var, coverage_results, t, coverage_subset, kwargs):
     """ "
     Mode-specific kwargs:
     - Performance: metric
     """
-    cc = round(coverage_results["results"][t]["CC"], 3)
+    try:
+        cc_metric = round(coverage_results["results"][t]["CC"], 3)
+    except KeyError:
+        cc_metric = None
+
     dataset_name = coverage_results["info"]["dataset_name"]
 
     if coverage_subset is None:
@@ -125,19 +129,19 @@ def map_info_txtl(map_var, coverage_results, t, coverage_subset, **kwargs):
         subset_spec_fn = f"_{coverage_subset}"
 
     if map_var == "binary":
-        title = f"Binary Coverage of {t}-way Interactions in {dataset_name}{subset_specification} | (CC = {cc})"
+        title = f"Binary Coverage of {t}-way Interactions in {dataset_name}{subset_specification} | (CC = {cc_metric})"
         file_basename = f"cc_binary_t{t}-{dataset_name}{subset_spec_fn}"
 
     elif map_var == "frequency":
-        title = f"Count Frequency Coverage of {t}-way Interactions in {dataset_name}{subset_specification} | (CC = {cc})"
+        title = f"Count Frequency Coverage of {t}-way Interactions in {dataset_name}{subset_specification} | (CC = {cc_metric})"
         file_basename = f"cc_freq_t{t}-{dataset_name}{subset_spec_fn}"
 
     elif map_var == "proportion_frequency":
-        title = f"Proportion Frequency Coverage of {t}-way Interactions in {dataset_name}{subset_specification} | (CC = {cc})"
+        title = f"Proportion Frequency Coverage of {t}-way Interactions in {dataset_name}{subset_specification} | (CC = {cc_metric})"
         file_basename = f"cc_prop_t{t}-{dataset_name}{subset_spec_fn}"
 
     elif map_var == "proportion_frequency_standardized":
-        title = f"Standardized Proportion Frequency Coverage of {t}-way Interactions in {dataset_name}{subset_specification} | (CC = {cc})"
+        title = f"Standardized Proportion Frequency Coverage of {t}-way Interactions in {dataset_name}{subset_specification} | (CC = {cc_metric})"
         file_basename = f"cc_stdprop_t{t}-{dataset_name}{subset_spec_fn}"
 
     elif map_var == "performance":
@@ -146,13 +150,13 @@ def map_info_txtl(map_var, coverage_results, t, coverage_subset, **kwargs):
         file_basename = f"perf_{metric}_t{t}-{dataset_name}{subset_spec_fn}"
 
     elif map_var == "sdcc_binary_constraints":
+        assert cc_metric is None
         direction = kwargs["direction"]
+        cc_metric = round(coverage_results["results"][t]["SDCC"], 3)
         target_name = direction.split("-")[0]
         source_name = direction.split("-")[1]
 
-        sdcc = round(coverage_results["results"][t][direction]["SDCC"], 3)
-
-        title = f"Set Difference Coverage of {t}-way Interactions of {target_name} not in {source_name} in {dataset_name}, | (SDCC = {sdcc})"
+        title = f"Set Difference Coverage of {t}-way Interactions of {target_name} not in {source_name} in {dataset_name}, | (SDCC = {cc_metric})"
         file_basename = (
             f"sdcc_binary_t{t}-{dataset_name}_{target_name}_not_in_{source_name}"
         )
@@ -262,17 +266,5 @@ def set_colorbar(cbar: matplotlib.colorbar.Colorbar, cbar_kws: dict):
 
     cbar.set_ticks(cbar_kws["ticks"])
     cbar.set_ticklabels(cbar_kws["ticklabels"], rotation=-30)
-
-    """if mode == "sdcc_binary_constraints_neither":
-        colorbar.set_ticks(cbar_ticks)
-        colorbar.set_ticks(cbar_ticklabels, rotation=-30)
-        #colorbar.set_ticks([-0.667, 0, 0.667, 1.667])
-        #colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
-    elif mode == "sdcc_binary_constraints":
-        #colorbar.set_ticks([-0.667, 0, 0.667])
-        #colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)
-    elif mode == "binary":
-        #colorbar.set_ticks([0, 1])
-        #colorbar.set_ticklabels(cbar_ticklabels, rotation=-30)"""
 
     return cbar

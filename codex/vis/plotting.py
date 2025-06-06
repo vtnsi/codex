@@ -32,8 +32,10 @@ savefig = True
 def coverage_map(
     map_var, coverage_results, t, output_dir, coverage_subset=None, **kwargs
 ):
-    counts = coverage_results["results"][t]["combination counts"]
-    # print(counts)
+    if "direction" in kwargs:
+        counts = coverage_results["results"][t]["sdcc counts"]
+    else:
+        counts = coverage_results["results"][t]["combination counts"]
     combination_names = coverage_results["results"][t]["combinations"]
 
     square = maps.map_info_data(map_var=map_var, counts=counts, kwargs=kwargs)
@@ -68,11 +70,12 @@ def coverage_map(
     )
 
     cmap.set_under("w")
+    cmap.set_over("k")
     cbar = heatmap.collections[0].colorbar
     maps.set_colorbar(cbar, cbar_kws)
     maps.set_plot_text(title)
 
-    maps.save_plots(output_dir, filename)
+    maps.save_plots(output_dir, filename, svg=True)
 
     plt.clf()
     return heatmap
