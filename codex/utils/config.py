@@ -5,7 +5,7 @@ import glob
 import directory_tree
 import shutil
 
-from modules import combinatorial, output
+from src import combinatorial, output
 
 
 def codex_env_checks(kwargs):

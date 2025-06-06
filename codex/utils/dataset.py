@@ -6,24 +6,7 @@ import json
 import uuid
 
 
-def reorder_df_byindex(df_to_sort, order_ascending=True):
-    if type(df_to_sort) is dict:
-        print("Sorting and transposing performance JSON...")
-        df_to_sort = pd.DataFrame(df_to_sort).sort_index().transpose()
-    assert type(df_to_sort) is pd.DataFrame
-    df_to_sort = df_to_sort.sort_index(ascending=order_ascending)
-    return df_to_sort
-
-
-def reorder_df_by_sample(
-    sample_id_col: str, df_to_sort: pd.DataFrame, order_ascending=True
-):
-    df_to_sort = df_to_sort.sort_values(by=[sample_id_col], ascending=order_ascending)
-    df_to_sort = df_to_sort.reset_index().drop(columns="index")
-    return df_to_sort
-
-
-def df_slice_by_id_reorder(
+def __df_slice_by_id_reorder(
     sample_id_col: str, dataset_df: pd.DataFrame, sample_ids: list, order_ascending=True
 ):
     sliced_df = dataset_df.loc[dataset_df[sample_id_col].isin(sample_ids)]
@@ -33,6 +16,42 @@ def df_slice_by_id_reorder(
         .drop(columns="index")
     )
     return sliced_df
+
+
+def df_slice_by_split_reorder(
+    sample_id_col: str, dataset_df: pd.DataFrame, split: dict, order_ascending=True
+):
+    train_df = __df_slice_by_id_reorder(
+        sample_id_col, dataset_df, split["train"], order_ascending=order_ascending
+    )
+    test_df = __df_slice_by_id_reorder(
+        sample_id_col, dataset_df, split["test"], order_ascending=order_ascending
+    )
+    val_df = None
+
+    if "validation" in split or "val" in split:
+        val_df = __df_slice_by_id_reorder(
+            sample_id_col, dataset_df, split["train"], order_ascending=order_ascending
+        )
+
+    return train_df, val_df, test_df
+
+
+def df_transpose_reorder_by_index(df_to_sort, order_ascending=True):
+    if type(df_to_sort) is dict:
+        print("Sorting and transposing performance JSON...")
+        df_to_sort = pd.DataFrame(df_to_sort).sort_index().transpose()
+    assert type(df_to_sort) is pd.DataFrame
+    df_to_sort = df_to_sort.sort_index(ascending=order_ascending)
+    return df_to_sort
+
+
+def __reorder_df_by_sample(
+    sample_id_col: str, df_to_sort: pd.DataFrame, order_ascending=True
+):
+    df_to_sort = df_to_sort.sort_values(by=[sample_id_col], ascending=order_ascending)
+    df_to_sort = df_to_sort.reset_index().drop(columns="index")
+    return df_to_sort
 
 
 def add_noise_feature(df_dir, high, low, filename=None, save=True):
@@ -61,26 +80,6 @@ def display_continuous_diagnostics(df: pd.DataFrame, feature_list):
             "med": np.median(feature_col),
         }
     return results_dict
-
-
-def output_json_readable(
-    json_obj: dict, print_json=False, write_json=False, file_path="", sort=False
-):
-    """
-    Formats JSON object to human-readable format with print/save options.
-    """
-    json_str = json.dumps(json_obj, sort_keys=sort, indent=4, separators=(",", ": "))
-
-    if print_json:
-        print(json_str)
-
-    if write_json:
-        if file_path == "":
-            file_path = "output_0{}.json".format(len(glob.glob("output_0*.json")))
-        with open(file_path, "w") as f:
-            f.write(json_str)
-
-    return json_obj
 
 
 def lower_cc(data_dir, data_file):

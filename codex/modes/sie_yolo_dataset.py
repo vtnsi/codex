@@ -1,4 +1,4 @@
-from ..modules import output
+from src import output
 from collections import OrderedDict
 import cv2
 import torchmetrics

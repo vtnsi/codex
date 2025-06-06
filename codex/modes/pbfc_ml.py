@@ -39,7 +39,7 @@ import glob
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ..modules import output
+from ..src import output
 
 """
 Prec, reacll, f1

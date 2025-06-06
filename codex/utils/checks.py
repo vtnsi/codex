@@ -23,29 +23,54 @@ OPT_REQ = {
 }
 
 
-def checks_generic(codex_input: dict):
+def input_checks(codex_input: dict, check_split=False, check_perf=False):
+    __checks_generic(codex_input=codex_input)
+
+    if check_split:
+        __checks_split(codex_input)
+    if check_perf:
+        __checks_perf(codex_input)
+
+    return True
+
+
+def __checks_generic(codex_input: dict):
     for field in MIN_REQ:
         try:
             assert field in codex_input.keys()
         except:
-            raise KeyError(f"Minimum requirement <{field}> not included in input file.")
+            raise KeyError(
+                f"Minimum requirement <{field}> not included in config file."
+            )
 
 
-def checks_split(codex_input):
+def __checks_split(codex_input):
     split_fields = [
         "split_dir",
         "split_filename",
     ]
 
     for field in split_fields:
-        assert field in codex_input.keys()
+        try:
+            assert field in codex_input.keys()
+        except:
+            raise KeyError(
+                f"{codex_input['mode']} requires split info. <{field}> not included in config file."
+            )
 
 
-def checks_perf(codex_input):
+def __checks_perf(codex_input):
     perf_fields = ["performance_dir", "performance_filename", "metric"]
 
     for field in perf_fields:
-        assert field in codex_input.keys()
+        try:
+            assert field in codex_input.keys()
+        except:
+            raise KeyError(
+                f"{codex_input['mode']} requires performance metric info. <{field}> not included in config file."
+            )
+
+    return
 
 
 def def_default_values(codex_input):
