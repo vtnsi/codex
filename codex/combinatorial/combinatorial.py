@@ -1804,7 +1804,9 @@ def performanceByInteraction_main(
             CC = CC_test
         else:
             raise KeyError(
-                "Coverage over subset {} not found in split file.".format(coverage_subset)
+                "Coverage over subset {} not found in split file.".format(
+                    coverage_subset
+                )
             )
 
         LOGGER_COMBI.log(level=15, msg="CC over train: {}".format(CC))
@@ -1948,7 +1950,7 @@ def performance_by_frequency_coverage_main(
 
             # CODEX ~~~~~~~~~~~~~~~
             # of chosen combo, skew_level, model
-            result = None# codex.run(input_dict_new, verbose="1")
+            result = None  # codex.run(input_dict_new, verbose="1")
             results_multiple_model[model_name_small] = {
                 "coverage": result,
                 "save_dir": save_dir,

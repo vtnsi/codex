@@ -170,7 +170,7 @@ class CODEX:
         )
 
         coverage_results = results.stock_results_empty(codex_input)
-        coverage_results['results'] = combinatorial.performanceByInteraction_main(
+        coverage_results["results"] = combinatorial.performanceByInteraction_main(
             test_df,
             train_df,
             performance_df,
@@ -182,7 +182,7 @@ class CODEX:
             sample_id=sample_id_col,
             coverage_subset=coverage_subset,
         )
-            # coverage_results_sdcc[t] = combinatorial.SDCC_main(trainDF, 'train', testDF, 'test', universe, t, output_dir, split_id=split_id)
+        # coverage_results_sdcc[t] = combinatorial.SDCC_main(trainDF, 'train', testDF, 'test', universe, t, output_dir, split_id=split_id)
         try:
             coverage_results["info"]["Overall Performance"] = performance["test"][
                 "Overall Performance"
