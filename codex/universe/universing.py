@@ -3,7 +3,7 @@ import logging
 import copy
 import pandas as pd
 
-from src import binning
+from universe import binning
 
 
 def extract_metadataset(codex_input, dataset_path):

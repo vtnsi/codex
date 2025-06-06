@@ -2,7 +2,7 @@
 # Updated Date: 4 April 2024
 # Movement to new repo: 12 Apr, 2024
 
-# Note: uncomment #plt.show()
+# Refactoring: 06 June, 2025
 
 # -------------------- Imported Modules --------------------
 import os
@@ -14,11 +14,8 @@ from scipy.special import comb
 import copy
 import logging
 
-from src import output
-from modes import pbfc_biasing as biasing
-from modes import pbfc_data
-
-import codex
+from output import output
+from modes import pbfc_biasing as biasing, pbfc_data
 
 # -------------------- Global Variables               --------------------#
 labelCentric = False
@@ -1951,7 +1948,7 @@ def performance_by_frequency_coverage_main(
 
             # CODEX ~~~~~~~~~~~~~~~
             # of chosen combo, skew_level, model
-            result = codex.run(input_dict_new, verbose="1")
+            result = None# codex.run(input_dict_new, verbose="1")
             results_multiple_model[model_name_small] = {
                 "coverage": result,
                 "save_dir": save_dir,
