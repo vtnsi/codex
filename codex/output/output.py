@@ -554,7 +554,8 @@ def create_output_dir(output_dir_new, timed=False):
 
     if not os.path.exists(output_dir_new):
         os.makedirs(output_dir_new)
-    return output_dir_new
+    
+    return os.path.realpath(output_dir_new)
 
 
 def SIE_regression_test_vis(

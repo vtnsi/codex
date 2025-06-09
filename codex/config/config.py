@@ -7,45 +7,7 @@ import shutil
 
 from combinatorial import combinatorial
 from output import output
-
-
-def codex_env_checks(kwargs):
-    try:
-        # requd
-        new_dirname = kwargs["name"]
-    except:
-        raise KeyError(
-            "In creating a new CODEX directory; requires <name of CODEX directory>."
-        )
-    try:
-        # not required
-        new_parent_dirname = kwargs["parent_dir"]
-    except KeyError:
-        new_parent_dirname = os.path.dirname(os.path.realpath("."))
-        print(
-            f"Field <parent_dir> was unspecified. Creating new CODEX directory parent directory, {new_parent_dirname}."
-        )
-
-    new_parent_dirname = os.path.realpath(new_parent_dirname)
-
-    try:
-        assertpath = os.path.realpath(os.path.join(os.getcwd(), new_parent_dirname))
-        assert os.path.exists(assertpath)
-    except AssertionError:
-        raise FileNotFoundError(
-            f"Creating template CODEX directory failed. Folder {assertpath} does not exist."
-        )
-
-    try:
-        include_templates = str.lower(kwargs["include_templates"]) == "true"
-    except KeyError:
-        include_templates = False
-    try:
-        include_tutorial = str.lower(kwargs["include_examples"]) == "true"
-    except KeyError:
-        include_tutorial = False
-
-    return new_dirname, new_parent_dirname, include_templates, include_tutorial
+from config import checks
 
 
 def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
@@ -114,7 +76,7 @@ def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=
 
 
 # PIPTEST
-def handle_input_file(input):
+def handle_input_file(input) -> dict:
     if type(input) is str:
         with open(input) as f:
             codex_input = json.load(f)
@@ -140,12 +102,11 @@ def define_experiment_variables(codex_input):
     output_dir = codex_input["output_dir"]
 
     if output_dir is None:
-        # output_dir = './'
         output_dir = os.path.realpath(".")
 
     config_id = codex_input["config_id"]
 
-    output_dir = os.path.abspath(output.create_output_dir(output_dir))
+    output_dir = os.path.realpath(output.create_output_dir(output_dir))
     output_dir_config = os.path.realpath(os.path.join(output_dir, config_id))
 
     output_dir_config = output.create_output_dir(output_dir_config)
@@ -159,6 +120,90 @@ def define_experiment_variables(codex_input):
     return output_dir_config, strengths
 
 
+def extract_names(codex_input:dict):
+    """
+    Gets dataset and model name.
+    """
+    
+    return codex_input.get("dataset_name"), codex_input.get("model_name")
+
+
+def extract_sp(codex_input, split_filename=None, performance_filename=None):
+    """
+    Extracts one or more split and performance files from input specifications.
+
+    Returns:
+    split: dict
+        Read from a JSON file whose keys are the split partition and values are lists of
+        the sample ID's as presented in the dataset. Or, if given as a list of split files,
+        nested under the split file name it came from.
+
+    performance: dict
+        Read from a JSON file containing a model's performance on a test set. Or, if given as a
+        list of split files, is nested under the split file name it came from.
+
+    metric: str
+        Chosen metric to evaluate performance for the experiment.
+    """
+    codex_dir = codex_input["codex_dir"]
+    split_folder = codex_input["split_dir"]
+    performance_folder = codex_input["performance_dir"]
+    metric = codex_input["metric"]
+
+    # Initial pass
+    if split_filename is None and performance_filename is None:
+        split_filename = codex_input["split_filename"]
+        performance_filename = codex_input["performance_filename"]
+
+    # Might be list if multiple, str if single
+    if type(split_filename) is list:
+        if performance_filename is None:
+            performance_filename = [None] * len(split_filename)
+
+        if type(performance_filename) is not list:
+            raise ValueError("No corresponding performance files to given split files.")
+        else:
+            assert len(split_filename) == len(performance_filename)
+
+        num_splits = len(split_filename)
+
+        split = {filename: None for filename in split_filename}
+        performance = {filename: None for filename in split_filename}
+
+        for i in range(num_splits):
+            split[split_filename[i]], performance[split_filename[i]], metric = (
+                extract_sp(codex_input, split_filename[i], performance_filename[i])
+            )
+
+    elif type(split_filename) is str:
+        # Add/return split
+        # os.path.join(codex_dir, split_folder, split_filename)) as s:
+        with open(
+            os.path.abspath(os.path.join(codex_dir, split_folder, split_filename))
+        ) as s:
+            split = json.load(s)
+            split["split_id"] = split_filename
+
+        if performance_filename is None:
+            performance = None
+        else:
+            with open(
+                os.path.abspath(
+                    os.path.join(codex_dir, performance_folder, performance_filename)
+                )
+            ) as p:
+                performance = json.load(p)
+                performance["split_id"] = split_filename
+    
+    elif split_filename is None and performance_filename is None:
+        split = None; performance = None; metric = None
+    
+    else:
+        raise ValueError("Unknown object for split file.")
+
+    return split, performance, metric
+
+'''
 def define_training_variables(codex_input):
     training_dir = os.path.abspath(
         os.path.join(os.getcwd(), codex_input["training_run_directory"])
@@ -171,13 +216,6 @@ def define_training_variables(codex_input):
     )
 
     return training_dir, training_data_dir, dataset_dir
-
-
-def extract_names(codex_input):
-    """
-    Gets dataset and model name.
-    """
-    return codex_input["dataset_name"], codex_input["model_name"]
 
 
 def extract_sp_partitioning(
@@ -250,79 +288,6 @@ def extract_sp_partitioning(
         raise KeyError("No partition found from specified subset name!")
 
     return split_p, split_e, perf_p, perf_e, metric
+'''
 
 
-def extract_sp(codex_input, split_filename=None, performance_filename=None):
-    """
-    Extracts one or more split and performance files from input specifications.
-
-    Returns:
-    split: dict
-        Read from a JSON file whose keys are the split partition and values are lists of
-        the sample ID's as presented in the dataset. Or, if given as a list of split files,
-        nested under the split file name it came from.
-
-    performance: dict
-        Read from a JSON file containing a model's performance on a test set. Or, if given as a
-        list of split files, is nested under the split file name it came from.
-
-    metric: str
-        Chosen metric to evaluate performance for the experiment.
-    """
-    codex_dir = codex_input["codex_dir"]
-    split_folder = codex_input["split_dir"]
-    performance_folder = codex_input["performance_dir"]
-    metric = codex_input["metric"]
-
-    # Initial pass
-    if split_filename is None and performance_filename is None:
-        split_filename = codex_input["split_filename"]
-        performance_filename = codex_input["performance_filename"]
-
-    # Might be list if multiple, str if single
-    if type(split_filename) is list:
-        if performance_filename is None:
-            performance_filename = [None] * len(split_filename)
-
-        if type(performance_filename) is not list:
-            raise ValueError("No corresponding performance files to given split files.")
-        else:
-            assert len(split_filename) == len(performance_filename)
-
-        num_splits = len(split_filename)
-
-        split = {filename: None for filename in split_filename}
-        performance = {filename: None for filename in split_filename}
-
-        for i in range(num_splits):
-            split[split_filename[i]], performance[split_filename[i]], metric = (
-                extract_sp(codex_input, split_filename[i], performance_filename[i])
-            )
-
-    elif type(split_filename) is str:
-        # Add/return split
-        # os.path.join(codex_dir, split_folder, split_filename)) as s:
-        with open(
-            os.path.abspath(os.path.join(codex_dir, split_folder, split_filename))
-        ) as s:
-            split = json.load(s)
-            split["split_id"] = split_filename
-
-        if performance_filename is None:
-            performance = None
-        else:
-            with open(
-                os.path.abspath(
-                    os.path.join(codex_dir, performance_folder, performance_filename)
-                )
-            ) as p:
-                performance = json.load(p)
-                performance["split_id"] = split_filename
-    else:
-        raise ValueError("Unknown object for split file.")
-
-    return split, performance, metric
-
-
-def extract_dataset():
-    return

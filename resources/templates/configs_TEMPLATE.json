@@ -21,13 +21,14 @@
     "counting_mode" : "label_exclusive/label_inclusive",
     "t": "list of t-way combination strengths, [1,2,3,...]",
 
-    "split_folder": "<codex_directory>/<name of folder containing split>",
-    "split_filename" : "<list of split files>/<name of single split file>",
-    "performance_folder": "<codex_directory>/<name of folder containing performance>",
-    "performance_filename" : "<list of corresponding performance files>/<name of single performance file>",   
+    "split_dir": "<codex_directory>/<name of folder containing split>",
+    "split_filename" : "<list [] of split files>/<name of single split file>",
+    "performance_dir": "<codex_directory>/<name of folder containing performance>",
+    "performance_filename" : "<list [] of corresponding performance files>/<name of single performance file>",   
     "metric": ["<list of names of performance metric as in performance file>"],
 
     "timestamp": "true/false of whether to include the timestamp part of experiment outputs",
 
+    "test_set_size_goal": "<(int) number of test samples to shoot for in a balanced test construction>",
     "training_params": "<NOT FUNCTIONAL> training parameters for systematic inclusion/exclusion experiment."
 }

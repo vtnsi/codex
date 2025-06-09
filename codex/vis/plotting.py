@@ -21,7 +21,7 @@ from scipy.stats import pearsonr
 import logging
 import matplotlib.patches as patches
 
-from utils import results
+from output import results
 from vis import maps, metrics
 
 # MAIN PLOTTING ENTRY POINTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

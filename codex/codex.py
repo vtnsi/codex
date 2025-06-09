@@ -1,18 +1,41 @@
-from utils import checks, dataset, config, results, splitperf, universing
-from src import combinatorial, output, binning
-
 import os
+
+from config import checks, config, splitperf
+from universe import universing, dataset
+from combinatorial import combinatorial
+from output import output, results
+import modes
 
 # Brian Lee
 # Refactored for class format ()
 
-
 class CODEX:
-    def __init__(self, input_file=None, verbose="1"):
-        self.input_file = input_file
+    def __init__(self, config_file=None, verbose="1"):
+        self.config_file = config_file
         self.verbose = verbose
 
-    def dataset_evaluation(codex_input):
+        self.parse_input_file(config_file)
+
+    def parse_input_file(self, config_file:str):
+        codex_input = config.handle_input_file(config_file)
+        
+        # Universal
+        
+
+
+
+        self.dataset_name, self.model_name = config.extract_names(codex_input)
+        self.output_dir, self.strengths = config.define_experiment_variables(codex_input)
+        self.universe, self.dataset_df = universing.define_input_space(codex_input)
+
+        self.split, self.performance, self.metrics = config.extract_sp(codex_input)
+
+        self.test_set_size_goal = codex_input.get('test_set_size_goal')
+        
+        return
+
+    def dataset_evaluation(
+        self):
         """
         Dataset evaluation comptues combinatorial coverage on a dataset.
 
@@ -20,22 +43,22 @@ class CODEX:
         codex_input: dict
             JSON config dictionary.
         """
-        checks.input_checks(codex_input)
-        dataset_name, model_name = config.extract_names(codex_input)
-        output_dir, strengths = config.define_experiment_variables(codex_input)
-        universe, dataset_df = universing.define_input_space(codex_input)
+        codex_input = self.cod
 
-        coverage_results = results.stock_results_empty(codex_input, universe)
+        checks.input_checks(codex_input)
+
+        coverage_results = results.stock_results_empty(codex_input, self.universe)
         coverage_results["results"] = combinatorial.CC_main(
-            dataset_df, dataset_name, universe, strengths, output_dir
+            self.dataset_df, self.dataset_name, self.universe, self.strengths, self.output_dir
         )
 
         coverage_results_formatted = output.dataset_eval_vis(
-            output_dir, coverage_results
+            self.output_dir, coverage_results
         )
         return coverage_results_formatted
 
     def dataset_split_evaluation(
+        self,
         codex_input: dict,
         split: dict,
         source_name="train",
@@ -117,6 +140,7 @@ class CODEX:
         return coverage_results_formatted
 
     def performance_by_interaction(
+        self,
         codex_input,
         split,
         performance,
@@ -204,8 +228,7 @@ class CODEX:
         return coverage_results
 
     def balanced_test_set_construction(
-        input,
-        test_set_size_goal,
+        self,
         include_baseline=True,
         shuffle=False,
         adjusted_size=None,
@@ -226,8 +249,8 @@ class CODEX:
             Coverage results on the overall dataset as well as split designations for each withheld
             interaction resulting from post-test set optimzation
         """
-        output_dir, strengths = config.define_experiment_variables(input)
-        universe, dataset_df = universing.define_input_space(input)
+        output_dir, strengths = config.define_experiment_variables(self.input)
+        universe, dataset_df = universing.define_input_space(self.input)
 
         if shuffle:
             dataset_df = dataset_df.sample(len(dataset_df))
@@ -276,3 +299,6 @@ class CODEX:
         )
 
         return result
+
+
+test = CODEX(config_file='../__tutorial_codex__/configs/config_rareplanes_example.json')
