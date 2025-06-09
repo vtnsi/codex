@@ -10,72 +10,6 @@ from output import output
 from config import checks
 
 
-def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
-    if templates:
-        print("CODEX env setup: Adding templates")
-    if tutorial:
-        print("CODEX env setup: Adding tutorial materials.")
-
-    existing_codex_dirs = glob.glob(
-        os.path.realpath(os.path.join(parent_dir, dir_name + "*"))
-    )
-
-    # exec_dir = os.path.dirname(os.path.realpath(__file__)) exec_dir = "../"
-    exec_dir = os.path.dirname(os.path.realpath("."))
-    try:
-        assert os.path.exists(os.path.join(exec_dir, "resources", "templates"))
-    except:
-        # exec_dir = './'
-        exec_dir = os.path.realpath(".")
-
-    if dir_name is None or dir_name == "":
-        dir_name = "new_codex_dir"
-
-    if len(existing_codex_dirs) == 0:
-        codex_dir_new = os.path.realpath(os.path.join(parent_dir, f"{dir_name}"))
-    else:
-        codex_dir_new = os.path.realpath(
-            os.path.join(parent_dir, f"{dir_name}_{len(existing_codex_dirs)}")
-        )
-    os.makedirs(codex_dir_new, exist_ok=False)
-
-    for component in [
-        "binning",
-        "configs",
-        "splits",
-        "performance",
-        "datasets",
-        "runs",
-        "universe",
-    ]:
-        subdir = os.path.join(codex_dir_new, component)
-        os.makedirs(subdir, exist_ok=True)
-
-    if templates:
-        for filename in os.listdir(os.path.join(exec_dir, "resources", "templates")):
-            for subdir in os.listdir(codex_dir_new):
-                if str(subdir)[:-1] in str(filename):
-                    shutil.copy(
-                        os.path.join(exec_dir, "resources", "templates", filename),
-                        os.path.join(codex_dir_new, subdir, filename),
-                    )
-    if tutorial:
-        for filename in os.listdir(os.path.join(exec_dir, "resources", "tutorial")):
-            for subdir in os.listdir(codex_dir_new):
-                if str(subdir)[:-1] in str(filename):
-                    shutil.copy(
-                        os.path.join(exec_dir, "resources", "tutorial", filename),
-                        os.path.join(codex_dir_new, subdir, filename),
-                    )
-
-    directory_tree.DisplayTree(codex_dir_new)
-    print(
-        f"Successfully constructed CODEX directory at location {os.path.realpath(codex_dir_new)}."
-    )
-    return codex_dir_new
-
-
-# PIPTEST
 def handle_input_file(input) -> dict:
     if type(input) is str:
         with open(input) as f:
@@ -89,43 +23,36 @@ def handle_input_file(input) -> dict:
     return codex_input
 
 
-def define_experiment_variables(codex_input):
-    """
-    Gets universally required CODEX variables and sets modes and switches provided
-    from the input file.
-    """
+def extract_split_simple(codex_input: dict) -> tuple[dict, str]:
+    split_dir = codex_input.get("split_dir", "")
+    split_filename = codex_input.get("split_filename")
 
-    # timed = codex_input['timestamp']
-    # Required for every codex mode
-    # CODEX DIR RELATIVE TO CODEX REPO
-    codex_dir = codex_input["codex_dir"]
-    output_dir = codex_input["output_dir"]
+    if split_filename is None:
+        split = None
+        split_id = None
+    else:
+        with open(os.path.realpath(os.path.join(split_dir, split_filename))) as f:
+            split = json.load(f)
+            split_id = split.get("split_id", default="split_filename")
 
-    if output_dir is None:
-        output_dir = os.path.realpath(".")
-
-    config_id = codex_input["config_id"]
-
-    output_dir = os.path.realpath(output.create_output_dir(output_dir))
-    output_dir_config = os.path.realpath(os.path.join(output_dir, config_id))
-
-    output_dir_config = output.create_output_dir(output_dir_config)
-
-    strengths = codex_input["t"]
-
-    combinatorial.labelCentric = codex_input["counting_mode"] == "label_centric"
-    global use_augmented_universe
-    use_augmented_universe = codex_input["use_augmented_universe"]
-
-    return output_dir_config, strengths
+    return split, split_id
 
 
-def extract_names(codex_input:dict):
-    """
-    Gets dataset and model name.
-    """
-    
-    return codex_input.get("dataset_name"), codex_input.get("model_name")
+def extract_perf_simple(codex_input: dict) -> tuple[dict, str, list]:
+    perf_dir = codex_input.get("performance_dir", "")
+    perf_filename = codex_input.get("performance_filename")
+
+    if perf_filename is None:
+        perf = None
+        split_id_perf = None
+        metrics = None
+    else:
+        with open(os.path.realpath(os.path.join(perf_dir, perf_filename))) as f:
+            perf = json.load(f)
+            split_id_perf = perf.get("split_id", default="No split ID provided.")
+            metrics = codex_input.get("metrics", default=[])
+
+    return perf, split_id_perf, metrics
 
 
 def extract_sp(codex_input, split_filename=None, performance_filename=None):
@@ -194,14 +121,121 @@ def extract_sp(codex_input, split_filename=None, performance_filename=None):
             ) as p:
                 performance = json.load(p)
                 performance["split_id"] = split_filename
-    
+
     elif split_filename is None and performance_filename is None:
-        split = None; performance = None; metric = None
-    
+        split = None
+        performance = None
+        metric = None
+
     else:
         raise ValueError("Unknown object for split file.")
 
     return split, performance, metric
+
+
+def define_experiment_variables(codex_input):
+    """
+    Gets universally required CODEX variables and sets modes and switches provided
+    from the input file.
+    """
+
+    # timed = codex_input['timestamp']
+    # Required for every codex mode
+    # CODEX DIR RELATIVE TO CODEX REPO
+    codex_dir = codex_input["codex_dir"]
+    output_dir = codex_input["output_dir"]
+
+    if output_dir is None:
+        output_dir = os.path.realpath(".")
+
+    config_id = codex_input["config_id"]
+
+    output_dir = os.path.realpath(output.create_output_dir(output_dir))
+    output_dir_config = os.path.realpath(os.path.join(output_dir, config_id))
+
+    output_dir_config = output.create_output_dir(output_dir_config)
+
+    strengths = codex_input["t"]
+
+    combinatorial.labelCentric = codex_input["counting_mode"] == "label_centric"
+    global use_augmented_universe
+    use_augmented_universe = codex_input["use_augmented_universe"]
+
+    return output_dir_config, strengths
+
+
+def extract_names(codex_input: dict):
+    """
+    Gets dataset and model name.
+    """
+
+    return codex_input.get("dataset_name"), codex_input.get("model_name")
+
+
+def setup_new_codex_env(dir_name=None, parent_dir="", templates=False, tutorial=False):
+    if templates:
+        print("CODEX env setup: Adding templates")
+    if tutorial:
+        print("CODEX env setup: Adding tutorial materials.")
+
+    existing_codex_dirs = glob.glob(
+        os.path.realpath(os.path.join(parent_dir, dir_name + "*"))
+    )
+
+    # exec_dir = os.path.dirname(os.path.realpath(__file__)) exec_dir = "../"
+    exec_dir = os.path.dirname(os.path.realpath("."))
+    try:
+        assert os.path.exists(os.path.join(exec_dir, "resources", "templates"))
+    except:
+        # exec_dir = './'
+        exec_dir = os.path.realpath(".")
+
+    if dir_name is None or dir_name == "":
+        dir_name = "new_codex_dir"
+
+    if len(existing_codex_dirs) == 0:
+        codex_dir_new = os.path.realpath(os.path.join(parent_dir, f"{dir_name}"))
+    else:
+        codex_dir_new = os.path.realpath(
+            os.path.join(parent_dir, f"{dir_name}_{len(existing_codex_dirs)}")
+        )
+    os.makedirs(codex_dir_new, exist_ok=False)
+
+    for component in [
+        "binning",
+        "configs",
+        "splits",
+        "performance",
+        "datasets",
+        "runs",
+        "universe",
+    ]:
+        subdir = os.path.join(codex_dir_new, component)
+        os.makedirs(subdir, exist_ok=True)
+
+    if templates:
+        for filename in os.listdir(os.path.join(exec_dir, "resources", "templates")):
+            for subdir in os.listdir(codex_dir_new):
+                if str(subdir)[:-1] in str(filename):
+                    shutil.copy(
+                        os.path.join(exec_dir, "resources", "templates", filename),
+                        os.path.join(codex_dir_new, subdir, filename),
+                    )
+    if tutorial:
+        for filename in os.listdir(os.path.join(exec_dir, "resources", "tutorial")):
+            for subdir in os.listdir(codex_dir_new):
+                if str(subdir)[:-1] in str(filename):
+                    shutil.copy(
+                        os.path.join(exec_dir, "resources", "tutorial", filename),
+                        os.path.join(codex_dir_new, subdir, filename),
+                    )
+
+    directory_tree.DisplayTree(codex_dir_new)
+    print(
+        f"Successfully constructed CODEX directory at location {os.path.realpath(codex_dir_new)}."
+    )
+    return codex_dir_new
+
 
 '''
 def define_training_variables(codex_input):
@@ -289,5 +323,3 @@ def extract_sp_partitioning(
 
     return split_p, split_e, perf_p, perf_e, metric
 '''
-
-

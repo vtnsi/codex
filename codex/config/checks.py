@@ -1,3 +1,5 @@
+import os
+
 MIN_REQ = [
     "mode",
     "codex_dir",
@@ -79,6 +81,7 @@ def initialize_default_optional(codex_input):
             codex_input[field] = OPT_REQ[field]
 
     return codex_input
+
 
 def codex_dir_checks(kwargs):
     try:
