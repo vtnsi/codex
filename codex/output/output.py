@@ -105,7 +105,7 @@ def output_json_readable(
 
 
 def dataset_eval_vis(output_dir, coverage_results):
-    output_dir = create_output_dir(os.path.join(output_dir, "CC"))
+    cc_output_dir = create_output_dir(os.path.join(output_dir, "CC"))
 
     strengths = coverage_results["info"]["t"]
     for t in strengths:
@@ -116,13 +116,14 @@ def dataset_eval_vis(output_dir, coverage_results):
             ),
         )
 
-        plotting.coverage_map("binary", coverage_results, t, output_dir)
-        plotting.coverage_map("frequency", coverage_results, t, output_dir)
-        plotting.coverage_map("proportion_frequency", coverage_results, t, output_dir)
+        plotting.coverage_map("binary", coverage_results, t, cc_output_dir)
+        plotting.coverage_map("frequency", coverage_results, t, cc_output_dir)
+        plotting.coverage_map("proportion_frequency", coverage_results, t, cc_output_dir)
         plotting.coverage_map(
-            "proportion_frequency_standardized", coverage_results, t, output_dir
+            "proportion_frequency_standardized", coverage_results, t, cc_output_dir
         )
 
+    print("reached")
     return output_json_readable(
         coverage_results,
         write_json=True,
@@ -203,6 +204,7 @@ def dataset_split_eval_vis(
         )"""
     plt.close("all")
 
+    print(f"results saved to {output_dir}")
     return output_json_readable(
         coverage_results,
         write_json=True,
@@ -221,6 +223,7 @@ def performance_by_interaction_vis(
 
     strengths = coverage_results["info"]["t"]
     metrics = coverage_results["info"]["metrics"]
+
     for t in strengths:
         for metric in metrics:
             plotting.coverage_map(
@@ -252,6 +255,7 @@ def performance_by_interaction_vis(
                 coverage_subset=coverage_subset,
             )
 
+            #print(coverage_results['results']['performance'])
             plotting.coverage_map(
                 "performance",
                 coverage_results,
@@ -259,6 +263,7 @@ def performance_by_interaction_vis(
                 metric=metric,
                 output_dir=cc_output_dir,
                 coverage_subset=coverage_subset,
+                pi_perf = coverage_results['results']['performance']
             )
 
             """interactions_consolidated = results.consolidated_interaction_info(

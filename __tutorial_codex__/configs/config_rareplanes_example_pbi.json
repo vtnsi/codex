@@ -1,9 +1,9 @@
-{
-    "mode" : "dataset evaluation",
-    
+{    
+    "mode": "",
+
     "codex_dir" : "__tutorial_codex__/",
     "output_dir": "__tutorial_codex__/runs/",
-    "config_id" : "EXAMPLE-de_rareplanes_ref",
+    "config_id" : "EXAMPLE-pbi_rareplanes_ref",
     "dataset_name" : "RarePlanes",
     "model_name" : "",
 
@@ -19,6 +19,12 @@
     "use_augmented_universe": false,
     "counting_mode" : "label_exclusive",
     "t": [1,2,3],
+
+    "split_dir": "splits/",
+    "split_filename": "split_rareplanes_example.json",
+    "performance_dir": "performance/",
+    "performance_filename": "performance_rareplanes_example.json",
+    "metrics": ["precision", "recall"],
 
     "timestamp": false
 }

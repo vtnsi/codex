@@ -15,6 +15,7 @@ def __df_slice_by_id_reorder(
         .reset_index()
         .drop(columns="index")
     )
+    sliced_df.index = sliced_df[sample_id_col]
     return sliced_df
 
 

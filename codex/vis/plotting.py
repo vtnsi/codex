@@ -21,7 +21,7 @@ from scipy.stats import pearsonr
 import logging
 import matplotlib.patches as patches
 
-from output import results
+from output import results, output
 from vis import maps, metrics
 
 # MAIN PLOTTING ENTRY POINTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,6 +35,9 @@ def coverage_map(
     if "direction" in kwargs:
         counts = coverage_results["results"][t]["sdcc counts"]
     else:
+        print(map_var, f"t={t}")
+        output.output_json_readable(coverage_results, print_json=True)
+        print(f"!t={t}", coverage_results["results"][t].keys())
         counts = coverage_results["results"][t]["combination counts"]
     combination_names = coverage_results["results"][t]["combinations"]
 

@@ -1,0 +1,90 @@
+{
+    "test": {
+        "Overall Performance": {
+        "precision": 0.39505,
+        "recall": 0.5313
+        },
+        "Per-Sample Performance": {
+            "2_104001003B4B5900_tile_16": {
+                "precision": 0.229,
+                "recall": 0.974
+            },
+            "67_104001003F0B3200_tile_679": {
+                "precision": 0.973,
+                "recall": 0.514
+            },
+            "69_104005000CDBE200_tile_3164": {
+                "precision": 0.029,
+                "recall": 0.915
+            },
+            "106_10400100290F5300_tile_70": {
+                "precision": 0.442,
+                "recall": 0.895
+            },
+            "56_104001000F345100_tile_136": {
+                "precision": 0.59,
+                "recall": 0.535
+            },
+            "69_104005000CDBE200_tile_3265": {
+                "precision": 0.251,
+                "recall": 0.082
+            },
+            "60_1040010046430200_tile_105": {
+                "precision": 0.032,
+                "recall": 0.669
+            },
+            "66_1040010037570000_tile_63": {
+                "precision": 0.027,
+                "recall": 0.181
+            },
+            "124_104001001F2A5700_tile_212": {
+                "precision": 0.626,
+                "recall": 0.698
+            },
+            "126_104001000C4AEE00_tile_1325": {
+                "precision": 0.165,
+                "recall": 0.05
+            },
+            "96_10400100096C2500_tile_848": {
+                "precision": 0.05,
+                "recall": 0.525
+            },
+            "20_10400100119D4500_tile_208": {
+                "precision": 0.606,
+                "recall": 0.156
+            },
+            "98_104001000B9F7B00_tile_108": {
+                "precision": 0.815,
+                "recall": 0.764
+            },
+            "26_104001002E574100_tile_1604": {
+                "precision": 0.7,
+                "recall": 0.882
+            },
+            "59_104001001DC7F200_tile_627": {
+                "precision": 0.536,
+                "recall": 0.455
+            },
+            "117_104001000F945200_tile_218": {
+                "precision": 0.418,
+                "recall": 0.858
+            },
+            "55_1040010048841900_tile_702": {
+                "precision": 0.818,
+                "recall": 0.174
+            },
+            "96_104001000896F900_tile_394": {
+                "precision": 0.129,
+                "recall": 0.605
+            },
+            "45_1040010044AFF200_tile_24": {
+                "precision": 0.461,
+                "recall": 0.512
+            },
+            "57_10400100379F8200_tile_137": {
+                "precision": 0.004,
+                "recall": 0.182
+            }
+        }
+    }
+}

@@ -24,6 +24,8 @@ def handle_input_file(input) -> dict:
 
 
 def extract_split_simple(codex_input: dict) -> tuple[dict, str]:
+    codex_dir = codex_input['codex_dir']
+
     split_dir = codex_input.get("split_dir", "")
     split_filename = codex_input.get("split_filename")
 
@@ -31,14 +33,16 @@ def extract_split_simple(codex_input: dict) -> tuple[dict, str]:
         split = None
         split_id = None
     else:
-        with open(os.path.realpath(os.path.join(split_dir, split_filename))) as f:
+        with open(os.path.realpath(os.path.join(codex_dir, split_dir, split_filename))) as f:
             split = json.load(f)
-            split_id = split.get("split_id", default="split_filename")
+            split_id = split.get("split_id", "split_filename")
 
     return split, split_id
 
 
 def extract_perf_simple(codex_input: dict) -> tuple[dict, str, list]:
+    codex_dir = codex_input['codex_dir']
+
     perf_dir = codex_input.get("performance_dir", "")
     perf_filename = codex_input.get("performance_filename")
 
@@ -47,10 +51,10 @@ def extract_perf_simple(codex_input: dict) -> tuple[dict, str, list]:
         split_id_perf = None
         metrics = None
     else:
-        with open(os.path.realpath(os.path.join(perf_dir, perf_filename))) as f:
+        with open(os.path.realpath(os.path.join(codex_dir, perf_dir, perf_filename))) as f:
             perf = json.load(f)
-            split_id_perf = perf.get("split_id", default="No split ID provided.")
-            metrics = codex_input.get("metrics", default=[])
+            split_id_perf = perf.get("split_id", "No split ID provided.")
+            metrics = codex_input.get("metrics", [])
 
     return perf, split_id_perf, metrics
 
