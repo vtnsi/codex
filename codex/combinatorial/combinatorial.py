@@ -1219,6 +1219,11 @@ def balanced_test_set(
     baseline_seed=1,
     form_exclusions=None,
 ):
+    if not os.path.exists(os.path.join(output_dir, "splits_by_json")):
+        os.makedirs(os.path.join(output_dir, "splits_by_json"))
+    if not os.path.exists(os.path.join(output_dir, "splits_by_csv")):
+        os.makedirs(os.path.join(output_dir, "splits_by_csv"))
+
     global verbose, labelCentric, identifyImages
     labelCentric = False
     if not os.path.exists(output_dir):
@@ -1521,6 +1526,15 @@ def balanced_test_set(
 
     jsondict["test"] = test
     jsondict["train_pool"] = trainpool
+
+    # Per split JSON
+    for k in jsondict.keys():
+        if "model_" in k:
+            output.output_json_readable(
+                jsondict[k],
+                write_json=True,
+                file_path=os.path.join(output_dir, "splits_by_json", k + ".json"),
+            )
 
     return jsondict
 
@@ -1826,7 +1840,7 @@ def performanceByInteraction_main(
         pbi_results[t] = cc_dict(CC)
         pbi_results[t]["combinations"] = train_ranks
         pbi_results[t]["combination counts"] = CC["countsAllCombinations"]
-        
+
         pbi_results[t]["missing interactions"] = decodedMissing
 
         pbi_results["performance"] = perf
@@ -1834,7 +1848,7 @@ def performanceByInteraction_main(
             data_test, CC, perf
         )
 
-        return pbi_results
+    return pbi_results
 
 
 def performance_by_frequency_coverage_main(

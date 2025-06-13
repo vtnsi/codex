@@ -1,6 +1,6 @@
 import os
 
-from config import checks, config, splitperf
+from inputs import checks, config, splitperf
 from universe import universing, dataset
 from combinatorial import combinatorial
 from output import output, results
@@ -42,8 +42,8 @@ class CODEX:
         self.universe, self.dataset_df = universing.define_input_space(codex_input)
 
         # Variables requiring extraction, mode-dependent
-        self.split, self.split_id = config.extract_split_simple(codex_input)
-        self.performance, self.split_id_perf, self.metrics = config.extract_perf_simple(
+        self.split, self.split_id = splitperf.extract_split_simple(codex_input)
+        self.performance, self.split_id_perf, self.metrics = splitperf.extract_perf_simple(
             codex_input
         )
 
@@ -156,10 +156,7 @@ class CODEX:
         return coverage_results_formatted
 
     def performance_by_interaction(
-        self,
-        coverage_subset="train",
-        display_n=10,
-        order="ascending descending"
+        self, coverage_subset="train", display_n=10, order="ascending descending"
     ):
         # SORT, THEN RESET INDEX AND DROP
         train_df, val_df, test_df = dataset.df_slice_by_split_reorder(
@@ -179,9 +176,8 @@ class CODEX:
             self.universe,
             split_id=self.split_id,
             mode="performance by interaction",
-
             metrics=self.metrics,
-            coverage_subset=coverage_subset
+            coverage_subset=coverage_subset,
         )
         coverage_results["info"]["Overall Performance"] = self.performance["test"].get(
             "Overall Performance",
@@ -229,25 +225,10 @@ class CODEX:
     def balanced_test_set_construction(
         self,
         include_baseline=True,
-        shuffle=False,
         adjusted_size=None,
         form_exclusions=False,
     ):
-        """
-        Runs test set post optimization in order to construct as balanced a test set as possible
-        balancing appearance of various interactions. (???)
-
-        Parameters
-        - input: dict
-            Read from the input file containing experiment requirements, pathing, info.
-        - test_set_size_goal: int
-            The desired number of samples for each balanced test set.
-
-        Returns:
-        - result: dict
-            Coverage results on the overall dataset as well as split designations for each withheld
-            interaction resulting from post-test set optimzation
-        """
+        """ """
 
         coverage_results = results.stock_results_empty(
             self.dataset_name,
@@ -256,52 +237,22 @@ class CODEX:
             self.universe,
             split_id=self.split_id,
             mode="balanced test construction",
+            test_set_size_goal=self.test_set_size_goal,
         )
 
-        if shuffle:
-            dataset_df_used = self.dataset_df.sample(len(self.dataset_df))
-        else:
-            dataset_df_used = self.dataset_df
+        dataset_df = self.dataset_df.sample(len(self.dataset_df))
 
-        if adjusted_size is None:
-            coverage_results["results"] = combinatorial.balanced_test_set(
-                dataset_df_used,
-                self.dataset_name,
-                self.sample_id_col,
-                self.universe,
-                self.strengths,
-                self.test_set_size_goal,
-                self.output_dir,
-                include_baseline=include_baseline,
-                form_exclusions=form_exclusions,
-            )
-        else:
-            coverage_results = combinatorial.balanced_test_set(
-                dataset_df_used,
-                self.dataset_name,
-                self.sample_id_col,
-                self.universe,
-                self.strengths,
-                adjusted_size,
-                self.output_dir,
-                include_baseline=include_baseline,
-                form_exclusions=form_exclusions,
-            )
-
-        if not os.path.exists(os.path.join(self.output_dir, "splits_by_json")):
-            os.makedirs(os.path.join(self.output_dir, "splits_by_json"))
-        if not os.path.exists(os.path.join(self.output_dir, "splits_by_csv")):
-            os.makedirs(os.path.join(self.output_dir, "splits_by_csv"))
-
-        for k in coverage_results["results"].keys():
-            if "model_" in k:
-                output.output_json_readable(
-                    coverage_results["results"][k],
-                    write_json=True,
-                    file_path=os.path.join(
-                        self.output_dir, "splits_by_json", k + ".json"
-                    ),
-                )
+        coverage_results["results"] = combinatorial.balanced_test_set(
+            dataset_df,
+            self.dataset_name,
+            self.sample_id_col,
+            self.universe,
+            self.strengths,
+            self.test_set_size_goal,
+            self.output_dir,
+            include_baseline=include_baseline,
+            form_exclusions=form_exclusions,
+        )
 
         output.output_json_readable(
             coverage_results,
@@ -310,10 +261,14 @@ class CODEX:
         )
 
         return coverage_results
-    
+
     # ~~~~~~~~~~~~~~~~~~~ Dependent modes ~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def dataset_split_comparison(
-        codex_input: dict, split_multiple: dict, performance_multiple: dict, metric: str
+        self,
+        codex_input: dict,
+        split_multiple: dict,
+        performance_multiple: dict,
+        metric: str,
     ):
         """
         Dataset split comparison compares SDCC values from multiple splits
@@ -341,32 +296,28 @@ class CODEX:
         sdcc_direction: str
             Direction of the set difference between the target and source datasets.
         """
-        checks.checks_generic(codex_input)
-        checks.checks_split(codex_input)
-        checks.checks_perf(codex_input)
-
-        dataset_name, model_name = config.extract_names(codex_input)
-        output_dir, strengths = config.define_experiment_variables(codex_input)
-        universe, dataset_df = universing.define_input_space(codex_input)
-
         split_ids = [split_multiple[split]["split_id"] for split in split_multiple]
         coverage_results = results.stock_results_empty(
-            codex_input, dataset_name, model_name, universe, split_id=split_ids
+            codex_input,
+            self.dataset_name,
+            self.model_name,
+            self.universe,
+            split_id=split_ids,
         )
         for split_file in split_multiple:
             split_id = split_multiple[split_file]["split_id"]
-            coverage_results[split_id] = dataset_split_evaluation(
+            coverage_results[split_id] = self.dataset_split_evaluation(
                 input, split_multiple[split_file], comparison=True
             )
         if performance_multiple is None:
             return coverage_results
 
         coverage_results = output.dataset_split_comp_vis(
-            output_dir,
-            dataset_name,
+            self.output_dir,
+            self.dataset_name,
             coverage_results,
             performance_multiple,
-            strengths,
+            self.strengths,
             metric,
             split_ids=split_ids,
         )
@@ -499,7 +450,9 @@ class CODEX:
             with open(os.path.join(output_dir, "coverage.json")) as f:
                 result = json.load(f)
         SIE_splits = {
-            key.split("model")[-1]: result[key] for key in result.keys() if "model" in key
+            key.split("model")[-1]: result[key]
+            for key in result.keys()
+            if "model" in key
         }
         SIE_ids = list(SIE_splits.keys())
         print(SIE_ids)
@@ -524,7 +477,11 @@ class CODEX:
         score = True
         if score:
             sie_ml.evaluate(
-                SIE_splits, data_dir, dataset_dir_YOLO, training_dir, config_dir=output_dir
+                SIE_splits,
+                data_dir,
+                dataset_dir_YOLO,
+                training_dir,
+                config_dir=output_dir,
             )
         table_filename = ""
         analyze = True
@@ -565,17 +522,13 @@ class CODEX:
                 results = output.SIE_regression_test_vis(
                     output_dir, model_summary, contrasts_summary, contrast_names
                 )
-            
+
             return SIE_splits, results
 
         return SIE_splits, None
 
-
     def systematic_inclusion_exclusion_binomial_linreg(codex_input, table_filename):
-        
-
         return results
-
 
     def performance_by_frequency_coverage(
         codex_input, skew_levels: list, test_set_size_goal=250

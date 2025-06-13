@@ -118,7 +118,9 @@ def dataset_eval_vis(output_dir, coverage_results):
 
         plotting.coverage_map("binary", coverage_results, t, cc_output_dir)
         plotting.coverage_map("frequency", coverage_results, t, cc_output_dir)
-        plotting.coverage_map("proportion_frequency", coverage_results, t, cc_output_dir)
+        plotting.coverage_map(
+            "proportion_frequency", coverage_results, t, cc_output_dir
+        )
         plotting.coverage_map(
             "proportion_frequency_standardized", coverage_results, t, cc_output_dir
         )
@@ -255,7 +257,7 @@ def performance_by_interaction_vis(
                 coverage_subset=coverage_subset,
             )
 
-            #print(coverage_results['results']['performance'])
+            # print(coverage_results['results']['performance'])
             plotting.coverage_map(
                 "performance",
                 coverage_results,
@@ -263,7 +265,7 @@ def performance_by_interaction_vis(
                 metric=metric,
                 output_dir=cc_output_dir,
                 coverage_subset=coverage_subset,
-                pi_perf = coverage_results['results']['performance']
+                pi_perf=coverage_results["results"]["performance"],
             )
 
             """interactions_consolidated = results.consolidated_interaction_info(

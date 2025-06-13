@@ -82,7 +82,7 @@ def map_info_data(map_var, counts, kwargs):
                         interaction appearing in the dataset.
                     """
                     perf = kwargs["pi_perf"]
-                    square[row][col] = perf[kwargs['metric']][row][col]
+                    square[row][col] = perf[kwargs["metric"]][row][col]
                 elif map_var == "sdcc_binary_constraints":
                     """
                         Takes in a list of lists that represents interaction coverage produces 

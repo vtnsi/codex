@@ -70,7 +70,7 @@ def add_noise_feature(df_dir, high, low, filename=None, save=True):
     return df
 
 
-def display_continuous_diagnostics(df: pd.DataFrame, feature_list):
+def display_continuous_variables(df: pd.DataFrame, feature_list):
     results_dict = {}
     for feature in feature_list:
         feature_col = df[feature]

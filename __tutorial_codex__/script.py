@@ -4,6 +4,7 @@ import json
 import numpy as np
 import random
 
+
 def output_json_readable(
     json_obj: dict,
     print_json=False,
@@ -34,25 +35,37 @@ def output_json_readable(
 
     return json_obj
 
-with open('splits/split_rareplanes_example.json') as s:
+
+with open("splits/split_rareplanes_example.json") as s:
     split = json.load(s)
 
 
-test_ids = split['test']
+test_ids = split["test"]
 
 perf = {
-    'Overall Performance': {
-
-    },
-    'Per Sample Performance': {
+    "Overall Performance": {},
+    "Per Sample Performance": {
         test_id: {
-            'precision': round(random.random(), 3),
-            'recall': round(random.random(), 3)
-        } for test_id in test_ids
-    }
+            "precision": round(random.random(), 3),
+            "recall": round(random.random(), 3),
+        }
+        for test_id in test_ids
+    },
 }
 
-perf['Overall Performance']['precision'] = np.mean([perf['Per Sample Performance'][test_id]['precision'] for test_id in perf['Per Sample Performance']])
-perf['Overall Performance']['recall'] = np.mean([perf['Per Sample Performance'][test_id]['recall'] for test_id in perf['Per Sample Performance']])
+perf["Overall Performance"]["precision"] = np.mean(
+    [
+        perf["Per Sample Performance"][test_id]["precision"]
+        for test_id in perf["Per Sample Performance"]
+    ]
+)
+perf["Overall Performance"]["recall"] = np.mean(
+    [
+        perf["Per Sample Performance"][test_id]["recall"]
+        for test_id in perf["Per Sample Performance"]
+    ]
+)
 
-output_json_readable(perf, write_json=True, file_path='performance/performance_rareplanes_example.json')
+output_json_readable(
+    perf, write_json=True, file_path="performance/performance_rareplanes_example.json"
+)
