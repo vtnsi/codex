@@ -165,3 +165,6 @@ cython_debug/
 */runs/*
 archive/
 __tutorial_legacy__/runs/
+.ruff_cache
+
+# General

@@ -42,7 +42,7 @@ def save_plots(output_dir, file_basename, svg=False):
         )
 
 
-def map_info_data(map_var, counts, **kwargs):
+def map_info_data(map_var, counts, kwargs):
     boxsize = max(len(x) for x in counts)
     square = np.full([len(counts), boxsize], dtype=float, fill_value=-1)
 
@@ -82,7 +82,7 @@ def map_info_data(map_var, counts, **kwargs):
                         interaction appearing in the dataset.
                     """
                     perf = kwargs["pi_perf"]
-                    square[row][col] = perf[row][col]
+                    square[row][col] = perf[kwargs["metric"]][row][col]
                 elif map_var == "sdcc_binary_constraints":
                     """
                         Takes in a list of lists that represents interaction coverage produces 
@@ -164,7 +164,7 @@ def map_info_txtl(map_var, coverage_results, t, coverage_subset, kwargs):
     return title, file_basename
 
 
-def map_info_var(map_var, **kwargs):
+def map_info_var(map_var, kwargs):
     if map_var == "binary":
         vmin = 0
         vmax = 1

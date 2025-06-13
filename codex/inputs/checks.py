@@ -1,3 +1,5 @@
+import os
+
 MIN_REQ = [
     "mode",
     "codex_dir",
@@ -79,3 +81,42 @@ def initialize_default_optional(codex_input):
             codex_input[field] = OPT_REQ[field]
 
     return codex_input
+
+
+def codex_dir_checks(kwargs):
+    try:
+        # requd
+        new_dirname = kwargs["name"]
+    except:
+        raise KeyError(
+            "In creating a new CODEX directory; requires <name of CODEX directory>."
+        )
+    try:
+        # not required
+        new_parent_dirname = kwargs["parent_dir"]
+    except KeyError:
+        new_parent_dirname = os.path.dirname(os.path.realpath("."))
+        print(
+            f"Field <parent_dir> was unspecified. Creating new CODEX directory parent directory, {new_parent_dirname}."
+        )
+
+    new_parent_dirname = os.path.realpath(new_parent_dirname)
+
+    try:
+        assertpath = os.path.realpath(os.path.join(os.getcwd(), new_parent_dirname))
+        assert os.path.exists(assertpath)
+    except AssertionError:
+        raise FileNotFoundError(
+            f"Creating template CODEX directory failed. Folder {assertpath} does not exist."
+        )
+
+    try:
+        include_templates = str.lower(kwargs["include_templates"]) == "true"
+    except KeyError:
+        include_templates = False
+    try:
+        include_tutorial = str.lower(kwargs["include_examples"]) == "true"
+    except KeyError:
+        include_tutorial = False
+
+    return new_dirname, new_parent_dirname, include_templates, include_tutorial

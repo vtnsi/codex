@@ -20,5 +20,7 @@
     "counting_mode" : "label_exclusive",
     "t": [1,2,3],
 
-    "timestamp": false
+    "timestamp": false,
+
+    "test_set_size_goal": 1
 }

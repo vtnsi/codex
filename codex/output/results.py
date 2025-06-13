@@ -2,7 +2,24 @@ import numpy as np
 import copy
 
 
-def stock_results_empty(codex_input, universe, **kwargs):
+def stock_results_empty(dataset_name, model_name, strengths, universe, **kwargs):
+    coverage_results = {
+        "info": {
+            "dataset_name": dataset_name,
+            "model_name": model_name,
+            "t": strengths,
+        },
+        "universe": universe,
+        "results": {},
+    }
+
+    for kwarg in kwargs:
+        coverage_results["info"][kwarg] = kwargs[kwarg]
+
+    return coverage_results
+
+
+def stock_results_empty_fromdict(codex_input, universe, **kwargs):
     coverage_results = {
         "info": {
             "dataset_name": codex_input["dataset_name"],

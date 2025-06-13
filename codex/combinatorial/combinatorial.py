@@ -81,7 +81,8 @@ def encoding(DF, mMap, createData):
             # now go through all of the rows for that column and replace with the mapped value
             for row in range(0, len(data)):
                 # look up index for val and store the index in the data lists
-                data[row][col] = values[col].index(column[row])
+                # Deprecated June 12 2025: data[row][col] = values[col].index(column[row])
+                data[row][col] = values[col].index(column.iloc[row])
     return Mapping(features, values, data)
 
 
@@ -1218,6 +1219,11 @@ def balanced_test_set(
     baseline_seed=1,
     form_exclusions=None,
 ):
+    if not os.path.exists(os.path.join(output_dir, "splits_by_json")):
+        os.makedirs(os.path.join(output_dir, "splits_by_json"))
+    if not os.path.exists(os.path.join(output_dir, "splits_by_csv")):
+        os.makedirs(os.path.join(output_dir, "splits_by_csv"))
+
     global verbose, labelCentric, identifyImages
     labelCentric = False
     if not os.path.exists(output_dir):
@@ -1521,6 +1527,15 @@ def balanced_test_set(
     jsondict["test"] = test
     jsondict["train_pool"] = trainpool
 
+    # Per split JSON
+    for k in jsondict.keys():
+        if "model_" in k:
+            output.output_json_readable(
+                jsondict[k],
+                write_json=True,
+                file_path=os.path.join(output_dir, "splits_by_json", k + ".json"),
+            )
+
     return jsondict
 
     # -------------------- Compute Performance By Interaction --------------------#
@@ -1754,16 +1769,15 @@ def decodePerformanceGroupedCombination(data, cc, perf):
 
 
 def performanceByInteraction_main(
-    test_dataDF: pd.DataFrame,
     train_dataDF: pd.DataFrame,
+    test_dataDF: pd.DataFrame,
     performanceDF: pd.DataFrame,
     name,
     universe,
     strengths,
     output_dir,
     metrics,
-    sample_id,
-    coverage_subset,
+    coverage_subset=None,
 ):
     """
     Main entry point for computing performance by interaction on a test set and combinatorial
@@ -1773,18 +1787,18 @@ def performanceByInteraction_main(
     labelCentric = False
     mMap = Mapping(universe["features"], universe["levels"], None)
 
-    data = encoding(test_dataDF, mMap, True)
+    data_test = encoding(test_dataDF, mMap, True)
     data_train = encoding(train_dataDF, mMap, True)
 
     LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
-    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data), level=15)
+    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data_test), level=15)
 
-    if performanceDF.index.values.tolist() != test_dataDF[sample_id].tolist():
+    if performanceDF.index.values.tolist() != test_dataDF.index.values.tolist():
         raise KeyError(
             "IDs in performance file do not match IDs in test set of split file"
         )
 
-    k = len(data.features)
+    k = len(data_test.features)
     pbi_results = {t: {} for t in strengths}
     for t in strengths:
         if t > k:
@@ -1794,7 +1808,7 @@ def performanceByInteraction_main(
 
         # computes CC for one dataset as well as the performance
         CC_test, perf = computePerformanceByInteraction(
-            data, t, performanceDF=performanceDF
+            data_test, t, performanceDF=performanceDF
         )
         CC_train = combinatorialCoverage(data_train, t)
 
@@ -1812,27 +1826,29 @@ def performanceByInteraction_main(
         LOGGER_COMBI.log(level=15, msg="CC over train: {}".format(CC))
 
         decodedMissing = decodeMissingInteractions(
-            data, computeMissingInteractions(data, CC)
+            data_test, computeMissingInteractions(data_test, CC)
         )
         # create t file with results for this t -- CC and missing interactions list
 
         output.writeCCtToFile(output_dir, name, t, CC)
         output.writeMissingtoFile(output_dir, name, t, decodedMissing)
 
+        train_ranks = decodeCombinations(data_train, CC, t)
+        test_ranks = decodeCombinations(data_test, CC, t)
+        assert test_ranks == train_ranks
+
         pbi_results[t] = cc_dict(CC)
+        pbi_results[t]["combinations"] = train_ranks
+        pbi_results[t]["combination counts"] = CC["countsAllCombinations"]
+
+        pbi_results[t]["missing interactions"] = decodedMissing
+
         pbi_results["performance"] = perf
         pbi_results["human readable performance"] = decodePerformanceGroupedCombination(
-            data, CC, perf
+            data_test, CC, perf
         )
-        test_ranks = decodeCombinations(data_train, CC, t)
-        ranks = decodeCombinations(data_train, CC, t)
-        pbi_results["missing interactions"] = decodedMissing
-        pbi_results["combinations"] = ranks
-        pbi_results["combination counts"] = CC["countsAllCombinations"]
-        assert test_ranks == ranks
 
-        pbi_results["coverage subset"] = coverage_subset
-        return pbi_results
+    return pbi_results
 
 
 def performance_by_frequency_coverage_main(

@@ -15,6 +15,7 @@ def __df_slice_by_id_reorder(
         .reset_index()
         .drop(columns="index")
     )
+    sliced_df.index = sliced_df[sample_id_col]
     return sliced_df
 
 
@@ -69,7 +70,7 @@ def add_noise_feature(df_dir, high, low, filename=None, save=True):
     return df
 
 
-def display_continuous_diagnostics(df: pd.DataFrame, feature_list):
+def display_continuous_variables(df: pd.DataFrame, feature_list):
     results_dict = {}
     for feature in feature_list:
         feature_col = df[feature]
