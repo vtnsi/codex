@@ -7,8 +7,13 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   codex.modules
+   codex.combinatorial
+   codex.inputs
+   codex.modes
+   codex.output
+   codex.universe
    codex.utils
+   codex.vis
 
 Submodules
 ----------
@@ -17,6 +22,22 @@ codex.codex module
 ------------------
 
 .. automodule:: codex.codex
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+codex.setup module
+------------------
+
+.. automodule:: codex.setup
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+codex.test\_cod module
+----------------------
+
+.. automodule:: codex.test_cod
    :members:
    :undoc-members:
    :show-inheritance:
