@@ -74,7 +74,7 @@ def intialize_logger(logger_name, levelnum, filename):
 
 
 def output_json_readable(
-    json_obj: dict,
+    json_obj: dict | str,
     print_json=False,
     write_json=False,
     file_path="",
@@ -84,6 +84,10 @@ def output_json_readable(
     """
     Formats JSON object to human-readable format with print/save options.
     """
+    if type(json_obj) is str:
+        with open(file_path) as f:
+            json_obj = json.load(json_str)
+
     if truncate_lists:
         for key in json_obj:
             if type(json_obj[key]) is list:

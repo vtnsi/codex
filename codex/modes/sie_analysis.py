@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 
 
@@ -28,8 +27,7 @@ def box_plot_SIE(df):
         ]["Precision"].tolist()
         for feature in excluded_features
     }
-    print(perf_in)
-    print(perf_ex)
+
     in_p = [perf_in[feature] for feature in perf_in]
     ex_p = [perf_ex[feature] for feature in perf_ex]
 

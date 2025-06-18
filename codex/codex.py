@@ -22,6 +22,7 @@ class CODEX:
         checks.input_checks(codex_input)
 
         # Variables direct access
+        self.config_id = codex_input["config_id"]
         self.strengths = codex_input["t"]
         self.sample_id_col = codex_input["sample_id_column"]
 
@@ -43,9 +44,11 @@ class CODEX:
 
         # Variables requiring extraction, mode-dependent
         self.split, self.split_id = splitperf.extract_split_simple(codex_input)
-        self.performance, self.split_id_perf, self.metrics = splitperf.extract_perf_simple(
-            codex_input
+        self.performance, self.split_id_perf, self.metrics = (
+            splitperf.extract_perf_simple(codex_input)
         )
+
+        self.split_dir = ""
 
         return True
 
@@ -395,60 +398,20 @@ class CODEX:
         return result
 
     def systematic_inclusion_exclusion(
-        codex_input, test_set_size_goal, training_params=None
+        self,
+        model,
+        training_params,
+        test_set_size_goal,  # codex_input, test_set_size_goal, training_params=None
     ):
-        output_dir, strengths = config.define_experiment_variables(codex_input)
-
-        data_dir = codex_input["original_data_directory"]
-        dataset_dir_YOLO = codex_input["dataset_directory"]
-        training_dir = codex_input["training_directory"]
-        if dataset_dir_YOLO == "":
-            if not os.path.exists(os.path.join(output_dir, "datasets")):
-                os.makedirs(os.path.join(output_dir, "datasets"))
-            dataset_dir_YOLO = os.path.join(output_dir, "datasets")
-
-        result = None
-
-        if os.path.exists(os.path.join(output_dir, "coverage.json")):
-            overwrite_splits = (
-                input(
-                    "Balanced test set splits already found for {}. Overwrite splits? (y/n): ".format(
-                        output_dir
-                    )
-                )
-                == "y"
-            )
-            if overwrite_splits:
-                shutil.rmtree(output_dir)
-                result = balanced_test_set_construction(codex_input, test_set_size_goal)
+        sie_split_dir = os.path.join(self.split_dir, f"sie-{self.config_id}")
+        if not os.path.exists(sie_split_dir):
+            os.makedirs(sie_split_dir)
+            sets = self.balanced_test_set_construction()["results"]
         else:
-            result = balanced_test_set_construction(codex_input)
-
-        with open(os.path.join(output_dir, "coverage.json")) as f:
-            result = json.load(f)
-
-        n_t = result["universal_test_set_size"]
-        n_g = codex_input["test set size goal"]
-        proceed_wsize = (
-            input(
-                "Assembled a test set of {} samples compared to goal of {}. Proceed? (y/n): ".format(
-                    n_t, n_g
-                )
-            )
-            == "y"
-        )
-        if not proceed_wsize:
-            adjusted_size = input("New test set goal (int): ")
-            result = balanced_test_set_construction(
-                codex_input, adjusted_size=adjusted_size
+            sets = output.output_json_readable(
+                os.path.join(sie_split_dir, "coverage.json")
             )
 
-        with open(os.path.join(output_dir, "coverage.json")) as f:
-            result = json.load(f)
-
-        if result is None:
-            with open(os.path.join(output_dir, "coverage.json")) as f:
-                result = json.load(f)
         SIE_splits = {
             key.split("model")[-1]: result[key]
             for key in result.keys()

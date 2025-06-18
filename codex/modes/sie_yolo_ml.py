@@ -1,19 +1,14 @@
-from ..src import output
+from output import output
+
 import torchvision
 import torch
-from collections import OrderedDict
 import cv2
-import copy
 import glob
 import json
-import sys
 import os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from tqdm import tqdm
-
-from multiprocessing import Process, Pool
 
 from ultralytics import YOLO
 from ultralytics.utils.plotting import plt_color_scatter
@@ -23,8 +18,6 @@ import typing_extensions
 import importlib
 
 importlib.reload(typing_extensions)
-"""print("PyTorch ver: ", torch.__version__)
-print("TorchVision ver: ", torchvision.__version__)"""
 
 
 def __write_yml_cls(wf):

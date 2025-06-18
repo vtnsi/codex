@@ -10,152 +10,457 @@ import math
 import numpy as np
 import pandas as pd
 import json
-from scipy.special import comb
 import copy
 import logging
+from scipy.special import comb
 
+import combinatorial.abstraction as abstraction
+from combinatorial.abstraction import Mapping
 from output import output
 from modes import pbfc_biasing as biasing, pbfc_data
 
 # -------------------- Global Variables               --------------------#
-labelCentric = False
+label_centric = False
+abstraction.label_centric = label_centric
+
 verbose = False
-id = None
 identifyImages = False
 
 LOGGER_COMBI = logging.getLogger(__name__)
 
-# --- Functions for Encoding/Decoding To/From Combinatorial Abstraction ----#
-
-
-# object that represents a mapping between the problem instance as tab delimited text file of metadata and labels
-# and the abstraction over which the combinatorial code runs
-# features is a list of the column headers (metadata features), indexed by column order
-# values is a list of lists, one list per column indexed by column order, sublists are values that feature can have
-# indexed by order of appearance. Assumes binning already done.
-# data is list of lists, one list per non-column header row of the input file in numerical values (abstraction)
-class Mapping:
-    def __init__(self, features, values, data):
-        self.features = features
-        self.values = values
-        self.data = data
-
-    def __repr__(self):
-        representation = (
-            str(self.features) + ", " + str(self.values) + ", " + str(self.data)
-        )
-        return representation
-
-
-# takes in a dataframe DF, maybe a map
-# if a mapping provided as argument, creates a binding the features and values, appends to the values any new values
-# produces the mapping of actual values in the problem instance to abstraction (numerical values)
-# stores as an object of the Mapping class
-# multiple file versions assume that both files have exactly the same features and in the same order
-# todo add check code to break assumption, matches on feature name instead of placement
-def encoding(DF, mMap, createData):
-    if mMap != None:
-        features = (
-            mMap.features
-        )  # create a binding from input features to this file's features
-        values = (
-            mMap.values
-        )  # create a binding from input values to this file's features
-    else:
-        # save the column headers as a list
-        features = copy.deepcopy(DF.schema.names)
-        # don't use id column as a feature
-        if features[0].find(id) > -1:
-            features.pop(0)
-        values = [[] for col in range(0, len(features))]
-    # if createData set to True, produces the data structure as well
-    # set to false to just create the feature and value mapping
-    # initalize data to have the same number of rows as DF and same number of non-ID features
-    data = None
-    if createData:
-        rows = len(DF.index)  # DF.count()
-        cols = len(features)
-        data = np.zeros(shape=(rows, cols), dtype=np.uint8, order="C")
-        for col in range(0, cols):
-            column = DF[features[col]]  # .topd()[features[col]]
-            # now go through all of the rows for that column and replace with the mapped value
-            for row in range(0, len(data)):
-                # look up index for val and store the index in the data lists
-                # Deprecated June 12 2025: data[row][col] = values[col].index(column[row])
-                data[row][col] = values[col].index(column.iloc[row])
-    return Mapping(features, values, data)
-
-
-# takes a pair of column, value from abstraction and the map object
-# returns metadata feature name and value name from map (maps back to original value)
-def decoding(representation, col, val):
-    return representation.features[col], representation.values[col][val]
-
-
-def decodingCombo(representation, col, val):
-    return representation.features[col]
-
-
-# takes a rank, size, and an int array of that size and fills in the t set of columns
-# corresponding to that rank in colexicographic order into the set
-
-
-def rankToTuple(set, rank, size):
-    if size == 0:  # base case
-        return set
-    m = size - 1
-    while comb(m + 1, size, exact=True) <= rank:
-        m += 1
-    newRank = rank - comb(m, size, exact=True)
-    # recursive call, returns set populated with later values
-    set = rankToTuple(set, newRank, size - 1)
-    # was set[size-1] = m, inserting each element before what was entered on last recursive loop
-    set.append(m)
-    return set
-
-
-# converts a combination from a tuple to a value in mixed radix to use as an index into lists of counts
-# this method chosen hopefully for speed improvements later; treating list as an array as it's an ordered data structure
-# e.g. if t=3, cell values are c1 c2 c3, number of values for the columns are v1 v2 v3
-# combinationIndex = c1*1 + c2*v1 + c3*v1*v2
-# multiplier keeps tacking on the last level seen
-def convertValueComboToIndex(representation, set, row):
-    index = 0
-    multiplier = 1
-    for col in range(0, len(set)):
-        index += representation.data[row][set[col]] * multiplier
-        # print(representation.values[set[col]])
-        multiplier *= len(representation.values[set[col]])
-    return index
-
-
-# takes in an index corresponding to an interaction and produces the set of symbols
-# need to know the rank and the index to produce the values
-# index is a mixed radix value of the symbols
-# column tuple is the set of t columns computed from the rank
-# this function is doing the reverse of convertValueComboToIndex
-# e.g. if t=3, cell values are c1 c2 c3, number of values for the columns are v1 v2 v3
-# combinationIndex = c1*1 + c2*v1 + c3*v1*v2
-# determine the divisor for the last position of the tset then works backwards
-def convertIndexToValueCombo(representation, index, set, t):
-    values = [0 for index in range(0, t)]
-    divisor = 1
-    for pos in range(0, t):
-        # set[pos] returns the column in position pos of the set
-        # len(representation.values[set[pos]]) gives the number of values for that column
-        divisor *= len(representation.values[set[pos]])
-    # starting at the last position, t-1, and moving to position 0 of the tset
-    # update the divisor (done first instead of last so not to divide by invalid memory)
-    # compute the quotient (symbol at that position) and remainder (value to carry, stored in index)
-    for pos in range(t - 1, -1, -1):
-        divisor /= len(representation.values[set[pos]])
-        # integer division gets the quotient
-        values[pos] = int(index // divisor)
-        index = index % divisor  # gets the remainder
-    return values
-
 
 # -------------------- Functions Compute Coverage     -------------------- #
+
+
+# main entry point for computing CC on one file
+# expects name for labeling on plots
+def CC_main(dataset_df, dataset_name, universe, strengths, output_dir):
+    """
+    Main entry point to computing combinatorial coverage over data.
+    """
+
+    global verbose, label_centric, identifyImages
+    label_centric = False
+    mMap = Mapping(universe["features"], universe["levels"], None)
+    data = abstraction.encoding(dataset_df, mMap, True)
+
+    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
+    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data), level=15)
+
+    k = len(data.features)
+
+    cc_results = {t: {} for t in strengths}
+    for t in strengths:
+        if t > k:
+            print("t =", t, " cannot be greater than number of features k =", k)
+            # return
+            continue
+
+        # computes CC for one dataset
+        CC = combinatorialCoverage(data, t)
+
+        LOGGER_COMBI.log(msg="CC:{}".format(CC), level=15)
+
+        counts = CC["countsAllCombinations"]
+        ranks = decodeCombinations(data, CC, t)
+
+        decodedMissing = abstraction.decode_missing_interactions(
+            data, computeMissingInteractions(data, CC)
+        )
+        # create t file with results for this t -- CC and missing interactions list
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        if not os.path.exists(os.path.join(output_dir, "CC")):
+            os.makedirs(os.path.join(output_dir, "CC"))
+
+        ranks = decodeCombinations(data, CC, t)
+        output.writeCCtToFile(output_dir, dataset_name, t, CC)
+        output.writeMissingtoFile(output_dir, dataset_name, t, decodedMissing)
+
+        cc_results[t] = cc_dict(CC)
+        cc_results[t]["combinations"] = ranks
+        cc_results[t]["combination counts"] = counts
+        cc_results[t]["missing interactions"] = decodedMissing
+
+    return cc_results
+
+
+# main entry point for computing SDCC on two files
+# expects sourceName for labeling on plots and sourceFile as file name of binned csv file
+# and same for target
+
+
+# (path, sourceName, sourceFile, targetName, targetFile, metadata, t):
+def SDCC_main(
+    sourceDF,
+    sourceName,
+    targetDF,
+    targetName,
+    dataset_name,
+    universe,
+    strengths,
+    output_dir,
+    comparison_mode,
+    split_id,
+):
+    """
+    Main entry point to computing set difference combinatorial coverage between two
+    datasets. Set difference meaning, that which is appearing in a target dataset
+    that does not exist in a source dataset.
+    """
+    global verbose, label_centric, identifyImages
+
+    mMap = Mapping(universe["features"], universe["levels"], None)
+    source_data = abstraction.encoding(sourceDF, mMap, True)
+    target = abstraction.encoding(targetDF, mMap, True)
+
+    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
+    LOGGER_COMBI.log(
+        msg="'Source' data representation:\n{}".format(source_data), level=15
+    )
+    LOGGER_COMBI.log(msg="'Target' data representation:\n{}".format(target), level=15)
+
+    k = len(source_data.features)
+
+    setdif_name = f"{targetName}-{sourceName}"
+    setdif_name_reversed = f"{sourceName}-{targetName}"
+
+    sdcc_results = {
+        sourceName: {"results": {}},
+        targetName: {"results": {}},
+        setdif_name: {"results": {}},
+        setdif_name_reversed: {"results": {}},
+    }
+
+    for t in strengths:
+        if t > k:
+            print("t =", t, " cannot be greater than number of features k =", k)
+            # return
+            continue
+
+        sourceCC = combinatorialCoverage(source_data, t)
+        targetCC = combinatorialCoverage(target, t)
+
+        LOGGER_COMBI.log(msg="Source CC:\n".format(sourceCC), level=15)
+        LOGGER_COMBI.log(msg="Target CC:\n".format(targetCC), level=15)
+
+        if comparison_mode:
+            output_dir = output.create_output_dir(os.path.join(output_dir, split_id))
+        else:
+            output_dir = output.create_output_dir(output_dir)
+
+        source_ranks = decodeCombinations(source_data, sourceCC, t)
+        target_ranks = decodeCombinations(target, targetCC, t)
+        assert source_ranks == target_ranks
+
+        sourceDecodedMissing = abstraction.decode_missing_interactions(
+            source_data, computeMissingInteractions(source_data, sourceCC)
+        )
+        targetDecodedMissing = abstraction.decode_missing_interactions(
+            target, computeMissingInteractions(target, targetCC)
+        )
+
+        # compute set difference target \ source
+        SDCCconstraints = setDifferenceCombinatorialCoverageConstraints(
+            sourceCC, targetCC
+        )
+        output.writeSDCCtToFile(output_dir, sourceName, targetName, t, SDCCconstraints)
+        setDifferenceInteractions = computeSetDifferenceInteractions(
+            target, SDCCconstraints
+        )
+        decodedSetDifferenceInteractions = (
+            abstraction.decode_set_difference_interactions(
+                target, setDifferenceInteractions
+            )
+        )
+        output.writeSetDifferencetoFile(
+            output_dir, sourceName, targetName, t, decodedSetDifferenceInteractions
+        )
+
+        if identifyImages and len(decodedSetDifferenceInteractions) > 0:
+            IDS = identifyImagesWithSetDifferenceInteractions(
+                targetDF, decodedSetDifferenceInteractions
+            )
+            output.writeImagestoFile(output_dir, sourceName, targetName, t, IDS)
+            print(
+                "number of target images containing an interaction not present in source: ",
+                len(IDS),
+            )
+
+        # compute opposite direction source \ target
+        reverseSDCCconstraints = setDifferenceCombinatorialCoverageConstraints(
+            targetCC, sourceCC
+        )
+        output.writeSDCCtToFile(
+            output_dir, targetName, sourceName, t, reverseSDCCconstraints
+        )
+        reversesetDifferenceInteractions = computeSetDifferenceInteractions(
+            source_data, reverseSDCCconstraints
+        )
+        reversedecodedSetDifferenceInteractions = (
+            abstraction.decode_set_difference_interactions(
+                source_data, reversesetDifferenceInteractions
+            )
+        )
+        output.writeSetDifferencetoFile(
+            output_dir,
+            targetName,
+            sourceName,
+            t,
+            reversedecodedSetDifferenceInteractions,
+        )
+
+        # if identifyImages and len(decodedSetDifferenceInteractions) > 0:
+        #            identifyImagesWithSetDifferenceInteractions(sourceDF, reversedecodedSetDifferenceInteractions)
+
+        # See commit before e736442
+        sdcc_results[sourceName]["results"][t] = cc_dict(sourceCC)
+        sdcc_results[sourceName]["results"][t]["combinations"] = source_ranks
+        sdcc_results[sourceName]["results"][t]["combination counts"] = sourceCC[
+            "countsAllCombinations"
+        ]
+        sdcc_results[sourceName]["results"][t]["missing interactions"] = (
+            sourceDecodedMissing
+        )
+
+        sdcc_results[targetName]["results"][t] = cc_dict(targetCC)
+        sdcc_results[targetName]["results"][t]["missing interactions"] = (
+            targetDecodedMissing
+        )
+        sdcc_results[targetName]["results"][t]["combinations"] = target_ranks
+        sdcc_results[targetName]["results"][t]["combination counts"] = targetCC[
+            "countsAllCombinations"
+        ]
+        sdcc_results[targetName]["results"][t]["missing interactions"] = (
+            targetDecodedMissing
+        )
+
+        sdcc_results[setdif_name]["results"][t] = sdcc_dict(SDCCconstraints)
+        sdcc_results[setdif_name]["results"][t]["combinations"] = source_ranks
+        sdcc_results[setdif_name]["results"][t]["sdcc counts"] = SDCCconstraints[
+            "setDifferenceInteractionsCounts"
+        ]
+
+        sdcc_results[setdif_name_reversed]["results"][t] = sdcc_dict(
+            reverseSDCCconstraints
+        )
+        sdcc_results[setdif_name_reversed]["results"][t]["combinations"] = source_ranks
+        sdcc_results[setdif_name_reversed]["results"][t]["sdcc counts"] = (
+            reverseSDCCconstraints["setDifferenceInteractionsCounts"]
+        )
+
+    return sdcc_results
+
+
+def performanceByInteraction_main(
+    train_dataDF: pd.DataFrame,
+    test_dataDF: pd.DataFrame,
+    performance_df: pd.DataFrame,
+    dataset_name: str,
+    universe: dict,
+    strengths: list,
+    output_dir: str,
+    metrics: list,
+    coverage_subset=None,
+):
+    """
+    Main entry point for computing performance by interaction on a test set and combinatorial
+    coverage over a training set from data.
+    """
+    global verbose, label_centric, identifyImages
+    label_centric = False
+    mMap = Mapping(universe["features"], universe["levels"], None)
+
+    data_test = abstraction.encoding(test_dataDF, mMap, True)
+    data_train = abstraction.encoding(train_dataDF, mMap, True)
+
+    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
+    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data_test), level=15)
+
+    if performance_df.index.values.tolist() != test_dataDF.index.values.tolist():
+        raise KeyError(
+            "IDs in performance file do not match IDs in test set of split file"
+        )
+
+    k = len(data_test.features)
+    pbi_results = {t: {} for t in strengths}
+    for t in strengths:
+        if t > k:
+            raise ValueError(
+                "t = {} cannot be greater than number of features k = {}".format(t, k)
+            )
+
+        # computes CC for one dataset as well as the performance
+        CC_test, perf = computePerformanceByInteraction(
+            data_test, t, performance_df=performance_df
+        )
+        CC_train = combinatorialCoverage(data_train, t)
+
+        if coverage_subset == "train":
+            CC = CC_train
+        elif coverage_subset == "test":
+            CC = CC_test
+        else:
+            raise KeyError(
+                "Coverage over subset {} not found in split file.".format(
+                    coverage_subset
+                )
+            )
+
+        LOGGER_COMBI.log(level=15, msg="CC over train: {}".format(CC))
+
+        decodedMissing = abstraction.decode_missing_interactions(
+            data_test, computeMissingInteractions(data_test, CC)
+        )
+        # create t file with results for this t -- CC and missing interactions list
+
+        output.writeCCtToFile(output_dir, dataset_name, t, CC)
+        output.writeMissingtoFile(output_dir, dataset_name, t, decodedMissing)
+
+        train_ranks = decodeCombinations(data_train, CC, t)
+        test_ranks = decodeCombinations(data_test, CC, t)
+        assert test_ranks == train_ranks
+
+        pbi_results[t] = cc_dict(CC)
+        pbi_results[t]["combinations"] = train_ranks
+        pbi_results[t]["combination counts"] = CC["countsAllCombinations"]
+
+        pbi_results[t]["missing interactions"] = decodedMissing
+
+        pbi_results["performance"] = perf
+        pbi_results["human readable performance"] = (
+            abstraction.decode_performance_grouped_combination(data_test, CC, perf)
+        )
+
+    return pbi_results
+
+
+def performance_by_frequency_coverage_main(
+    trainpool_df,
+    test_df_balanced,
+    entire_df_cont,
+    universe,
+    t,
+    output_dir,
+    skew_level,
+    id=None,
+):
+    EXP_NAME = id
+
+    combination_list = biasing.get_combinations(universe, t)
+    for combination in combination_list:
+        indices_per_interaction, combination_names = biasing.interaction_indices_t2(
+            df=trainpool_df
+        )
+
+        (
+            train_df_biased,
+            train_df_selected_filename,
+            combo_int_selected,
+            interaction_selected,
+        ) = biasing.skew_dataset_relative(
+            df=trainpool_df,
+            interaction_indices=indices_per_interaction,
+            skew_level=skew_level,
+            extract_combination=combination,
+            output_dir=output_dir,
+        )
+
+        # TO EDIT (052825): ~~~~~~~~~~~~
+        test_df_STATIC_1211 = pd.DataFrame()
+        original_data_filename = ""
+        drop_list = []
+        classifier = None
+        split_dir = ""
+        performance_dir = ""
+        INPUT_DICT = None
+        scaler = None
+        metric = None
+        results_multiple_model = None
+        jsondict = None
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        train_df = entire_df_cont.loc[
+            entire_df_cont.index.isin(train_df_biased.index.tolist())
+        ]
+        test_df = entire_df_cont.loc[
+            entire_df_cont.index.isin(test_df_STATIC_1211.index.tolist())
+        ]
+
+        full_df_combo = pd.concat([train_df, test_df], axis=0)
+        full_df_cont_combo_filename = "{}-{}_Skewed.csv".format(
+            original_data_filename, EXP_NAME
+        )
+        # full_df_combo.to_csv(os.path.join(data_dir_skew, full_df_cont_combo_filename))
+
+        X_train, X_test, Y_train, Y_test, split_filename = pbfc_data.prep_split_data(
+            None,
+            train_df=train_df,
+            test_df=test_df,
+            name=EXP_NAME,
+            drop_list=drop_list,
+            split_dir=split_dir,
+            target_col="Diabetes_binary",
+            id_col="ID",
+        )
+
+        perf_filenames = classifier.model_suite(
+            X_train,
+            Y_train,
+            X_test,
+            Y_test,
+            experiment_name=EXP_NAME,
+            output_dir=performance_dir,
+            scaler=scaler,
+        )
+
+        for perf_filename in perf_filenames:
+            input_dict_new = copy.deepcopy(INPUT_DICT)
+
+            if "_gnb" in perf_filename:
+                model_name = "Gaussian Naive Bayes"
+                model_name_small = "gnb"
+            elif "_lr" in perf_filename:
+                model_name = "Logistic Regression"
+                model_name_small = "lr"
+            elif "_rf" in perf_filename:
+                model_name = "Random Forest"
+                model_name_small = "rf"
+            elif "_knn" in perf_filename:
+                model_name = "KNN"
+                model_name_small = "knn"
+            elif "_svm" in perf_filename:
+                model_name = "SVM"
+                model_name_small = "svm"
+            else:
+                print("No model name found!")
+
+            # Static
+            input_dict_new["metric"] = metric
+            input_dict_new["dataset_file"] = full_df_cont_combo_filename
+            input_dict_new["split_file"] = split_filename
+            # Change per model
+            save_dir = "_runs/pbi_pipeline/pbi-{}-{}".format(EXP_NAME, model_name_small)
+            input_dict_new["config_id"] = save_dir
+            input_dict_new["model_name"] = model_name
+            input_dict_new["dataset_name"] = "CDC Diabetes, skewed {}, {}".format(
+                skew_level, model_name
+            )
+            input_dict_new["performance_file"] = perf_filename
+
+            # CODEX ~~~~~~~~~~~~~~~
+            # of chosen combo, skew_level, model
+            result = None  # codex.run(input_dict_new, verbose="1")
+            results_multiple_model[model_name_small] = {
+                "coverage": result,
+                "save_dir": save_dir,
+            }
+
+    print("CHECK DOESNT CHANGE:", interaction_selected)
+    results_multiple_model["interaction_skewed"] = interaction_selected
+    results_multiple_model["training_size"] = len(train_df_biased)
+
+    return jsondict
 
 
 # computes the combinatorial coverage metric of a given representation for a given t
@@ -188,7 +493,7 @@ def combinatorialCoverage(representation, t):
     }
     kprime = k
     tprime = t
-    if labelCentric:  # if labelCentric,
+    if label_centric:  # if label_centric,
         tprime -= 1  # require t-1 way interactions of all other columns
         kprime -= 1  # and only consider the first k-1 columns in the rank
     # k choose t - number of  combinations of t columns
@@ -213,9 +518,9 @@ def combinatorialCoverage(representation, t):
         # enumerate all combinations
         set = []  # start with an empty set to pass through to the function
         # find the set of columns corresponding to this rank
-        set = rankToTuple(set, rank, tprime)
+        set = abstraction.rank_to_tuple(set, rank, tprime)
         interactionsForRank = 1  # compute v1*v2*...*vt so start with 1
-        if labelCentric:  # if every combination must include the label column
+        if label_centric:  # if every combination must include the label column
             set.append(kprime)  # add the last column (label) to the set
         # it's t not t' as every combination is of t columns regardless
         for column in range(0, t):
@@ -226,11 +531,11 @@ def combinatorialCoverage(representation, t):
         countsEachCombination = [0 for index in range(0, interactionsForRank)]
         # count the combinations that appear in this rank by checking all of the rows in the columns indicated by set[]
         for row in range(0, len(representation.data)):
-            index = convertValueComboToIndex(representation, set, row)
+            index = abstraction.convert_value_combo_to_index(representation, set, row)
             symbols = []
 
             # NOTE, 06.06.24: this loop is huge
-            # symbols = convertIndexToValueCombo(representation, index, set, t)
+            # symbols = abstraction.convert_index_to_value_combo(representation, index, set, t)
             # logging.getLogger(__name__).debug('Row \t{}\t has symbols: {} corresponding to index {}'.format(row, symbols, index))
             countsEachCombination[index] += 1
 
@@ -394,7 +699,7 @@ def computeMissingInteractions(representation, combinatorialCoverageStructure):
     # previously computed correctly to store the combination counts so take list length
     kct = len(combinatorialCoverageStructure["countsAllCombinations"])
     tprime = t
-    if labelCentric:
+    if label_centric:
         tprime -= 1  # require t-1 way interactions of all other columns
 
     LOGGER_COMBI.log(
@@ -422,11 +727,13 @@ def computeMissingInteractions(representation, combinatorialCoverageStructure):
             else:
                 # unranks and returns the set for the missing combination
                 set = []
-                tupleCols = rankToTuple(set, rank, tprime)
+                tupleCols = abstraction.rank_to_tuple(set, rank, tprime)
                 # the rank is for the t-1 cols not including the label col
-                if labelCentric:
+                if label_centric:
                     set.append(k - 1)
-                tupleValues = convertIndexToValueCombo(representation, index, set, t)
+                tupleValues = abstraction.convert_index_to_value_combo(
+                    representation, index, set, t
+                )
                 interaction = []
                 for element in range(0, t):
                     # pair is (col, val)
@@ -470,7 +777,7 @@ def computeSetDifferenceInteractions(representation, setDifferenceCoverageStruct
     kct = len(setDifferenceCoverageStructure["setDifferenceInteractionsCounts"])
     # previously computed correctly to store the combination counts so take list length
     tprime = t
-    if labelCentric:
+    if label_centric:
         tprime -= 1  # require t-1 way interactions of all other columns
     for rank in range(0, kct):  # go rank by rank through kct ranks
         numinteractionsForRank = len(
@@ -487,11 +794,13 @@ def computeSetDifferenceInteractions(representation, setDifferenceCoverageStruct
                 # missing combination
                 set = []
                 # unranks and returns the set for the missing combination
-                tupleCols = rankToTuple(set, rank, tprime)
+                tupleCols = abstraction.rank_to_tuple(set, rank, tprime)
                 # the rank is for the t-1 cols not including the label col
-                if labelCentric:
+                if label_centric:
                     set.append(k - 1)
-                tupleValues = convertIndexToValueCombo(representation, index, set, t)
+                tupleValues = abstraction.convert_index_to_value_combo(
+                    representation, index, set, t
+                )
                 interaction = []
                 for element in range(0, t):
                     # col, val pair
@@ -528,40 +837,6 @@ def identifyImagesWithSetDifferenceInteractions(df, decodedSetDifference):
     return setDiffImages
 
 
-# decode the interactions list into original representation (not abstraction)
-def decodeInteraction(representation, interaction):
-    decodedInteraction = []
-    for pair in interaction:
-        decodedInteraction.append(decoding(representation, *(pair)))
-    return decodedInteraction
-
-
-# decode the missing interactions list into original representation (not abstraction)
-
-
-def decodeMissingInteractions(representation, missing):
-    decodedMissing = []
-    for interaction in missing:
-        decodedInteraction = []
-        for pair in interaction:
-            decodedInteraction.append(decoding(representation, *(pair)))
-        decodedMissing.append(decodedInteraction)
-    return decodedMissing
-
-
-# decode the missing interactions list into original representation (not abstraction)
-
-
-def decodeSetDifferenceInteractions(representation, setDifferenceInteractions):
-    decodedSetDifference = []
-    for interaction in setDifferenceInteractions:
-        decodedInteraction = []
-        for pair in interaction:
-            decodedInteraction.append(decoding(representation, *(pair)))
-        decodedSetDifference.append(decodedInteraction)
-    return decodedSetDifference
-
-
 def cc_dict(CC):
     jsondict = {}
     jsondict["count appearing interactions"] = CC["countAppearingInteractions"]
@@ -593,7 +868,7 @@ def decodeCombinations(data, CC, t):
     k = CC["k"]
     kct = len(CC["countsAllCombinations"])
     tprime = t
-    if labelCentric:
+    if label_centric:
         tprime -= 1  # require t-1 way interactions of all other columns
     # go rank by rank through kct ranks
     for rank in range(0, kct):
@@ -602,11 +877,11 @@ def decodeCombinations(data, CC, t):
         for index in range(0, numinteractionsForRank):
             # unranks and returns the set
             set = []
-            tupleCols = rankToTuple(set, rank, tprime)
+            tupleCols = abstraction.rank_to_tuple(set, rank, tprime)
             # the rank is for the t-1 cols not including the label col
-            if labelCentric:
+            if label_centric:
                 set.append(k - 1)
-            tupleValues = convertIndexToValueCombo(data, index, set, t)
+            tupleValues = abstraction.convert_index_to_value_combo(data, index, set, t)
             interaction = []
             for element in range(0, t):
                 # pair is (col, val)
@@ -617,235 +892,17 @@ def decodeCombinations(data, CC, t):
             decodedInteraction = ""
             for pair in interaction:
                 if decodedCombination == "":
-                    decodedCombination += str(decodingCombo(data, *(pair)))
+                    decodedCombination += str(abstraction.decoding_combo(data, *(pair)))
                 else:
                     decodedCombination += "*{}".format(
-                        str(decodingCombo(data, *(pair)))
+                        str(abstraction.decoding_combo(data, *(pair)))
                     )
-                decodedInteraction += str(decoding(data, *(pair)))
+                decodedInteraction += str(abstraction.decoding(data, *(pair)))
 
         if decodedCombination not in ranks:
             ranks.append(decodedCombination)
 
     return ranks
-
-
-# main entry point for computing CC on one file
-# expects name for labeling on plots
-
-
-def CC_main(dataDF, name, universe, strengths, output_dir):
-    """
-    Main entry point to computing combinatorial coverage over data.
-    """
-
-    global verbose, labelCentric, identifyImages
-    labelCentric = False
-    mMap = Mapping(universe["features"], universe["levels"], None)
-    data = encoding(dataDF, mMap, True)
-
-    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
-    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data), level=15)
-
-    k = len(data.features)
-
-    cc_results = {t: {} for t in strengths}
-    for t in strengths:
-        if t > k:
-            print("t =", t, " cannot be greater than number of features k =", k)
-            # return
-            continue
-
-        # computes CC for one dataset
-        CC = combinatorialCoverage(data, t)
-
-        LOGGER_COMBI.log(msg="CC:{}".format(CC), level=15)
-
-        counts = CC["countsAllCombinations"]
-        ranks = decodeCombinations(data, CC, t)
-
-        decodedMissing = decodeMissingInteractions(
-            data, computeMissingInteractions(data, CC)
-        )
-        # create t file with results for this t -- CC and missing interactions list
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        if not os.path.exists(os.path.join(output_dir, "CC")):
-            os.makedirs(os.path.join(output_dir, "CC"))
-
-        ranks = decodeCombinations(data, CC, t)
-        output.writeCCtToFile(output_dir, name, t, CC)
-        output.writeMissingtoFile(output_dir, name, t, decodedMissing)
-
-        cc_results[t] = cc_dict(CC)
-        cc_results[t]["combinations"] = ranks
-        cc_results[t]["combination counts"] = counts
-        cc_results[t]["missing interactions"] = decodedMissing
-
-    return cc_results
-
-
-# main entry point for computing SDCC on two files
-# expects sourceName for labeling on plots and sourceFile as file name of binned csv file
-# and same for target
-
-
-# (path, sourceName, sourceFile, targetName, targetFile, metadata, t):
-def SDCC_main(
-    sourceDF,
-    sourceName,
-    targetDF,
-    targetName,
-    dataset_name,
-    universe,
-    strengths,
-    output_dir,
-    comparison_mode,
-    split_id,
-):
-    """
-    Main entry point to computing set difference combinatorial coverage between two
-    datasets. Set difference meaning, that which is appearing in a target dataset
-    that does not exist in a source dataset.
-    """
-    global verbose, labelCentric, identifyImages
-
-    mMap = Mapping(universe["features"], universe["levels"], None)
-    source_data = encoding(sourceDF, mMap, True)
-    target = encoding(targetDF, mMap, True)
-
-    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
-    LOGGER_COMBI.log(
-        msg="'Source' data representation:\n{}".format(source_data), level=15
-    )
-    LOGGER_COMBI.log(msg="'Target' data representation:\n{}".format(target), level=15)
-
-    k = len(source_data.features)
-
-    setdif_name = f"{targetName}-{sourceName}"
-    setdif_name_reversed = f"{sourceName}-{targetName}"
-
-    sdcc_results = {
-        sourceName: {"results": {}},
-        targetName: {"results": {}},
-        setdif_name: {"results": {}},
-        setdif_name_reversed: {"results": {}},
-    }
-
-    for t in strengths:
-        if t > k:
-            print("t =", t, " cannot be greater than number of features k =", k)
-            # return
-            continue
-
-        sourceCC = combinatorialCoverage(source_data, t)
-        targetCC = combinatorialCoverage(target, t)
-
-        LOGGER_COMBI.log(msg="Source CC:\n".format(sourceCC), level=15)
-        LOGGER_COMBI.log(msg="Target CC:\n".format(targetCC), level=15)
-
-        if comparison_mode:
-            output_dir = output.create_output_dir(os.path.join(output_dir, split_id))
-        else:
-            output_dir = output.create_output_dir(output_dir)
-
-        source_ranks = decodeCombinations(source_data, sourceCC, t)
-        target_ranks = decodeCombinations(target, targetCC, t)
-        assert source_ranks == target_ranks
-
-        sourceDecodedMissing = decodeMissingInteractions(
-            source_data, computeMissingInteractions(source_data, sourceCC)
-        )
-        targetDecodedMissing = decodeMissingInteractions(
-            target, computeMissingInteractions(target, targetCC)
-        )
-
-        # compute set difference target \ source
-        SDCCconstraints = setDifferenceCombinatorialCoverageConstraints(
-            sourceCC, targetCC
-        )
-        output.writeSDCCtToFile(output_dir, sourceName, targetName, t, SDCCconstraints)
-        setDifferenceInteractions = computeSetDifferenceInteractions(
-            target, SDCCconstraints
-        )
-        decodedSetDifferenceInteractions = decodeSetDifferenceInteractions(
-            target, setDifferenceInteractions
-        )
-        output.writeSetDifferencetoFile(
-            output_dir, sourceName, targetName, t, decodedSetDifferenceInteractions
-        )
-
-        if identifyImages and len(decodedSetDifferenceInteractions) > 0:
-            IDS = identifyImagesWithSetDifferenceInteractions(
-                targetDF, decodedSetDifferenceInteractions
-            )
-            output.writeImagestoFile(output_dir, sourceName, targetName, t, IDS)
-            print(
-                "number of target images containing an interaction not present in source: ",
-                len(IDS),
-            )
-
-        # compute opposite direction source \ target
-        reverseSDCCconstraints = setDifferenceCombinatorialCoverageConstraints(
-            targetCC, sourceCC
-        )
-        output.writeSDCCtToFile(
-            output_dir, targetName, sourceName, t, reverseSDCCconstraints
-        )
-        reversesetDifferenceInteractions = computeSetDifferenceInteractions(
-            source_data, reverseSDCCconstraints
-        )
-        reversedecodedSetDifferenceInteractions = decodeSetDifferenceInteractions(
-            source_data, reversesetDifferenceInteractions
-        )
-        output.writeSetDifferencetoFile(
-            output_dir,
-            targetName,
-            sourceName,
-            t,
-            reversedecodedSetDifferenceInteractions,
-        )
-
-        # if identifyImages and len(decodedSetDifferenceInteractions) > 0:
-        #            identifyImagesWithSetDifferenceInteractions(sourceDF, reversedecodedSetDifferenceInteractions)
-
-        # See commit before e736442
-        sdcc_results[sourceName]["results"][t] = cc_dict(sourceCC)
-        sdcc_results[sourceName]["results"][t]["combinations"] = source_ranks
-        sdcc_results[sourceName]["results"][t]["combination counts"] = sourceCC[
-            "countsAllCombinations"
-        ]
-        sdcc_results[sourceName]["results"][t]["missing interactions"] = (
-            sourceDecodedMissing
-        )
-
-        sdcc_results[targetName]["results"][t] = cc_dict(targetCC)
-        sdcc_results[targetName]["results"][t]["missing interactions"] = (
-            targetDecodedMissing
-        )
-        sdcc_results[targetName]["results"][t]["combinations"] = target_ranks
-        sdcc_results[targetName]["results"][t]["combination counts"] = targetCC[
-            "countsAllCombinations"
-        ]
-        sdcc_results[targetName]["results"][t]["missing interactions"] = (
-            targetDecodedMissing
-        )
-
-        sdcc_results[setdif_name]["results"][t] = sdcc_dict(SDCCconstraints)
-        sdcc_results[setdif_name]["results"][t]["combinations"] = source_ranks
-        sdcc_results[setdif_name]["results"][t]["sdcc counts"] = SDCCconstraints[
-            "setDifferenceInteractionsCounts"
-        ]
-
-        sdcc_results[setdif_name_reversed]["results"][t] = sdcc_dict(
-            reverseSDCCconstraints
-        )
-        sdcc_results[setdif_name_reversed]["results"][t]["combinations"] = source_ranks
-        sdcc_results[setdif_name_reversed]["results"][t]["sdcc counts"] = (
-            reverseSDCCconstraints["setDifferenceInteractionsCounts"]
-        )
-
-    return sdcc_results
 
 
 # -------------------- Experimental Code for Test Set Design --------------------#
@@ -883,7 +940,7 @@ def frequencyInteractions(CC, goalSamples):
     t = CC["t"]
     kprime = k
     tprime = t
-    if labelCentric:
+    if label_centric:
         tprime -= 1  # require t-1 way interactions of all other columns
         kprime -= 1  # and only consider the first k-1 columns in the rank
     appearancesList = []
@@ -903,11 +960,13 @@ def frequencyInteractions(CC, goalSamples):
                 countAppearingInteractionsInRank += 1
             # unranks and returns the set for the interaction
             set = []
-            tupleCols = rankToTuple(set, rank, tprime)
+            tupleCols = abstraction.rank_to_tuple(set, rank, tprime)
             # the rank is for the t-1 cols not including the label col
-            if labelCentric:
+            if label_centric:
                 set.append(k - 1)
-            tupleValues = convertIndexToValueCombo(data, index, set, CC["t"])
+            tupleValues = abstraction.convert_index_to_value_combo(
+                data, index, set, CC["t"]
+            )
             interaction = []
             for element in range(0, CC["t"]):
                 # pair is (col, val)
@@ -931,14 +990,14 @@ def frequencyInteractions(CC, goalSamples):
                     str(index),
                     appearancesThisInteraction,
                     round(percentageOfAllInteractions, 3),
-                    decodeInteraction(data, interaction),
+                    abstraction.decode_interaction(data, interaction),
                 ),
                 level=15,
             )
 
             if appearancesThisInteraction < goalSamples[rank]:
                 print(
-                    decodeInteraction(data, interaction),
+                    abstraction.decode_interaction(data, interaction),
                     "INSUFFICIENT SAMPLES ",
                     appearancesThisInteraction,
                     " TO MEET TEST SET GOAL",
@@ -946,7 +1005,7 @@ def frequencyInteractions(CC, goalSamples):
                 )
             elif appearancesThisInteraction < (goalSamples[rank] * 2):
                 print(
-                    decodeInteraction(data, interaction),
+                    abstraction.decode_interaction(data, interaction),
                     "SAMPLE COUNT ",
                     appearancesThisInteraction,
                     " < 2x TEST SET GOAL",
@@ -974,7 +1033,7 @@ def updateCoverage(CC, row, add=True):
     representation = CC["representation"]
     kprime = k
     tprime = t
-    if labelCentric:  # if labelCentric,
+    if label_centric:  # if label_centric,
         tprime -= 1  # require t-1 way interactions of all other columns
         kprime -= 1  # and only consider the first k-1 columns in the rank
     kct = CC["kct"]
@@ -982,9 +1041,9 @@ def updateCoverage(CC, row, add=True):
         # enumerate all combinations
         set = []  # start with an empty set to pass through to the function
         # find the set of columns corresponding to this rank
-        set = rankToTuple(set, rank, tprime)
+        set = abstraction.rank_to_tuple(set, rank, tprime)
         interactionsForRank = 1  # compute v1*v2*...*vt so start with 1
-        if labelCentric:  # if every combination must include the label column
+        if label_centric:  # if every combination must include the label column
             set.append(kprime)  # add the last column (label) to the set
         # it's t not t' as every combination is of t columns regardless
         for column in range(0, t):
@@ -992,9 +1051,9 @@ def updateCoverage(CC, row, add=True):
         if interactionsForRank != len(CC["countsAllCombinations"][rank]):
             print("interactionsForRank error")
             exit(-1)
-        index = convertValueComboToIndex(representation, set, row)
+        index = abstraction.convert_value_combo_to_index(representation, set, row)
         # if verbose:
-        #    symbols = convertIndexToValueCombo(representation, index, set, t)
+        #    symbols = abstraction.convert_index_to_value_combo(representation, index, set, t)
         #    print('row\t', row, '\t has symbols ', symbols, ' corresponding to index ', index)
         CC["countsAllCombinations"][rank][index] += countUpdate
         if (add and CC["countsAllCombinations"][rank][index] == 1) or (
@@ -1021,7 +1080,7 @@ def computeScoreIDs(IDs, CC, frequency):
     representation = CC["representation"]
     kprime = CC["k"]
     tprime = t
-    if labelCentric:  # if labelCentric,
+    if label_centric:  # if label_centric,
         tprime -= 1  # require t-1 way interactions of all other columns
         kprime -= 1  # and only consider the first k-1 columns in the rank
     kct = CC["kct"]
@@ -1032,8 +1091,10 @@ def computeScoreIDs(IDs, CC, frequency):
         f = interaction[3]
         set = []  # start with an empty set to pass through to the function
         # find the set of columns corresponding to this rank
-        set = rankToTuple(set, rank, tprime)
-        symbols = convertIndexToValueCombo(representation, index, set, t)
+        set = abstraction.rank_to_tuple(set, rank, tprime)
+        symbols = abstraction.convert_index_to_value_combo(
+            representation, index, set, t
+        )
         # print("SYMBOLS\n\n\n", symbols, type(symbols))
         for row in range(0, len(representation.data)):
             match = True
@@ -1048,22 +1109,24 @@ def computeScoreIDs(IDs, CC, frequency):
     return
 
 
-def findSamples(IDs, testCC, goal, sortedFrequency):
-    t = testCC["t"]
-    representation = testCC["representation"]
-    kprime = testCC["k"]
+def findSamples(IDs, test_cc, goal, sortedFrequency):
+    t = test_cc["t"]
+    representation = test_cc["representation"]
+    kprime = test_cc["k"]
     tprime = t
-    if labelCentric:  # if labelCentric,
+    if label_centric:  # if label_centric,
         tprime -= 1  # require t-1 way interactions of all other columns
         kprime -= 1  # and only consider the first k-1 columns in the rank
-    kct = testCC["kct"]
+    kct = test_cc["kct"]
     for interaction in sortedFrequency:
         rank = interaction[0]
         index = interaction[1]
         set = []  # start with an empty set to pass through to the function
         # find the set of columns corresponding to this rank
-        set = rankToTuple(set, rank, tprime)
-        symbols = convertIndexToValueCombo(representation, index, set, t)
+        set = abstraction.rank_to_tuple(set, rank, tprime)
+        symbols = abstraction.convert_index_to_value_combo(
+            representation, index, set, t
+        )
         # find the rows that have the interaction we are interested in and sort them by their score
         matchingIDs = []
         for row in range(0, len(representation.data)):
@@ -1079,40 +1142,40 @@ def findSamples(IDs, testCC, goal, sortedFrequency):
         matchingIDs.sort(key=lambda x: x[1])
         # add a number of samples going from top of sorted list down until we get to the goal
         numSamplesToSelect = (
-            int(math.ceil(goal[rank])) - testCC["countsAllCombinations"][rank][index]
+            int(math.ceil(goal[rank])) - test_cc["countsAllCombinations"][rank][index]
         )
-        # print("numSamples: ", goal[rank], testCC['countsAllCombinations'][rank][index], numSamplesToSelect)
+        # print("numSamples: ", goal[rank], test_cc['countsAllCombinations'][rank][index], numSamplesToSelect)
         if numSamplesToSelect > len(matchingIDs):
             raise AssertionError("Too few samples to meet goal")
             exit(-1)
         for i in range(0, numSamplesToSelect):
-            modifyTest(IDs, testCC, matchingIDs[i][0], add=True)
+            modifyTest(IDs, test_cc, matchingIDs[i][0], add=True)
             # print(matchingIDs[i][0], IDs[matchingIDs[i][0]])
     return
 
 
-def testsetPostOptimization(IDs, testCC, goal):
-    t = testCC["t"]
-    representation = testCC["representation"]
-    kprime = testCC["k"]
+def testsetPostOptimization(IDs, test_cc, goal):
+    t = test_cc["t"]
+    representation = test_cc["representation"]
+    kprime = test_cc["k"]
     tprime = t
-    if labelCentric:  # if labelCentric,
+    if label_centric:  # if label_centric,
         tprime -= 1  # require t-1 way interactions of all other columns
         kprime -= 1  # and only consider the first k-1 columns in the rank
-    kct = testCC["kct"]
+    kct = test_cc["kct"]
     redundancy = []
     for rank in range(0, kct):  # For each rank
         r = [rank, 0]  # rank: int, r: list, i: list
         i = []
         # For each interaction
-        for interaction in range(0, len(testCC["countsAllCombinations"][rank])):
+        for interaction in range(0, len(test_cc["countsAllCombinations"][rank])):
             # If number of interactions/goal for this combo > 0?
-            if testCC["countsAllCombinations"][rank][interaction] / goal[rank] > r[1]:
+            if test_cc["countsAllCombinations"][rank][interaction] / goal[rank] > r[1]:
                 # Update [1] to be that proportion. Stores where there might be imbalance?
-                r[1] = testCC["countsAllCombinations"][rank][interaction] / goal[rank]
-            # print(goal[rank], testCC['countsAllCombinations'][rank][interaction], r)
+                r[1] = test_cc["countsAllCombinations"][rank][interaction] / goal[rank]
+            # print(goal[rank], test_cc['countsAllCombinations'][rank][interaction], r)
             # In any case,  add interaction, number of appearences
-            i.append([interaction, testCC["countsAllCombinations"][rank][interaction]])
+            i.append([interaction, test_cc["countsAllCombinations"][rank][interaction]])
         r.append(i)
         redundancy.append(r)
 
@@ -1144,8 +1207,10 @@ def testsetPostOptimization(IDs, testCC, goal):
             index = i[0]
             set = []  # start with an empty set to pass through to the function
             # find the set of columns corresponding to this rank
-            set = rankToTuple(set, rank, tprime)
-            symbols = convertIndexToValueCombo(representation, index, set, t)
+            set = abstraction.rank_to_tuple(set, rank, tprime)
+            symbols = abstraction.convert_index_to_value_combo(
+                representation, index, set, t
+            )
             # find the rows that have the interaction we are interested in
             for row in range(0, len(representation.data)):
                 if IDs[row]["inTest"]:
@@ -1168,10 +1233,12 @@ def testsetPostOptimization(IDs, testCC, goal):
                         for rank2 in range(0, kct):  # go rank by rank
                             set2 = []  # start with an empty set to pass through to the function
                             # find the set of columns corresponding to this rank
-                            set2 = rankToTuple(set2, rank2, tprime)
-                            index2 = convertValueComboToIndex(representation, set2, row)
+                            set2 = abstraction.rank_to_tuple(set2, rank2, tprime)
+                            index2 = abstraction.convert_value_combo_to_index(
+                                representation, set2, row
+                            )
 
-                            #    symbols = convertIndexToValueCombo(representation, index2, set2, t)
+                            #    symbols = abstraction.convert_index_to_value_combo(representation, index2, set2, t)
                             LOGGER_COMBI.log(
                                 level=15,
                                 msg="Row \t{}\t has symbols: {} corresponding to index {}".format(
@@ -1186,13 +1253,13 @@ def testsetPostOptimization(IDs, testCC, goal):
                             )
 
                             if (
-                                testCC["countsAllCombinations"][rank2][index2]
+                                test_cc["countsAllCombinations"][rank2][index2]
                                 <= goal[rank2]
                             ):
                                 remove = False
                                 break
                         if remove:
-                            modifyTest(IDs, testCC, row, add=False)
+                            modifyTest(IDs, test_cc, row, add=False)
 
                             LOGGER_COMBI.log(
                                 level=15,
@@ -1201,46 +1268,36 @@ def testsetPostOptimization(IDs, testCC, goal):
                                 ),
                             )
                             LOGGER_COMBI.log(
-                                level=15, msg="Resultant test CC: {}".format(testCC)
+                                level=15, msg="Resultant test CC: {}".format(test_cc)
                             )
     return
 
 
 # TODO: rename to SIE and split out functionality that is just balanced test set construction vs. entire SIE (train/val)
 def balanced_test_set(
-    dataDF,
-    name,
-    sampleID,
+    dataset_df: pd.DataFrame,
+    dataset_name: str,
+    sample_id_col,
     universe,
     strengths,
-    testSetSizeGoal,
+    test_set_size_goal,
     output_dir,
     include_baseline=True,
-    baseline_seed=1,
-    form_exclusions=None,
+    construct_splits=False,
 ):
-    if not os.path.exists(os.path.join(output_dir, "splits_by_json")):
-        os.makedirs(os.path.join(output_dir, "splits_by_json"))
-    if not os.path.exists(os.path.join(output_dir, "splits_by_csv")):
-        os.makedirs(os.path.join(output_dir, "splits_by_csv"))
+    split_dir_json = output.create_output_dir(os.path.join(output_dir, "splits_json"))
+    split_dir_csv = output.create_output_dir(os.path.join(output_dir, "splits_csv"))
 
-    global verbose, labelCentric, identifyImages
-    labelCentric = False
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-        os.makedirs(os.path.join(output_dir, "exclusions"))
-        os.makedirs(os.path.join(output_dir, "SIE_splits"))
-
-    mMap = Mapping(universe["features"], universe["levels"], None)
     # produce a random ordering of the data prior to representation creation so multiple runs produce different candidate results
-    dataDF = dataDF.sample(frac=1).reset_index(drop=True)
-    data_representation = encoding(dataDF, mMap, True)
+    mMap = Mapping(universe["features"], universe["levels"], None)
+    dataset_df = dataset_df.sample(len(dataset_df)).reset_index(drop=True)
+    data_representation = abstraction.encoding(dataset_df, mMap, True)
 
     LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
     LOGGER_COMBI.log(
         msg="Data representation:\n{}".format(data_representation), level=15
     )
-    LOGGER_COMBI.log(msg="DataFrame:\n{}".format(dataDF), level=15)
+    LOGGER_COMBI.log(msg="DataFrame:\n{}".format(dataset_df), level=15)
 
     k = len(data_representation.features)
     t = max(strengths)  # maximum t
@@ -1252,11 +1309,11 @@ def balanced_test_set(
     CC = combinatorialCoverage(data_representation, t)
     LOGGER_COMBI.log(level=25, msg="CC: {}".format(CC))
 
-    decodedMissing = decodeMissingInteractions(
+    decodedMissing = abstraction.decode_missing_interactions(
         data_representation, computeMissingInteractions(data_representation, CC)
     )
-    output.writeCCtToFile(output_dir, name, t, CC)
-    output.writeMissingtoFile(output_dir, name, t, decodedMissing)
+    output.writeCCtToFile(output_dir, dataset_name, t, CC)
+    output.writeMissingtoFile(output_dir, dataset_name, t, decodedMissing)
 
     # build test set in 2 phases
     # phase 1: add samples to test set with first priority to achieve coverage
@@ -1268,13 +1325,13 @@ def balanced_test_set(
     # phase 2: post-optimization
     # determine if a sample can be removed due to redundancy (over coverage)
 
-    testCC = copy.deepcopy(CC)
-    for combinations in testCC["countsAllCombinations"]:
+    test_cc = copy.deepcopy(CC)
+    for combinations in test_cc["countsAllCombinations"]:
         for interaction in range(0, len(combinations)):
             combinations[interaction] = 0
-    testCC["countAppearingInteractions"] = 0
+    test_cc["countAppearingInteractions"] = 0
 
-    goal = goalSamples(CC, testSetSizeGoal)
+    goal = goalSamples(CC, test_set_size_goal)
     print("\nGoal # samples per rank in test set:\n", goal, "\n")
     frequency = frequencyInteractions(CC, goal)
     # print("\nFrequency of interactions: ", frequency)
@@ -1292,31 +1349,31 @@ def balanced_test_set(
     # create a data structure that maps sample IDs from data to the index in the data representation of encoded
     # features of the sample as well as whether the sample has been added to the Test set
     # and give the sample a score that is the sum of interaction frequencies contained in the sample
-    idlist = list(dataDF[sampleID])
+    idlist = list(dataset_df[sample_id_col])
     IDs = dict()  # Empty dict
     for index in range(0, len(data_representation.data)):
         IDs[index] = {"id": idlist[index], "inTest": False, "score": 0}
 
     # Pass 1 build the test set
     computeScoreIDs(IDs, CC, frequency)
-    findSamples(IDs, testCC, goal, sortedFrequency)
-    print("\nINITIAL TESTCC\n", testCC)
+    findSamples(IDs, test_cc, goal, sortedFrequency)
+    print("\nINITIAL TESTCC\n", test_cc)
     # print("TEST", json.dumps(CC, indent=2))
     # Pass 2 reduce the test set
-    testsetPostOptimization(IDs, testCC, goal)
+    testsetPostOptimization(IDs, test_cc, goal)
     # print("TEST", json.dumps(IDs, indent=2))
 
     # determine the max training set size m as the minimum over all withheld interactions
     allsamplesize = sum(CC["countsAllCombinations"][0])
     m = allsamplesize
-    testsamplesize = sum(testCC["countsAllCombinations"][0])
+    testsamplesize = sum(test_cc["countsAllCombinations"][0])
     kct = len(CC["countsAllCombinations"])
     print("\nRank, index, potential training sizes:")
     for rank in range(0, kct):  # go rank by rank
-        for i in range(0, len(testCC["countsAllCombinations"][rank])):
+        for i in range(0, len(test_cc["countsAllCombinations"][rank])):
             samplesnotintest = (
                 CC["countsAllCombinations"][rank][i]
-                - testCC["countsAllCombinations"][rank][i]
+                - test_cc["countsAllCombinations"][rank][i]
             )
             maxPoolForInteraction = allsamplesize - testsamplesize - samplesnotintest
 
@@ -1342,10 +1399,10 @@ def balanced_test_set(
             IDs[index]["id"]
         )
     # get all of the samples not in the test set for selection for the train sets
-    querystring = sampleID + " in @trainpool"
-    trainpoolDF = dataDF.query(querystring).reset_index(drop=True)
+    querystring = sample_id_col + " in @trainpool"
+    trainpool_df = dataset_df.query(querystring).reset_index(drop=True)
 
-    """trainpoolDFrepresentation = encoding(trainpoolDF, mMap, True)
+    """trainpoolDFrepresentation = abstraction.encoding(trainpool_df, mMap, True)
     trainpoolCC = combinatorialCoverage(trainpoolDFrepresentation, t)
     if trainpoolCC['totalPossibleInteractions'] !=trainpoolCC['countAppearingInteractions']:
         print('training pool does not contain some interaction. Exiting.')
@@ -1353,27 +1410,31 @@ def balanced_test_set(
         exit()"""
 
     # get all of the samples in the test set for later splitting into included/excluded subsets
-    querystring = sampleID + " in @test"
-    testsetDF = dataDF.query(querystring)
-    testsetDF.to_csv(os.path.join(output_dir, "test.csv"))
-    trainpoolDF.to_csv(os.path.join(output_dir, "trainpool.csv"))
+    querystring = sample_id_col + " in @test"
+    unitest_df = dataset_df.query(querystring)
+    unitest_df.to_csv(os.path.join(output_dir, "test.csv"))
+    trainpool_df.to_csv(os.path.join(output_dir, "trainpool.csv"))
 
-    LOGGER_COMBI.log(level=15, msg="TRAINING POOL DF:\n{}".format(trainpoolDF))
-    LOGGER_COMBI.log(level=15, msg="UNIVERSAL TEST SET DF:\n{}".format(testsetDF))
+    LOGGER_COMBI.log(level=15, msg="TRAINING POOL DF:\n{}".format(trainpool_df))
+    LOGGER_COMBI.log(level=15, msg="UNIVERSAL TEST SET DF:\n{}".format(unitest_df))
 
     jsondict = cc_dict(CC)
+    jsondict["max_t"] = t
     jsondict["max_training_pool_size"] = m
     jsondict["universal_test_set_size"] = testsamplesize
 
     # Moved 12.10.24
-    jsondict["max_t"] = t
-    jsondict["countAllCombinations_data"] = CC["countsAllCombinations"]
-    jsondict["countAllCombinations_test"] = testCC["countsAllCombinations"]
+    jsondict["combination counts, all"] = CC["countsAllCombinations"]
+    jsondict["combination counts, test"] = test_cc["countsAllCombinations"]
 
-    if not form_exclusions:
+    if not construct_splits:
         return jsondict
 
     # TODO: up until now is test creation, from here is remainder
+
+    jsondict["ids"] = {}
+    jsondict["ids"]["test"] = test
+    jsondict["ids"]["train_pool"] = trainpool
 
     # TODO: update from feature to interaction, iterate through ranks
     # for each interaction in each combination make the list of train values
@@ -1384,78 +1445,81 @@ def balanced_test_set(
         feature = data_representation.features[f]
         for v in range(len(data_representation.values[f])):
             value = str(data_representation.values[f][v])
-            modelnumber = str(f) + "_" + str(v) + "_"
-            print("")
-            print(data_representation.features[f] + " excluding " + value)
-            # print("Trainpool excluding", value, "\n", trainpoolDF.query(representation.features[f] + ' not in @value'))
+            model_num = f"f{f}_i{v}_"
+
+            print(data_representation.features[f], "excluding ", value)
 
             # future algorithms should build intelligently instead of relying on random chance for coverage
             # but for now, if it's possible, resample until we have coverage (could be a very long time)
             # impossibility check - if the training pool does not cover all interactions aside from the withheld one
             # then it doesn't matter how many times we resample, the sampled training set will not cover all
             coveredpossible = True
-            # trainpoolmodelDF = trainpoolDF.query(representation.features[f] + ' not in @value').reset_index(drop=True)
-            trainpoolmodelDF = trainpoolDF[trainpoolDF[feature] != value].reset_index(
-                drop=True
-            )  # check if equivalent
-            print("Trainpool dim", trainpoolmodelDF.shape)
-            trainpoolmodelDFrepresentation = encoding(trainpoolmodelDF, mMap, True)
-            trainpoolmodelCC = combinatorialCoverage(trainpoolmodelDFrepresentation, t)
+            trainpool_df_model = trainpool_df.loc[trainpool_df[feature] == value]
+            assert type(trainpool_df_model) is pd.DataFrame
+            trainpool_df_model = trainpool_df_model.reset_index(drop=True)
+
+            print("Trainpool dim", trainpool_df_model.shape)
+            trainpool_df_model_representation = abstraction.encoding(
+                trainpool_df_model, mMap, True
+            )
+            trainpool_cc_model = combinatorialCoverage(
+                trainpool_df_model_representation, t
+            )
 
             LOGGER_COMBI.log(
                 level=15,
                 msg="Training pool model counts: {}".format(
-                    trainpoolmodelCC["countsAllCombinations"]
+                    trainpool_cc_model["countsAllCombinations"]
                 ),
             )
 
             # TODO: update from feature to interaction
             for rank in range(0, kct):  # go rank by rank
-                for i in range(0, len(testCC["countsAllCombinations"][rank])):
+                for i in range(0, len(test_cc["countsAllCombinations"][rank])):
                     if (
                         rank != f
                         and i != v
-                        and trainpoolmodelCC["countsAllCombinations"][rank][i] == 0
+                        and trainpool_cc_model["countsAllCombinations"][rank][i] == 0
                     ):
                         coveredimpossible = (
                             True  # found a 0 that isn't the withheld interaction
                         )
-                        m = len(trainpoolmodelDF)  # EXP ADDED 12.03.2024
+                        m = len(trainpool_df_model)  # EXP ADDED 12.03.2024
                         print(
                             "Warning: Model's Training Pool does not cover all other interactions, so constructed train can't either."
                         )
 
             while True:  # execute at least once no matter what
                 # sample from whole train pool
-                trainDF = trainpoolmodelDF.sample(m).reset_index(drop=True)
+                train_df = trainpool_df_model.sample(m).reset_index(drop=True)
 
                 LOGGER_COMBI.log(
                     level=15,
                     msg="Number of samples containing {} in training set: {}".format(
-                        value, len(trainDF[trainDF[feature] == value])
+                        value, len(train_df[train_df[feature] == value])
                     ),
                 )
                 LOGGER_COMBI.log(
-                    level=25, msg="Training set:\n{}".format(trainDF.to_string())
+                    level=25, msg="Training set:\n{}".format(train_df.to_string())
                 )
 
                 # check that constructed training set covers everything EXCEPT the withheld interaction
-                trainDFrepresentation = encoding(trainDF, mMap, True)
-                trainCC = combinatorialCoverage(trainDFrepresentation, t)
+                train_df_representation = abstraction.encoding(train_df, mMap, True)
+                train_cc = combinatorialCoverage(train_df_representation, t)
 
                 LOGGER_COMBI.log(
                     level=25,
-                    msg="Train CC counts {}".format(trainCC["countsAllCombinations"]),
+                    msg="Train CC counts {}".format(train_cc["countsAllCombinations"]),
                 )
 
                 # TODO: update from feature to interaction
                 covered = True  # REFERNCING AFTER ASSIGNMENT BC UNBOUND LOCAL ERROR THIS MIGHT CAUSE ERRORS
                 for rank in range(0, kct):  # go rank by rank
-                    for i in range(0, len(testCC["countsAllCombinations"][rank])):
+                    for i in range(0, len(test_cc["countsAllCombinations"][rank])):
                         if (
                             rank != f
                             and i != v
-                            and trainCC["countsAllCombinations"][rank][i] == 0
+                            and train_cc["countsAllCombinations"][rank][i] == 0
                         ):
                             covered = False
                             print(
@@ -1464,82 +1528,59 @@ def balanced_test_set(
                 if covered or coveredimpossible:
                     break
 
-            if not os.path.exists(os.path.join(output_dir, "splits_by_csv")):
-                os.makedirs(os.path.join(output_dir, "splits_by_csv"))
-
-            trainDF.to_csv(
-                os.path.join(
-                    output_dir, "splits_by_csv", "train_" + modelnumber + ".csv"
-                )
-            )
-
             LOGGER_COMBI.log(
                 level=15,
                 msg="\n Model {} excludes interaction {}, {}".format(
-                    modelnumber, feature, value
+                    model_num, feature, value
                 ),
             )
 
-            trainlist = list(trainDF[sampleID])
             cut = math.ceil(m * 0.8)
-            # excludeTestDF = testsetDF.query(representation.features[f] + ' in @value')
-            excludeTestDF = testsetDF[testsetDF[feature] == value]
-            # includeTestDF = testsetDF.query(representation.features[f] + ' not in @value')
-            includeTestDF = testsetDF[testsetDF[feature] != value]
-            excludeTestDF.to_csv(
-                os.path.join(
-                    output_dir,
-                    "splits_by_csv",
-                    "notcovered_" + modelnumber + "_t{}.csv".format(t),
-                )
-            )
-            includeTestDF.to_csv(
-                os.path.join(
-                    output_dir,
-                    "splits_by_csv",
-                    "covered_" + modelnumber + "_t{}.csv".format(t),
-                )
-            )
+            test_df_exclude = unitest_df.loc[unitest_df[feature] == value]
+            test_df_include = unitest_df.loc[unitest_df[feature] != value]
 
-            includeTest = list(includeTestDF[sampleID])
-            excludeTest = list(excludeTestDF[sampleID])
-            jsondict["model_" + modelnumber] = {
-                "test_included": includeTest,
-                "test_excluded": excludeTest,
-                "train": trainlist[:cut],
-                "validation": trainlist[cut:],
+            train_ids = list(train_df[sample_id_col])
+            include_test_ids = list(test_df_include[sample_id_col])
+            exclude_test_ids = list(test_df_exclude[sample_id_col])
+            jsondict["ids"][f"model_{model_num}"] = {
+                "test_included": include_test_ids,
+                "test_excluded": exclude_test_ids,
+                "train": train_ids[:cut],
+                "validation": train_ids[cut:],
             }
+
+            train_df.to_csv(os.path.join(split_dir_csv, f"train_{model_num}-t{t}.csv"))
+            exclude_test_ids.to_csv(
+                os.path.join(split_dir_csv, f"test_{model_num}-excl_trn-t{t}.csv")
+            )
+            include_test_ids.to_csv(
+                os.path.join(split_dir_csv, f"test_{model_num}-incl_trn-t{t}.csv")
+            )
 
     if include_baseline:
         cut = math.ceil(m * 0.8)
-        trainDF = trainpoolDF.sample(m)  # , random_state=baseline_seed)
+        train_df = trainpool_df.sample(m)  # , random_state=baseline_seed)
 
-        trainlist = list(trainDF[sampleID])
-        includeTest = list(testsetDF[sampleID])
+        train_ids = list(train_df[sample_id_col])
+        include_test_ids = list(unitest_df[sample_id_col])
 
-        jsondict["model_x_"] = {
-            "test_included": includeTest,
+        jsondict["ids"]["model_x_"] = {
+            "test_included": include_test_ids,
             "test_excluded": [],
-            "train": trainlist[:cut],
-            "validation": trainlist[cut:],
+            "train": train_ids[:cut],
+            "validation": train_ids[cut:],
         }
 
-    jsondict["test"] = test
-    jsondict["train_pool"] = trainpool
-
     # Per split JSON
-    for k in jsondict.keys():
-        if "model_" in k:
-            output.output_json_readable(
-                jsondict[k],
-                write_json=True,
-                file_path=os.path.join(output_dir, "splits_by_json", k + ".json"),
-            )
+    for key in jsondict["ids"].keys():
+        assert "model_" in key
+        output.output_json_readable(
+            jsondict["ids"][key],
+            write_json=True,
+            file_path=os.path.join(split_dir_json, f"{key}.json"),
+        )
 
     return jsondict
-
-    # -------------------- Compute Performance By Interaction --------------------#
-
 
 # Requires a representation to be completed and a performance dictionary where
 # name of key is performance metric and value is a list where each index is the performance for a sample
@@ -1550,7 +1591,9 @@ def balanced_test_set(
 # Future versions could decouple these activities in an alternative function
 
 
-def computePerformanceByInteraction(representation, t, performanceDF, test=True):
+def computePerformanceByInteraction(
+    representation: Mapping, t: int, performance_df: pd.DataFrame, test=True
+):
     totalPossibleInteractions = 0
     countAppearingInteractions = 0
     countsAllCombinations = []
@@ -1564,14 +1607,14 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
     }
     kprime = k
     tprime = t
-    if labelCentric:  # if labelCentric,
+    if label_centric:  # if label_centric,
         tprime -= 1  # require t-1 way interactions of all other columns
         kprime -= 1  # and only consider the first k-1 columns in the rank
     # k choose t - number of  combinations of t columns
     kct = comb(kprime, tprime, exact=True)
-    metrics = performanceDF.columns
+    metrics = performance_df.columns
 
-    LOGGER_COMBI.log(level=15, msg="PERFORMANCE DF:\n{}".format(performanceDF))
+    LOGGER_COMBI.log(level=15, msg="PERFORMANCE DF:\n{}".format(performance_df))
     performanceDataStructure = {
         metric: [0] * kct for metric in metrics
     }  # dict.fromkeys(metrics)
@@ -1598,9 +1641,9 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
         # enumerate all combinations
         set = []  # start with an empty set to pass through to the function
         # find the set of columns corresponding to this rank
-        set = rankToTuple(set, rank, tprime)
+        set = abstraction.rank_to_tuple(set, rank, tprime)
         interactionsForRank = 1  # compute v1*v2*...*vt so start with 1
-        if labelCentric:  # if every combination must include the label column
+        if label_centric:  # if every combination must include the label column
             set.append(kprime)  # add the last column (label) to the set
         # it's t not t' as every combination is of t columns regardless
         for column in range(0, t):
@@ -1616,14 +1659,14 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
             ]  # create list of 0s for aggregating performance
         # count the combinations that appear in this rank by checking all of the rows in the columns indicated by set[]
         for row in range(0, len(representation.data)):
-            index = convertValueComboToIndex(representation, set, row)
+            index = abstraction.convert_value_combo_to_index(representation, set, row)
             # if verbose:
             #    print("rank ", rank, " set ", set, " row ", row, " index ", index)
             # here we update the performance for the interaction by multiplying by the current count to get current performance
             # adding performance of the row then dividing by the new count
             currentCount = countsEachCombination[index]
             for metric in metrics:
-                rowPerformance = performanceDF[metric].iloc[row]
+                rowPerformance = performance_df[metric].iloc[row]
                 if not math.isnan(rowPerformance):  # PERFORMANCE HERE
                     currentPerformance = performanceDataStructure[metric][rank][index]
                     performanceDataStructure[metric][rank][index] = (
@@ -1643,337 +1686,7 @@ def computePerformanceByInteraction(representation, t, performanceDF, test=True)
     coverageDataStructure["countAppearingInteractions"] = countAppearingInteractions
 
     LOGGER_COMBI.log(
-        level=25, msg="PERFORMANCE Data Structure:\n{}".format(performanceDF)
+        level=25, msg="PERFORMANCE Data Structure:\n{}".format(performance_df)
     )
 
     return coverageDataStructure, performanceDataStructure
-
-
-def decodePerformance(data, cc, perf):
-    t = cc["t"]
-    k = cc["k"]
-    # either true k choose t or k' choose t' when label centric
-    # previously computed correctly to store the combination counts so take list length
-    kct = len(cc["countsAllCombinations"])
-    humanReadablePerformance = {
-        key for key in list(perf.keys())
-    }  # dict.fromkeys(perf.keys(), {})
-    tprime = t
-    if labelCentric:
-        tprime -= 1  # require t-1 way interactions of all other columns
-    # go rank by rank through kct ranks
-    for rank in range(0, kct):
-        numinteractionsForRank = len(cc["countsAllCombinations"][rank])
-        countAppearingInteractionsInRank = 0
-        # for each combination in a rank
-        for index in range(0, numinteractionsForRank):
-            # unranks and returns the set
-            set = []
-            tupleCols = rankToTuple(set, rank, tprime)
-            # the rank is for the t-1 cols not including the label col
-            if labelCentric:
-                set.append(k - 1)
-            tupleValues = convertIndexToValueCombo(data, index, set, t)
-            interaction = []
-            for element in range(0, t):
-                # pair is (col, val)
-                pair = (tupleCols[element], tupleValues[element])
-                # build the t-way interaction of pairs
-                interaction.append(pair)
-            decodedInteraction = ""
-            for pair in interaction:
-                decodedInteraction += str(decoding(data, *(pair)))
-            for metric in humanReadablePerformance:
-                performanceAtMetric = perf[metric][rank][index]
-                humanReadablePerformance[metric][decodedInteraction] = (
-                    performanceAtMetric
-                )
-    print(humanReadablePerformance)
-    return humanReadablePerformance
-
-
-def json_prettify(json_obj, file_path=None, sort=False, print_json=False):
-    json_str = json.dumps(json_obj, sort_keys=sort, indent=4, separators=(",", ": "))
-    if print_json:
-        print(json_str)
-        return
-    with open(file_path, "w") as f:
-        f.write(json_str)
-
-    return json_str
-
-
-def decodePerformanceGroupedCombination(data, cc, perf):
-    t = cc["t"]
-    k = cc["k"]
-    # either true k choose t or k' choose t' when label centric
-    # previously computed correctly to store the combination counts so take list length
-    kct = len(cc["countsAllCombinations"])
-
-    humanReadableCombinations = []
-    humanReadablePerformance = {
-        key: {} for key in list(perf.keys())
-    }  # dict.fromkeys(perf.keys(),{})
-    tprime = t
-    if labelCentric:
-        tprime -= 1  # require t-1 way interactions of all other columns
-    # go rank by rank through kct ranks
-    for rank in range(0, kct):
-        for metric in humanReadablePerformance.keys():
-            humanReadablePerformance[metric][rank] = {}
-        numinteractionsForRank = len(cc["countsAllCombinations"][rank])
-        countAppearingInteractionsInRank = 0
-        # for each combination in a rank
-        for index in range(0, numinteractionsForRank):
-            # unranks and returns the set
-            set = []
-            tupleCols = rankToTuple(set, rank, tprime)
-            # the rank is for the t-1 cols not including the label col
-            if labelCentric:
-                set.append(k - 1)
-            tupleValues = convertIndexToValueCombo(data, index, set, t)
-            interaction = []
-            for element in range(0, t):
-                # pair is (col, val)
-                pair = (tupleCols[element], tupleValues[element])
-                # build the t-way interaction of pair0s
-                interaction.append(pair)
-            decodedCombination = ""
-            decodedInteraction = ""
-            for pair in interaction:
-                if decodedCombination == "":
-                    decodedCombination += str(decodingCombo(data, *(pair)))
-                else:
-                    decodedCombination += "*{}".format(
-                        str(decodingCombo(data, *(pair)))
-                    )
-                decodedInteraction += str(decoding(data, *(pair)))
-
-            # print(decodedCombination)
-            # print(decodedInteraction)
-            if decodedCombination not in humanReadableCombinations:
-                humanReadableCombinations.append(decodedCombination)
-
-            for metric in humanReadablePerformance:
-                performanceAtMetric = None
-                # print(rank, index)
-                performanceAtMetric = perf[metric][rank][index]
-                # print(metric, performanceAtMetric)
-
-                humanReadablePerformance[metric][rank][decodedInteraction] = (
-                    performanceAtMetric
-                )
-                # print(humanReadablePerformance)
-
-    return humanReadablePerformance
-
-
-def performanceByInteraction_main(
-    train_dataDF: pd.DataFrame,
-    test_dataDF: pd.DataFrame,
-    performanceDF: pd.DataFrame,
-    name,
-    universe,
-    strengths,
-    output_dir,
-    metrics,
-    coverage_subset=None,
-):
-    """
-    Main entry point for computing performance by interaction on a test set and combinatorial
-    coverage over a training set from data.
-    """
-    global verbose, labelCentric, identifyImages
-    labelCentric = False
-    mMap = Mapping(universe["features"], universe["levels"], None)
-
-    data_test = encoding(test_dataDF, mMap, True)
-    data_train = encoding(train_dataDF, mMap, True)
-
-    LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
-    LOGGER_COMBI.log(msg="Data representation:\n{}".format(data_test), level=15)
-
-    if performanceDF.index.values.tolist() != test_dataDF.index.values.tolist():
-        raise KeyError(
-            "IDs in performance file do not match IDs in test set of split file"
-        )
-
-    k = len(data_test.features)
-    pbi_results = {t: {} for t in strengths}
-    for t in strengths:
-        if t > k:
-            raise ValueError(
-                "t = {} cannot be greater than number of features k = {}".format(t, k)
-            )
-
-        # computes CC for one dataset as well as the performance
-        CC_test, perf = computePerformanceByInteraction(
-            data_test, t, performanceDF=performanceDF
-        )
-        CC_train = combinatorialCoverage(data_train, t)
-
-        if coverage_subset == "train":
-            CC = CC_train
-        elif coverage_subset == "test":
-            CC = CC_test
-        else:
-            raise KeyError(
-                "Coverage over subset {} not found in split file.".format(
-                    coverage_subset
-                )
-            )
-
-        LOGGER_COMBI.log(level=15, msg="CC over train: {}".format(CC))
-
-        decodedMissing = decodeMissingInteractions(
-            data_test, computeMissingInteractions(data_test, CC)
-        )
-        # create t file with results for this t -- CC and missing interactions list
-
-        output.writeCCtToFile(output_dir, name, t, CC)
-        output.writeMissingtoFile(output_dir, name, t, decodedMissing)
-
-        train_ranks = decodeCombinations(data_train, CC, t)
-        test_ranks = decodeCombinations(data_test, CC, t)
-        assert test_ranks == train_ranks
-
-        pbi_results[t] = cc_dict(CC)
-        pbi_results[t]["combinations"] = train_ranks
-        pbi_results[t]["combination counts"] = CC["countsAllCombinations"]
-
-        pbi_results[t]["missing interactions"] = decodedMissing
-
-        pbi_results["performance"] = perf
-        pbi_results["human readable performance"] = decodePerformanceGroupedCombination(
-            data_test, CC, perf
-        )
-
-    return pbi_results
-
-
-def performance_by_frequency_coverage_main(
-    trainpool_df,
-    test_df_balanced,
-    entire_df_cont,
-    universe,
-    t,
-    output_dir,
-    skew_level,
-    id=None,
-):
-    EXP_NAME = id
-
-    combination_list = biasing.get_combinations(universe, t)
-    for combination in combination_list:
-        indices_per_interaction, combination_names = biasing.interaction_indices_t2(
-            df=trainpool_df
-        )
-
-        (
-            train_df_biased,
-            train_df_selected_filename,
-            combo_int_selected,
-            interaction_selected,
-        ) = biasing.skew_dataset_relative(
-            df=trainpool_df,
-            interaction_indices=indices_per_interaction,
-            skew_level=skew_level,
-            extract_combination=combination,
-            output_dir=output_dir,
-        )
-
-        # TO EDIT (052825): ~~~~~~~~~~~~
-        test_df_STATIC_1211 = pd.DataFrame()
-        original_data_filename = ""
-        drop_list = []
-        classifier = None
-        split_dir = ""
-        performance_dir = ""
-        INPUT_DICT = None
-        scaler = None
-        metric = None
-        results_multiple_model = None
-        jsondict = None
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        train_df = entire_df_cont.loc[
-            entire_df_cont.index.isin(train_df_biased.index.tolist())
-        ]
-        test_df = entire_df_cont.loc[
-            entire_df_cont.index.isin(test_df_STATIC_1211.index.tolist())
-        ]
-
-        full_df_combo = pd.concat([train_df, test_df], axis=0)
-        full_df_cont_combo_filename = "{}-{}_Skewed.csv".format(
-            original_data_filename, EXP_NAME
-        )
-        # full_df_combo.to_csv(os.path.join(data_dir_skew, full_df_cont_combo_filename))
-
-        X_train, X_test, Y_train, Y_test, split_filename = pbfc_data.prep_split_data(
-            None,
-            train_df=train_df,
-            test_df=test_df,
-            name=EXP_NAME,
-            drop_list=drop_list,
-            split_dir=split_dir,
-            target_col="Diabetes_binary",
-            id_col="ID",
-        )
-
-        perf_filenames = classifier.model_suite(
-            X_train,
-            Y_train,
-            X_test,
-            Y_test,
-            experiment_name=EXP_NAME,
-            output_dir=performance_dir,
-            scaler=scaler,
-        )
-
-        for perf_filename in perf_filenames:
-            input_dict_new = copy.deepcopy(INPUT_DICT)
-
-            if "_gnb" in perf_filename:
-                model_name = "Gaussian Naive Bayes"
-                model_name_small = "gnb"
-            elif "_lr" in perf_filename:
-                model_name = "Logistic Regression"
-                model_name_small = "lr"
-            elif "_rf" in perf_filename:
-                model_name = "Random Forest"
-                model_name_small = "rf"
-            elif "_knn" in perf_filename:
-                model_name = "KNN"
-                model_name_small = "knn"
-            elif "_svm" in perf_filename:
-                model_name = "SVM"
-                model_name_small = "svm"
-            else:
-                print("No model name found!")
-
-            # Static
-            input_dict_new["metric"] = metric
-            input_dict_new["dataset_file"] = full_df_cont_combo_filename
-            input_dict_new["split_file"] = split_filename
-            # Change per model
-            save_dir = "_runs/pbi_pipeline/pbi-{}-{}".format(EXP_NAME, model_name_small)
-            input_dict_new["config_id"] = save_dir
-            input_dict_new["model_name"] = model_name
-            input_dict_new["dataset_name"] = "CDC Diabetes, skewed {}, {}".format(
-                skew_level, model_name
-            )
-            input_dict_new["performance_file"] = perf_filename
-
-            # CODEX ~~~~~~~~~~~~~~~
-            # of chosen combo, skew_level, model
-            result = None  # codex.run(input_dict_new, verbose="1")
-            results_multiple_model[model_name_small] = {
-                "coverage": result,
-                "save_dir": save_dir,
-            }
-
-    print("CHECK DOESNT CHANGE:", interaction_selected)
-    results_multiple_model["interaction_skewed"] = interaction_selected
-    results_multiple_model["training_size"] = len(train_df_biased)
-
-    return jsondict
