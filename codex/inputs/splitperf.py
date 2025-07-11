@@ -62,7 +62,7 @@ def __extract_list_of_dicts(dir: str, filename: str | list, mode: str):
     else:
         raise TypeError()
 
-    return info_dicts
+    return info_dicts, info_ids
 
 
 def __extract_split_id_type(mode: str, container: dict, filename: str):

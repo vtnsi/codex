@@ -284,6 +284,7 @@ def performanceByInteraction_main(
 
     k = len(data_test.features)
     pbi_results = {t: {} for t in strengths}
+    pbi_perf = {t: {} for t in strengths}
     for t in strengths:
         if t > k:
             raise ValueError(
@@ -324,11 +325,10 @@ def performanceByInteraction_main(
         pbi_results[t] = cc_dict(CC)
         pbi_results[t]["combinations"] = train_ranks
         pbi_results[t]["combination counts"] = CC["countsAllCombinations"]
-
         pbi_results[t]["missing interactions"] = decodedMissing
 
-        pbi_results["performance"] = perf
-        pbi_results["human readable performance"] = (
+        pbi_results[t]["performance"] = perf
+        pbi_results[t]["human readable performance"] = (
             abstraction.decode_performance_grouped_combination(data_test, CC, perf)
         )
 
@@ -340,125 +340,130 @@ def performance_by_frequency_coverage_main(
     test_df_balanced,
     entire_df_cont,
     universe,
-    t,
+    strengths,
     output_dir,
     skew_level,
     id=None,
 ):
     EXP_NAME = id
 
-    combination_list = biasing.get_combinations(universe, t)
-    for combination in combination_list:
-        indices_per_interaction, combination_names = biasing.interaction_indices_t2(
-            df=trainpool_df
-        )
-
-        (
-            train_df_biased,
-            train_df_selected_filename,
-            combo_int_selected,
-            interaction_selected,
-        ) = biasing.skew_dataset_relative(
-            df=trainpool_df,
-            interaction_indices=indices_per_interaction,
-            skew_level=skew_level,
-            extract_combination=combination,
-            output_dir=output_dir,
-        )
-
-        # TO EDIT (052825): ~~~~~~~~~~~~
-        test_df_STATIC_1211 = pd.DataFrame()
-        original_data_filename = ""
-        drop_list = []
-        classifier = None
-        split_dir = ""
-        performance_dir = ""
-        INPUT_DICT = None
-        scaler = None
-        metric = None
-        results_multiple_model = None
-        jsondict = None
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        train_df = entire_df_cont.loc[
-            entire_df_cont.index.isin(train_df_biased.index.tolist())
-        ]
-        test_df = entire_df_cont.loc[
-            entire_df_cont.index.isin(test_df_STATIC_1211.index.tolist())
-        ]
-
-        full_df_combo = pd.concat([train_df, test_df], axis=0)
-        full_df_cont_combo_filename = "{}-{}_Skewed.csv".format(
-            original_data_filename, EXP_NAME
-        )
-        # full_df_combo.to_csv(os.path.join(data_dir_skew, full_df_cont_combo_filename))
-
-        X_train, X_test, Y_train, Y_test, split_filename = pbfc_data.prep_split_data(
-            None,
-            train_df=train_df,
-            test_df=test_df,
-            name=EXP_NAME,
-            drop_list=drop_list,
-            split_dir=split_dir,
-            target_col="Diabetes_binary",
-            id_col="ID",
-        )
-
-        perf_filenames = classifier.model_suite(
-            X_train,
-            Y_train,
-            X_test,
-            Y_test,
-            experiment_name=EXP_NAME,
-            output_dir=performance_dir,
-            scaler=scaler,
-        )
-
-        for perf_filename in perf_filenames:
-            input_dict_new = copy.deepcopy(INPUT_DICT)
-
-            if "_gnb" in perf_filename:
-                model_name = "Gaussian Naive Bayes"
-                model_name_small = "gnb"
-            elif "_lr" in perf_filename:
-                model_name = "Logistic Regression"
-                model_name_small = "lr"
-            elif "_rf" in perf_filename:
-                model_name = "Random Forest"
-                model_name_small = "rf"
-            elif "_knn" in perf_filename:
-                model_name = "KNN"
-                model_name_small = "knn"
-            elif "_svm" in perf_filename:
-                model_name = "SVM"
-                model_name_small = "svm"
-            else:
-                print("No model name found!")
-
-            # Static
-            input_dict_new["metric"] = metric
-            input_dict_new["dataset_file"] = full_df_cont_combo_filename
-            input_dict_new["split_file"] = split_filename
-            # Change per model
-            save_dir = "_runs/pbi_pipeline/pbi-{}-{}".format(EXP_NAME, model_name_small)
-            input_dict_new["config_id"] = save_dir
-            input_dict_new["model_name"] = model_name
-            input_dict_new["dataset_name"] = "CDC Diabetes, skewed {}, {}".format(
-                skew_level, model_name
+    for t in strengths:
+        combination_list = biasing.get_combinations(universe, t)
+        for combination in combination_list:
+            indices_per_interaction, combination_names = biasing.interaction_indices_t2(
+                df=trainpool_df
             )
-            input_dict_new["performance_file"] = perf_filename
 
-            # CODEX ~~~~~~~~~~~~~~~
-            # of chosen combo, skew_level, model
-            result = None  # codex.run(input_dict_new, verbose="1")
-            results_multiple_model[model_name_small] = {
-                "coverage": result,
-                "save_dir": save_dir,
-            }
+            (
+                train_df_biased,
+                train_df_selected_filename,
+                combo_int_selected,
+                interaction_selected,
+            ) = biasing.skew_dataset_relative(
+                df=trainpool_df,
+                interaction_indices=indices_per_interaction,
+                skew_level=skew_level,
+                extract_combination=combination,
+                output_dir=output_dir,
+            )
 
-    print("CHECK DOESNT CHANGE:", interaction_selected)
-    results_multiple_model["interaction_skewed"] = interaction_selected
-    results_multiple_model["training_size"] = len(train_df_biased)
+            # TO EDIT (052825): ~~~~~~~~~~~~
+            test_df_STATIC_1211 = pd.DataFrame()
+            original_data_filename = ""
+            drop_list = []
+            classifier = None
+            split_dir = ""
+            performance_dir = ""
+            INPUT_DICT = None
+            scaler = None
+            metric = None
+            results_multiple_model = None
+            jsondict = None
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+            train_df = entire_df_cont.loc[
+                entire_df_cont.index.isin(train_df_biased.index.tolist())
+            ]
+            test_df = entire_df_cont.loc[
+                entire_df_cont.index.isin(test_df_STATIC_1211.index.tolist())
+            ]
+
+            full_df_combo = pd.concat([train_df, test_df], axis=0)
+            full_df_cont_combo_filename = "{}-{}_Skewed.csv".format(
+                original_data_filename, EXP_NAME
+            )
+            # full_df_combo.to_csv(os.path.join(data_dir_skew, full_df_cont_combo_filename))
+
+            X_train, X_test, Y_train, Y_test, split_filename = (
+                pbfc_data.prep_split_data(
+                    None,
+                    train_df=train_df,
+                    test_df=test_df,
+                    name=EXP_NAME,
+                    drop_list=drop_list,
+                    split_dir=split_dir,
+                    target_col="Diabetes_binary",
+                    id_col="ID",
+                )
+            )
+
+            perf_filenames = classifier.model_suite(
+                X_train,
+                Y_train,
+                X_test,
+                Y_test,
+                experiment_name=EXP_NAME,
+                output_dir=performance_dir,
+                scaler=scaler,
+            )
+
+            for perf_filename in perf_filenames:
+                input_dict_new = copy.deepcopy(INPUT_DICT)
+
+                if "_gnb" in perf_filename:
+                    model_name = "Gaussian Naive Bayes"
+                    model_name_small = "gnb"
+                elif "_lr" in perf_filename:
+                    model_name = "Logistic Regression"
+                    model_name_small = "lr"
+                elif "_rf" in perf_filename:
+                    model_name = "Random Forest"
+                    model_name_small = "rf"
+                elif "_knn" in perf_filename:
+                    model_name = "KNN"
+                    model_name_small = "knn"
+                elif "_svm" in perf_filename:
+                    model_name = "SVM"
+                    model_name_small = "svm"
+                else:
+                    print("No model name found!")
+
+                # Static
+                input_dict_new["metric"] = metric
+                input_dict_new["dataset_file"] = full_df_cont_combo_filename
+                input_dict_new["split_file"] = split_filename
+                # Change per model
+                save_dir = "_runs/pbi_pipeline/pbi-{}-{}".format(
+                    EXP_NAME, model_name_small
+                )
+                input_dict_new["config_id"] = save_dir
+                input_dict_new["model_name"] = model_name
+                input_dict_new["dataset_name"] = "CDC Diabetes, skewed {}, {}".format(
+                    skew_level, model_name
+                )
+                input_dict_new["performance_file"] = perf_filename
+
+                # CODEX ~~~~~~~~~~~~~~~
+                # of chosen combo, skew_level, model
+                result = None  # codex.run(input_dict_new, verbose="1")
+                results_multiple_model[model_name_small] = {
+                    "coverage": result,
+                    "save_dir": save_dir,
+                }
+
+        print("CHECK DOESNT CHANGE:", interaction_selected)
+        results_multiple_model["interaction_skewed"] = interaction_selected
+        results_multiple_model["training_size"] = len(train_df_biased)
 
     return jsondict
 
@@ -1290,7 +1295,7 @@ def balanced_test_set(
 
     # produce a random ordering of the data prior to representation creation so multiple runs produce different candidate results
     mMap = Mapping(universe["features"], universe["levels"], None)
-    dataset_df = dataset_df.sample(len(dataset_df)).reset_index(drop=True)
+    dataset_df = dataset_df.sample(frac=1).reset_index(drop=True)
     data_representation = abstraction.encoding(dataset_df, mMap, True)
 
     LOGGER_COMBI.log(msg="Metadata level map:\n{}".format(mMap), level=15)
@@ -1368,6 +1373,7 @@ def balanced_test_set(
     m = allsamplesize
     testsamplesize = sum(test_cc["countsAllCombinations"][0])
     kct = len(CC["countsAllCombinations"])
+
     print("\nRank, index, potential training sizes:")
     for rank in range(0, kct):  # go rank by rank
         for i in range(0, len(test_cc["countsAllCombinations"][rank])):
@@ -1385,7 +1391,6 @@ def balanced_test_set(
             )
 
             m = min(m, maxPoolForInteraction)
-            print("!!!", m)
 
     LOGGER_COMBI.log(level=15, msg="\nAll samples: {}".format(allsamplesize))
     LOGGER_COMBI.log(level=15, msg="Number of test samples: {}".format(testsamplesize))
@@ -1419,6 +1424,8 @@ def balanced_test_set(
     LOGGER_COMBI.log(level=15, msg="UNIVERSAL TEST SET DF:\n{}".format(unitest_df))
 
     jsondict = cc_dict(CC)
+    jsondict["split_dir_json"] = os.path.realpath(split_dir_json)
+    jsondict["split_dir_csv"] = os.path.realpath(split_dir_csv)
     jsondict["max_t"] = t
     jsondict["max_training_pool_size"] = m
     jsondict["universal_test_set_size"] = testsamplesize
@@ -1427,12 +1434,14 @@ def balanced_test_set(
     jsondict["combination counts, all"] = CC["countsAllCombinations"]
     jsondict["combination counts, test"] = test_cc["countsAllCombinations"]
 
+    construct_splits = True
     if not construct_splits:
         return jsondict
 
     # TODO: up until now is test creation, from here is remainder
 
     jsondict["ids"] = {}
+    jsondict["splits"] = {}
     jsondict["ids"]["test"] = test
     jsondict["ids"]["train_pool"] = trainpool
 
@@ -1445,7 +1454,7 @@ def balanced_test_set(
         feature = data_representation.features[f]
         for v in range(len(data_representation.values[f])):
             value = str(data_representation.values[f][v])
-            model_num = f"f{f}_i{v}_"
+            model_num = f"f{f}_i{v}"
 
             print(data_representation.features[f], "excluding ", value)
 
@@ -1454,7 +1463,12 @@ def balanced_test_set(
             # impossibility check - if the training pool does not cover all interactions aside from the withheld one
             # then it doesn't matter how many times we resample, the sampled training set will not cover all
             coveredpossible = True
-            trainpool_df_model = trainpool_df.loc[trainpool_df[feature] == value]
+            coveredimpossible = False
+
+            trainpool_df_model = trainpool_df.loc[
+                trainpool_df[feature] != value
+            ]  # .reset_index(drop=True)
+            # trainpool_df_model = trainpool_df
             assert type(trainpool_df_model) is pd.DataFrame
             trainpool_df_model = trainpool_df_model.reset_index(drop=True)
 
@@ -1491,6 +1505,7 @@ def balanced_test_set(
 
             while True:  # execute at least once no matter what
                 # sample from whole train pool
+                print(trainpool_df_model)
                 train_df = trainpool_df_model.sample(m).reset_index(drop=True)
 
                 LOGGER_COMBI.log(
@@ -1542,7 +1557,7 @@ def balanced_test_set(
             train_ids = list(train_df[sample_id_col])
             include_test_ids = list(test_df_include[sample_id_col])
             exclude_test_ids = list(test_df_exclude[sample_id_col])
-            jsondict["ids"][f"model_{model_num}"] = {
+            jsondict["splits"][f"sie_{model_num}"] = {
                 "test_included": include_test_ids,
                 "test_excluded": exclude_test_ids,
                 "train": train_ids[:cut],
@@ -1550,10 +1565,10 @@ def balanced_test_set(
             }
 
             train_df.to_csv(os.path.join(split_dir_csv, f"train_{model_num}-t{t}.csv"))
-            exclude_test_ids.to_csv(
+            test_df_exclude.to_csv(
                 os.path.join(split_dir_csv, f"test_{model_num}-excl_trn-t{t}.csv")
             )
-            include_test_ids.to_csv(
+            test_df_include.to_csv(
                 os.path.join(split_dir_csv, f"test_{model_num}-incl_trn-t{t}.csv")
             )
 
@@ -1564,23 +1579,28 @@ def balanced_test_set(
         train_ids = list(train_df[sample_id_col])
         include_test_ids = list(unitest_df[sample_id_col])
 
-        jsondict["ids"]["model_x_"] = {
+        jsondict["splits"]["sie_rand"] = {
             "test_included": include_test_ids,
             "test_excluded": [],
             "train": train_ids[:cut],
             "validation": train_ids[cut:],
         }
 
+    output.output_json_readable(jsondict, write_json=True, file_path="sample.json")
+
     # Per split JSON
-    for key in jsondict["ids"].keys():
-        assert "model_" in key
+    for key in jsondict["splits"].keys():
+        print(key)
+
         output.output_json_readable(
-            jsondict["ids"][key],
+            jsondict["splits"][key],
             write_json=True,
             file_path=os.path.join(split_dir_json, f"{key}.json"),
         )
 
+    print("reached")
     return jsondict
+
 
 # Requires a representation to be completed and a performance dictionary where
 # name of key is performance metric and value is a list where each index is the performance for a sample

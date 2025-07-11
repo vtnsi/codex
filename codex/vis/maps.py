@@ -9,24 +9,20 @@ from vis import metrics
 
 import os
 
-TITLE_SIZE = 18
-AXIS_SIZE = int(0.8 * TITLE_SIZE)
-
-
-def set_plot_text(title, title_size=18):
+def set_map_title(title, title_size=18):
     plt.gcf()
 
     title = textwrap.fill(title, 60)
-    plt.title(title, weight="bold", fontsize=18, pad=15)
+    plt.title(title, weight="bold", fontsize=title_size, pad=15)
 
     return
 
 
-def set_axes(ylab_rotation=0, ylab_alignment="center"):
+def set_map_axes(ylab_rotation=0, ylab_alignment="center", axis_size=15):
     plt.gcf()
 
-    plt.xlabel("Interactions", fontsize=AXIS_SIZE, labelpad=15, weight="bold")
-    plt.ylabel("Combinations", fontsize=AXIS_SIZE, labelpad=15, weight="bold")
+    plt.xlabel("Interactions", fontsize=axis_size, labelpad=15, weight="bold")
+    plt.ylabel("Combinations", fontsize=axis_size, labelpad=15, weight="bold")
     plt.yticks(fontsize=12, rotation=ylab_rotation, va=ylab_alignment)
 
     return
@@ -259,10 +255,10 @@ def map_info_var(map_var, kwargs):
     return vmin, vmax, cmap, cbar_kws
 
 
-def set_colorbar(cbar: matplotlib.colorbar.Colorbar, cbar_kws: dict):
+def set_colorbar(cbar: matplotlib.colorbar.Colorbar, cbar_kws: dict, axis_size):
     cbar.ax.get_yaxis().labelpad = 15
     cbar.ax.tick_params(labelsize=12)
-    cbar.set_label(cbar_kws["label"], fontsize=AXIS_SIZE)
+    cbar.set_label(cbar_kws["label"], fontsize=axis_size)
 
     cbar.set_ticks(cbar_kws["ticks"])
     cbar.set_ticklabels(cbar_kws["ticklabels"], rotation=-30)

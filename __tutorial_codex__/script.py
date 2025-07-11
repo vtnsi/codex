@@ -3,6 +3,19 @@ import pandas as pd
 import json
 import numpy as np
 import random
+import glob
+
+df = pd.read_csv("datasets/pdb_data_no_dups-no_na.csv")
+"""
+print(df['macromoleculeType'].value_counts())
+print(df['crystallizationMethod'].value_counts())"""
+
+
+print(df["phValue"].describe())
+print(df["residueCount"].describe())
+
+
+exit()
 
 
 def output_json_readable(

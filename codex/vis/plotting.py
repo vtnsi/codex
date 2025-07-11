@@ -28,6 +28,12 @@ from vis import maps, metrics
 
 savefig = True
 
+# Reusable values
+TITLE_SIZE = 18
+AXIS_SIZE = int(0.8 * TITLE_SIZE)
+TITLEPAD = 16
+LABELPAD = 12
+
 
 def coverage_map(
     map_var, coverage_results, t, output_dir, coverage_subset=None, **kwargs
@@ -73,8 +79,9 @@ def coverage_map(
     cmap.set_under("w")
     cmap.set_over("k")
     cbar = heatmap.collections[0].colorbar
-    maps.set_colorbar(cbar, cbar_kws)
-    maps.set_plot_text(title)
+    maps.set_colorbar(cbar, cbar_kws, AXIS_SIZE)
+    maps.set_map_title(title, TITLE_SIZE=TITLE_SIZE)
+    maps.set_map_axes(AXIS_SIZE=AXIS_SIZE)
 
     maps.save_plots(output_dir, filename, svg=True)
 
@@ -131,7 +138,7 @@ def split_comp_scatter(
     return
 
 
-def __extract_rank_samples__(i, counts, perf, human_readable):
+def __extract_rank_samples__(i, counts, perf, perf_human_readable):
     x = []
     y = []
     z = []
@@ -139,8 +146,8 @@ def __extract_rank_samples__(i, counts, perf, human_readable):
     # For intteraction j in rank i
     for j in range(len(x_raw)):
         y_raw = perf[i]
-        if list(human_readable[i].keys()) not in z:
-            z.append(list(human_readable[i].keys()))
+        if list(perf_human_readable[i].keys()) not in z:
+            z.append(list(perf_human_readable[i].keys()))
 
         if y_raw[j] is None:
             continue
@@ -151,13 +158,13 @@ def __extract_rank_samples__(i, counts, perf, human_readable):
     return x, y, z
 
 
-def __sort_slope_indices__(counts, perf, human_readable):
+def __sort_slope_indices__(counts, perf, perf_human_readable):
     slopes = []
     undef_idx = []
     signif_idx = []
 
     for i in range(len(counts)):
-        x, y, z = __extract_rank_samples__(i, counts, perf, human_readable)
+        x, y, z = __extract_rank_samples__(i, counts, perf, perf_human_readable)
         x = np.array(x)
         y = np.array(y)
 
@@ -199,12 +206,12 @@ def __plot_regression(
     subset,
     counts,
     perf,
-    human_readable,
+    perf_human_readable,
     p_lines,
     ranks,
     save_per_interaction,
-    axis_size,
-    labelpad,
+    AXIS_SIZE,
+    LABELPAD,
     metric,
     outputPath,
 ):
@@ -215,7 +222,7 @@ def __plot_regression(
         if i not in subset:
             continue
 
-        x, y, z = __extract_rank_samples__(i, counts, perf, human_readable)
+        x, y, z = __extract_rank_samples__(i, counts, perf, perf_human_readable)
         px = p_lines[i].get_xdata()
         py = p_lines[i].get_ydata()
 
@@ -256,11 +263,11 @@ def __plot_regression(
         if save_per_interaction:
             plt.xlabel(
                 "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
-                fontsize=axis_size,
-                labelpad=labelpad,
+                fontsize=AXIS_SIZE,
+                LABELPAD=LABELPAD,
             )
             plt.ylabel(
-                "Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad
+                "Metric: {}".format(metric), fontsize=AXIS_SIZE, LABELPAD=LABELPAD
             )
 
             plt.grid(visible=True, axis="y")
@@ -276,7 +283,7 @@ def plot_pbi_frequency_scatter(
     name,
     counts,
     perf,
-    human_readable,
+    perf_human_readable,
     t,
     metric,
     ranks,
@@ -284,17 +291,14 @@ def plot_pbi_frequency_scatter(
     bound_lim=True,
     save_per_interaction=False,
 ):
-    title_size = 18
-    titlepad = 16
-    labelpad = 12
-    axis_size = int(4 * title_size / 5)
 
-    p, ordered_idx, signif_idx = __sort_slope_indices__(counts, perf, human_readable)
+    p, ordered_idx, signif_idx = __sort_slope_indices__(counts, perf, perf_human_readable)
 
     p_lines = p.get_lines()
     figsize_custom = (11, 8)
 
     plt.clf()
+
     if mode == "highlights":
         plt.figure(figsize=figsize_custom)
         subset = ordered_idx
@@ -305,9 +309,9 @@ def plot_pbi_frequency_scatter(
                 ),
                 60,
             ),
-            pad=titlepad + 3,
+            pad=TITLEPAD + 3,
             weight="bold",
-            fontsize=title_size,
+            fontsize=TITLE_SIZE,
         )
         filename = "pxi_performance_vs_freq-{}_subset.png".format(t)
     elif mode == "signif":
@@ -321,9 +325,9 @@ def plot_pbi_frequency_scatter(
                 ),
                 60,
             ),
-            pad=titlepad + 3,
+            pad=TITLEPAD + 3,
             weight="bold",
-            fontsize=title_size,
+            fontsize=TITLE_SIZE,
         )
         filename = "pxi_performance_vs_freq-{}_signif.png".format(t)
     elif mode == "all":
@@ -335,9 +339,9 @@ def plot_pbi_frequency_scatter(
                 ),
                 60,
             ),
-            pad=titlepad,
+            pad=TITLEPAD,
             weight="bold",
-            fontsize=title_size,
+            fontsize=TITLE_SIZE,
         )
         subset = range(len(counts))
         filename = "pxi_performance_vs_freq-{}_ALL.png".format(t)
@@ -348,12 +352,12 @@ def plot_pbi_frequency_scatter(
         subset,
         counts,
         perf,
-        human_readable,
+        perf_human_readable,
         p_lines,
         ranks,
         save_per_interaction,
-        axis_size,
-        labelpad,
+        AXIS_SIZE,
+        LABELPAD,
         metric,
         outputPath,
     )
@@ -364,10 +368,10 @@ def plot_pbi_frequency_scatter(
 
     """plt.xlabel(
         "Standardized proportion, " + r"$\frac{n_{jl}-\frac{N}{c_j}}{N}$",
-        fontsize=axis_size,
-        labelpad=labelpad,
+        fontsize=AXIS_SIZE,
+        LABELPAD=LABELPAD,
     )
-    plt.ylabel("Metric: {}".format(metric), fontsize=axis_size, labelpad=labelpad)"""
+    plt.ylabel("Metric: {}".format(metric), fontsize=AXIS_SIZE, LABELPAD=LABELPAD)"""
     # plt.tick_params(fontsize=10)
     # plt.ticklabel_format(font)
 
@@ -406,13 +410,13 @@ def plot_pbi_frequency_scatter(
     plt.tight_layout(pad=4)
     plt.xlabel(
         "Standardized Proportion Frequency Coverage",
-        fontsize=axis_size,
-        labelpad=labelpad,
+        fontsize=AXIS_SIZE,
+        LABELPAD=LABELPAD,
     )
     plt.ylabel(
         "Per-interaction Performance: predicting on {}".format(metric),
-        fontsize=axis_size,
-        labelpad=labelpad,
+        fontsize=AXIS_SIZE,
+        LABELPAD=LABELPAD,
     )
     plt.grid(visible=True, axis="y")
     plt.legend()

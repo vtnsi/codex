@@ -4,21 +4,47 @@ from inputs import checks, config, splitperf
 from universe import universing, dataset
 from combinatorial import combinatorial
 from output import output, results
-import modes
+from modes import sie_yolo_ml as sie_ml, sie_analysis
 
 # Brian Lee
 # Refactored for class format ()
+from modes.sie import SIE
 
 
 class CODEX:
-    def __init__(self, config_file=None, verbose="1"):
+    def __init__(self, config_file=None, verbose=1):
+        """
+        CODEX class constructor. The CODEX class serves as the hub of all possible
+        experiments for a given dataset of interest and the necessary variables of
+        interest depending on the experiment. The CODEX class links the input and
+        output with combinatorial methods of exploration in between.
+
+        Parameters:
+            config_file (str|dict): Config dictionary or path to config file containing specifications
+                for CODEX experiments. While there are inputs required by all modes, certain modes
+                are only possible insofar as the necessary inputs are included in this file.
+
+            verbose (int): Level of verbosity for experiment output (default=1), written to the logs and/or console.
+                verbose=0: Essential and informative outputs only.
+                verbose=1: Metrics, variables, important paths displayed.
+                verbose=2: Primarily for debugging - connective variables, data
+                    structure info , etc.
+        """
         self.config_file = config_file
-        self.verbose = verbose
+        self.verbose = str(verbose)
 
-        self.parse_input_file(config_file)
+        self._parse_input_file(config_file)
 
-    def parse_input_file(self, config_file: str):
-        codex_input = config.handle_input_file(config_file)
+    def _parse_input_file(self, config_file: str):
+        """
+        Stores config file variables into CODEX object in memory.
+
+        Args:
+            config_file (str|dict): Config dictionary or path to config file containing specifications
+                for CODEX experiments.
+        """
+
+        codex_input = config.handle_input_file(os.path.realpath(config_file))
         checks.input_checks(codex_input)
 
         # Variables direct access
@@ -54,12 +80,9 @@ class CODEX:
 
     def dataset_evaluation(self):
         """
-        Dataset evaluation comptues combinatorial coverage on a dataset.
-
-        Parameters:
-        codex_input: dict
-            JSON config dictionary.
+        Computes combinatorial coverage on a dataset with respect to a defined universe.
         """
+
         coverage_results = results.stock_results_empty(
             self.dataset_name,
             self.model_name,
@@ -87,25 +110,13 @@ class CODEX:
         comparison=False,
     ):
         """
-        Dataset split evaluation computes SDCC from a split and plots it against its resultant
-        model performance. Split file required to contain at least train and test splits.
+        Computes set difference combinatorial coverage between two portions of a
+        dataset with respect to a defined universe.
 
-        Parameters
-        input: dict
-            Read from the input file containing experiment requirements, pathing, info.
-
-        split: dict
-            Read from a JSON file whose keys are the split partition and values are lists of
-            the sample ID's as presented in the dataset.
-
-        performance: dict
-            Read from a JSON file containing a model's performance on a test set.
-
-        metric: str
-            Chosen metric to evaluate performance for the experiment.
-
-        sdcc_direction: str
-            Direction of the set difference between the target and source datasets.
+        Args:
+            source_name (str): Name of portion designated as the "source" dataset in the split file specified.
+            target_name (str): Name of portion designated as the "target" dataset in the split file specified.
+            comparison (bool) (default=False): Flags for dataset split comparison.
         """
         train_df, val_df, test_df = dataset.df_slice_by_split_reorder(
             sample_id_col=self.sample_id_col,
@@ -158,9 +169,18 @@ class CODEX:
         )
         return coverage_results_formatted
 
-    def performance_by_interaction(
-        self, coverage_subset="train", display_n=10, order="ascending descending"
-    ):
+    def performance_by_interaction(self, coverage_subset="train"):
+        """
+        Computes per-interaction performance using the samples containing said interaction
+        each of t-way interactions as defined in the universe.
+
+        Args:
+            coverage_subset (str, default="train"): Key designating what portion of the split 
+                to compute coverage and subsequent performance by interaction over.
+
+                ** amend above ^^ 06.24.25
+        """
+
         # SORT, THEN RESET INDEX AND DROP
         train_df, val_df, test_df = dataset.df_slice_by_split_reorder(
             sample_id_col=self.sample_id_col,
@@ -190,8 +210,8 @@ class CODEX:
         coverage_results["results"] = combinatorial.performanceByInteraction_main(
             train_dataDF=train_df,
             test_dataDF=test_df,
-            performanceDF=ps_performance_df,
-            name=self.dataset_name,
+            performance_df=ps_performance_df,
+            dataset_name=self.dataset_name,
             universe=self.universe,
             strengths=self.strengths,
             output_dir=self.output_dir,
@@ -217,21 +237,30 @@ class CODEX:
         coverage_results = output.performance_by_interaction_vis(
             self.output_dir,
             coverage_results,
-            order,
-            display_n,
             coverage_subset=coverage_subset,
+            display_interaction_num=10,
+            display_interaction_order="ascending descending",
         )
 
         print("reached")
         return coverage_results
 
     def balanced_test_set_construction(
-        self,
-        include_baseline=True,
-        adjusted_size=None,
-        form_exclusions=False,
+        self, include_baseline=True, construct_splits=False
     ):
-        """ """
+        """
+        Runs a <> algorithm to balance a universal test set in terms of frequency of 
+        t-way interactions appearing for a defined universe as best as possible.
+        
+        Args:
+            construct_splits (bool, default=False): Whether or not to generate and write split 
+                files withholding a particular t-way interaction from test for each interaction for
+                the largest t possible.
+            include_baseline (bool, default=True): Whether or not to generate a random split 
+                that serves as a baseline split in addition to those withholding interactions.
+
+                Does nothing if construct_splits is False.
+        """
 
         coverage_results = results.stock_results_empty(
             self.dataset_name,
@@ -254,7 +283,7 @@ class CODEX:
             self.test_set_size_goal,
             self.output_dir,
             include_baseline=include_baseline,
-            form_exclusions=form_exclusions,
+            construct_splits=construct_splits,
         )
 
         output.output_json_readable(
@@ -402,116 +431,43 @@ class CODEX:
         model,
         training_params,
         test_set_size_goal,  # codex_input, test_set_size_goal, training_params=None
+        balance_test_sets=True,
+        overwrite=False,
     ):
-        sie_split_dir = os.path.join(self.split_dir, f"sie-{self.config_id}")
-        if not os.path.exists(sie_split_dir):
-            os.makedirs(sie_split_dir)
-            sets = self.balanced_test_set_construction()["results"]
-        else:
-            sets = output.output_json_readable(
-                os.path.join(sie_split_dir, "coverage.json")
-            )
+        # Check split dir: If not containing SIE splits, run balanced test regardless, extract split dir and set to self.split_dir.
+        # If want to, rerun balanced test sets, new self.split_dir = to
 
-        SIE_splits = {
-            key.split("model")[-1]: result[key]
-            for key in result.keys()
-            if "model" in key
-        }
-        SIE_ids = list(SIE_splits.keys())
-        print(SIE_ids)
+        results = self.balanced_test_set_construction(
+            include_baseline=True, construct_splits=True
+        )
+        sets = results["results"]["split"]
+        self.split_dir = results["results"]["split_dir_json"]
 
-        # CONSIDER ASSIGNING DATASET ACCORDING TO EACH CONFIG DIRECTORY
-        train = False
-        if train:
-            pass
-            sie_ml.data_distribution_SIE(
-                SIE_splits, data_dir, dataset_dir_YOLO, overwrite=True, mode_text=True
-            )
-            sie_ml.train_SIE(
-                SIE_splits,
-                dataset_dir_YOLO,
-                training_dir,
-                epochs=300,
-                batch=128,
-                devices=[0, 1, 2, 3],
-                force_resume=True,
-            )
+        # If already ran: point to correct SIE split directory or JSON
+        sie_splits = None; data_dir = None; training_dir = None; base_model = None
+        sie_runner = SIE(sie_splits, base_model, data_dir, training_dir)
+        
+        sie_runner.sie_train()
+        sie_runner.sie_eval()
+        sie_runner.sie_analyze()
 
-        score = True
-        if score:
-            sie_ml.evaluate(
-                SIE_splits,
-                data_dir,
-                dataset_dir_YOLO,
-                training_dir,
-                config_dir=output_dir,
-            )
-        table_filename = ""
-        analyze = True
-
-        if analyze:
-            perf_table = pd.read_csv(
-                os.path.join(
-                    codex_input["codex_directory"],
-                    codex_input["performance_folder"],
-                    table_filename,
-                )
-            )
-            metric = codex_input["metric"]
-            metrics = codex_input["metrics"]
-            features = codex_input["features"]
-
-            output_dir, strengths = config.define_experiment_variables(codex_input)
-
-            results = {}
-            if metric == "all":
-                for metric in metrics:
-                    model_summary, contrasts_summary, contrast_names = (
-                        sie_analysis.SIE_binomial_regression_main(
-                            perf_table, metrics, metric, features
-                        )
-                    )
-                    results = results.update(
-                        output.SIE_regression_test_vis(
-                            output_dir, model_summary, contrasts_summary, contrast_names
-                        )
-                    )
-            else:
-                model_summary, contrasts_summary, contrast_names = (
-                    sie_analysis.SIE_binomial_regression_main(
-                        perf_table, metrics, metric, features
-                    )
-                )
-                results = output.SIE_regression_test_vis(
-                    output_dir, model_summary, contrasts_summary, contrast_names
-                )
-
-            return SIE_splits, results
-
-        return SIE_splits, None
-
-    def systematic_inclusion_exclusion_binomial_linreg(codex_input, table_filename):
-        return results
+        return sets
 
     def performance_by_frequency_coverage(
-        codex_input, skew_levels: list, test_set_size_goal=250
+        self, codex_input, skew_levels: list, test_set_size_goal=250
     ):
-        import modes.pbfc_biasing as biasing
-
-        output_dir, strengths = config.define_experiment_variables(input)
-        universe, dataset_df_init = universing.define_input_space(input)
-
-        result = balanced_test_set_construction(
-            codex_input, test_set_size_goal, form_exclusions=False
+        results_sets = self.balanced_test_set_construction(
+            include_baseline=True, construct_splits=True
         )
+        sets = results["results"]["split"]
+        self.split_dir = results["results"]["split_dir_json"]
 
-        for t in strengths:
-            results_all_models = combinatorial.performance_by_frequency_coverage_main()
+        results_biasing = combinatorial.performance_by_frequency_coverage_main()
 
         output.output_json_readable(
-            results_all_models,
+            results_biasing,
             write_json=True,
-            file_path=os.path.join(output_dir, "pbcf.json"),
+            file_path=os.path.join(self.output_dir, "pbcf.json"),
         )
 
-        return results_all_models
+        return results_biasing

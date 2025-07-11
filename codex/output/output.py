@@ -14,7 +14,7 @@ import glob
 
 from inspect import currentframe, getframeinfo
 from vis import plotting
-from output import results
+from . import results
 
 LOGGER_OUT = logging.getLogger(__name__)
 
@@ -221,47 +221,51 @@ def dataset_split_eval_vis(
 def performance_by_interaction_vis(
     output_dir,
     coverage_results,
+    coverage_subset="train",
     display_interaction_order="ascending",
     display_interaction_num=10,
-    coverage_subset="train",
 ):
     cc_output_dir = create_output_dir(os.path.join(output_dir, "CC"))
 
     strengths = coverage_results["info"]["t"]
     metrics = coverage_results["info"]["metrics"]
 
-    for t in strengths:
-        for metric in metrics:
-            plotting.coverage_map(
-                "binary",
-                coverage_results,
-                t,
-                output_dir=cc_output_dir,
-                coverage_subset=coverage_subset,
-            )
-            plotting.coverage_map(
-                "frequency",
-                coverage_results,
-                t,
-                output_dir=cc_output_dir,
-                coverage_subset=coverage_subset,
-            )
-            plotting.coverage_map(
-                "proportion_frequency",
-                coverage_results,
-                t,
-                output_dir=cc_output_dir,
-                coverage_subset=coverage_subset,
-            )
-            plotting.coverage_map(
-                "proportion_frequency_standardized",
-                coverage_results,
-                t,
-                output_dir=cc_output_dir,
-                coverage_subset=coverage_subset,
-            )
+    if type(metrics) is str:
+        metrics = [coverage_results["info"]["metrics"]]
 
-            # print(coverage_results['results']['performance'])
+    for t in strengths:
+        plotting.coverage_map(
+            "binary",
+            coverage_results,
+            t,
+            output_dir=cc_output_dir,
+            coverage_subset=coverage_subset,
+        )
+        plotting.coverage_map(
+            "frequency",
+            coverage_results,
+            t,
+            output_dir=cc_output_dir,
+            coverage_subset=coverage_subset,
+        )
+        plotting.coverage_map(
+            "proportion_frequency",
+            coverage_results,
+            t,
+            output_dir=cc_output_dir,
+            coverage_subset=coverage_subset,
+        )
+        plotting.coverage_map(
+            "proportion_frequency_standardized",
+            coverage_results,
+            t,
+            output_dir=cc_output_dir,
+            coverage_subset=coverage_subset,
+        )
+
+        for metric in metrics:
+            pi_perf = coverage_results["results"][t]["performance"]
+            output_json_readable(pi_perf, print_json=True)
             plotting.coverage_map(
                 "performance",
                 coverage_results,
@@ -269,14 +273,14 @@ def performance_by_interaction_vis(
                 metric=metric,
                 output_dir=cc_output_dir,
                 coverage_subset=coverage_subset,
-                pi_perf=coverage_results["results"]["performance"],
+                pi_perf=pi_perf,
             )
 
-            """interactions_consolidated = results.consolidated_interaction_info(
-                coverage_results, strengths, metric, order=order, display_n=display_n
+            interactions_consolidated = results.consolidated_interaction_info(
+                coverage_results, strengths, metric, order=display_interaction_order, display_n=display_interaction_num
             )
             plotting.plot_pbi_bar(
-                output_dir, interactions_consolidated, t, metric, display_n, order
+                output_dir, interactions_consolidated, t, metric, display_interaction_num, display_interaction_order
             )
 
             human_readable = coverage_results['results'][t]["human readable performance"][metric]
@@ -315,7 +319,7 @@ def performance_by_interaction_vis(
                 metric,
                 ranks,
                 display_all_lr,
-            )"""
+            )
 
         coverage_results = output_json_readable(
             coverage_results,

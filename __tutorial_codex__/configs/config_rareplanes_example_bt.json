@@ -3,24 +3,24 @@
     
     "codex_dir" : "__tutorial_codex__/",
     "output_dir": "__tutorial_codex__/runs/",
-    "config_id" : "EXAMPLE-de_rareplanes_ref",
+    "config_id" : "EXAMPLE-bt_rareplanes_ref",
     "dataset_name" : "RarePlanes",
     "model_name" : "",
 
     "dataset_dir" : "datasets/",
-    "dataset_filename" : "dataset_rareplanes_lightweight.csv",
-    "features" : ["Hour_of_Day", "Season", "off_nadir_max", "avg_pan_resolution", "biome", "CONTROL"],
+    "dataset_filename" : "pdb_data_no_dups-no_na.csv",
+    "features" : ["phValue", "residueCount", "densityPercentSol"],
     "binning_dir": "binning/",
-    "binning_filename" : "binning_rareplanes-complete.txt",
-    "sample_id_column" : "image_tile_id",
+    "binning_filename" : "binning_protein.txt",
+    "sample_id_column" : "sample_id_vtnsi",
 
     "universe_dir": null,
     "universe_filename": null,
     "use_augmented_universe": false,
     "counting_mode" : "label_exclusive",
-    "t": [1,2,3],
+    "t": [1],
 
     "timestamp": false,
 
-    "test_set_size_goal": 1
+    "test_set_size_goal": 100
 }
